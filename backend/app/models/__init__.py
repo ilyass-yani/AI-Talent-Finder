@@ -1,14 +1,33 @@
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Text, DateTime
-from datetime import datetime
+from app.core.database import Base
+from app.models.models import (
+    User,
+    Candidate,
+    Skill,
+    CandidateSkill,
+    Experience,
+    Education,
+    JobCriteria,
+    CriteriaSkill,
+    MatchResult,
+    Favorite,
+    UserRole,
+    SkillCategory,
+    ProficiencyLevel,
+)
 
-Base = declarative_base()
-
-class Candidate(Base):
-    __tablename__ = "candidates"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, nullable=False)
-    file_path = Column(String, nullable=False)
-    raw_text = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+__all__ = [
+    "Base",
+    "User",
+    "Candidate",
+    "Skill",
+    "CandidateSkill",
+    "Experience",
+    "Education",
+    "JobCriteria",
+    "CriteriaSkill",
+    "MatchResult",
+    "Favorite",
+    "UserRole",
+    "SkillCategory",
+    "ProficiencyLevel",
+]
