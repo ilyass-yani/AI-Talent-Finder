@@ -15,6 +15,7 @@ interface CandidateCardProps {
   linkedinUrl?: string;
 }
 
+
 export default function CandidateCard({
   id,
   fullName,
