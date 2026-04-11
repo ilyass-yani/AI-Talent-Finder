@@ -10,13 +10,17 @@ load_dotenv(dotenv_path=env_path)
 
 from app.core.database import Base, engine
 from app.models.models import User, Candidate, Skill, CandidateSkill, Experience, Education, JobCriteria, CriteriaSkill, MatchResult, Favorite
-from app.api import auth, candidates, skills, jobs, matching
+from app.api import auth, candidates, skills, jobs, matching, favorites, experiences, educations, match_results
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
-app = FastAPI(title="AI Talent Finder", version="1.0.0")
+app = FastAPI(
+    title="AI Talent Finder", 
+    version="1.0.0",
+    redirect_slashes=False
+)
 
 # Configure CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -34,6 +38,10 @@ app.include_router(candidates.router)
 app.include_router(skills.router)
 app.include_router(jobs.router)
 app.include_router(matching.router)
+app.include_router(favorites.router)
+app.include_router(experiences.router)
+app.include_router(educations.router)
+app.include_router(match_results.router)
 
 # Health check endpoint
 @app.get("/health")

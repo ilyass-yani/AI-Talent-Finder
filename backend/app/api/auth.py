@@ -15,7 +15,7 @@ from app.core.security import (
     decode_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_user
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, TokenData
 from app.models.models import User, UserRole as DBUserRole
 
@@ -131,53 +131,18 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
+async def get_me(
+    current_user: User = Depends(get_current_user),
 ) -> UserResponse:
     """
     Get current authenticated user information (ÉTAPE 3)
     
-    Requires: Bearer token in Authorization header
+    Requires: Valid JWT token in Authorization header
     """
-    # 1. Extract and validate token
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization header",
-        )
-    
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format",
-        )
-    
-    token = parts[1]
-    
-    # 2. Decode token
-    try:
-        token_data = decode_token(token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-    
-    # 3. Get user from database
-    db_user = db.query(User).filter(User.id == token_data.user_id).first()
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # 4. Return user info
     return UserResponse(
-        id=db_user.id,
-        email=db_user.email,
-        full_name=db_user.full_name,
-        role=db_user.role,
-        created_at=db_user.created_at.isoformat()
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        created_at=current_user.created_at.isoformat()
     )

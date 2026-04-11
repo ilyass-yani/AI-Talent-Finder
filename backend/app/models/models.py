@@ -37,12 +37,14 @@ class User(Base):
     # Relationships
     job_criteria = relationship("JobCriteria", back_populates="recruiter")
     favorites = relationship("Favorite", back_populates="recruiter")
+    candidate = relationship("Candidate", back_populates="user", uselist=False)
 
 
 class Candidate(Base):
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
     full_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     phone = Column(String, nullable=True)
@@ -53,6 +55,7 @@ class Candidate(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
+    user = relationship("User", back_populates="candidate", foreign_keys=[user_id])
     candidate_skills = relationship("CandidateSkill", back_populates="candidate")
     experiences = relationship("Experience", back_populates="candidate")
     educations = relationship("Education", back_populates="candidate")

@@ -16,19 +16,19 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days in minutes
 
 # Password hashing
-# Create custom CryptContext with argon2 for better security and compatibility
+# Create custom CryptContext with bcrypt (compatible and reliable)
 pwd_context = CryptContext(
-    schemes=["argon2"],
+    schemes=["bcrypt"],
     deprecated="auto"
 )
 
 
 def get_password_hash(password: str) -> str:
     """
-    Hash a password using argon2.
+    Hash a password using bcrypt.
     
     Args:
-        password: Plain text password
+        password: Plain text password (max 72 bytes due to bcrypt limitation)
         
     Returns:
         Hashed password
