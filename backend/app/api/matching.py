@@ -6,7 +6,7 @@ MODES:
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
@@ -21,6 +21,8 @@ from app.models.models import (
     Skill,
     CandidateSkill
 )
+from ai_module.nlp.profile_generator import ProfileGenerator
+from ai_module.matching.semantic_matcher import SemanticSkillMatcher
 
 
 router = APIRouter(prefix="/api/matching", tags=["matching"])
@@ -82,32 +84,65 @@ class CandidateMatchResponse(BaseModel):
 # HELPERS
 # ============================================================================
 
-def calculate_match_score(candidate: Candidate, criteria_skills: List[dict]) -> float:
+def calculate_match_score(
+    candidate: Candidate, 
+    criteria_skills: List[dict],
+    use_semantic_matching: bool = True
+) -> Tuple[float, Dict]:
     """
     Calculate match score between candidate and job criteria.
-    Simple scoring: 0-100 based on skills match
+    
+    Uses semantic matching with all-MiniLM-L6-v2 embeddings to intelligently
+    match skills even when names don't match exactly.
+    
+    Args:
+        candidate: Candidate object
+        criteria_skills: List of required skills [{"name": "Python", "weight": 100}, ...]
+        use_semantic_matching: Use semantic embeddings for matching (default: True)
+    
+    Returns:
+        Tuple of (score: float 0-100, details: dict with matching info)
     """
     if not criteria_skills:
-        return 50.0  # Default score if no criteria
+        return 50.0, {"details": "No criteria skills"}  # Default score if no criteria
     
     # Get candidate's skills
-    candidate_skill_names = {
-        skill.skill.name.lower(): skill.proficiency_level 
-        for skill in candidate.candidate_skills
-    }
+    candidate_skill_names = [skill.skill.name for skill in candidate.candidate_skills]
     
+    # Use semantic matching if enabled
+    if use_semantic_matching:
+        match_result = SemanticSkillMatcher.match_candidate_skills(
+            candidate_skills=candidate_skill_names,
+            criteria_skills=criteria_skills,
+            threshold=0.6  # 60% similarity threshold
+        )
+        
+        return float(match_result["score"]), {
+            "matched_skills": match_result["matched_skills"],
+            "total_matches": match_result["total_matches"],
+            "total_criteria": match_result["total_criteria"],
+            "details": match_result["details"],
+            "method": "semantic"
+        }
+    
+    # Fallback to exact matching
     matched_skills = 0
     total_weight = sum(s.get("weight", 50) for s in criteria_skills)
+    candidate_skills_lower = {s.lower() for s in candidate_skill_names}
     
     for criteria_skill in criteria_skills:
         skill_name = criteria_skill.get("name", "").lower()
         weight = criteria_skill.get("weight", 50)
         
-        if skill_name in candidate_skill_names:
+        if skill_name in candidate_skills_lower:
             matched_skills += weight
     
     score = (matched_skills / total_weight * 100) if total_weight > 0 else 50.0
-    return min(100.0, max(0.0, score))
+    
+    return min(100.0, max(0.0, score)), {
+        "method": "exact_match",
+        "details": f"Matched {matched_skills}/{total_weight} weight"
+    }
 
 
 # ============================================================================
@@ -161,9 +196,12 @@ async def search_candidates(
     """
     🅰️ MODE 1 - Search candidates matching criteria
     
+    Utilise semantic matching pour matcher intelligemment les compétences
+    même si les noms ne correspondent pas exactement.
+    
     Algorithme:
     1. Récupère tous les candidats
-    2. Calcule score de match pour chacun
+    2. Calcule score de match pour chacun avec embeddings sémantiques
     3. Retourne triés par score (DESC)
     """
     # Get criteria
@@ -187,14 +225,15 @@ async def search_candidates(
             for cs in criteria_skills
         ]
         
-        score = calculate_match_score(candidate, criteria_skills_dict)
+        # Now returns tuple (score, details)
+        score, details = calculate_match_score(candidate, criteria_skills_dict)
         
         matches.append(CandidateMatchResponse(
             candidate_id=candidate.id,
             full_name=candidate.full_name,
             email=candidate.email,
             match_score=score,
-            explanation=f"Matched {len([s for s in criteria_skills_dict if s['name'] in [cs.skill.name for cs in candidate.candidate_skills]])} required skills"
+            explanation=details.get("details", "")
         ))
     
     # Sort by score DESC
@@ -216,27 +255,11 @@ async def generate_ideal_profile(
     """
     🅱️ MODE 2 - Generate ideal candidate profile from job description
     
-    Utilise l'IA (would use Claude/GPT) pour:
-    1. Extraire les skills du job description
-    2. Créer un profil idéal
-    3. Retourner le profil structuré
-    
-    En MVP: Retour mockup
+    Utilise un générateur de profil local basé sur des règles simples.
     """
-    # Mock response - would use AI in production
-    ideal_profile = {
-        "title": job_title,
-        "description": description,
-        "ideal_skills": [
-            {"name": "Python", "weight": 100, "level": "advanced"},
-            {"name": "FastAPI", "weight": 90, "level": "advanced"},
-            {"name": "SQL", "weight": 80, "level": "intermediate"},
-            {"name": "Docker", "weight": 70, "level": "intermediate"},
-        ],
-        "ideal_experience_years": 5,
-        "ideal_education": "Bachelor in CS or related field",
-    }
-    
+    ideal_profile = ProfileGenerator.generate_from_text(description)
+    ideal_profile["title"] = job_title
+    ideal_profile["description"] = description
     return ideal_profile
 
 
@@ -249,7 +272,7 @@ async def generate_and_match(
     """
     🅱️ MODE 2 - Complete workflow:
     1. Generate ideal profile from description
-    2. Match against all candidates
+    2. Match against all candidates with semantic matching
     3. Return ranked results
     """
     # Step 1: Generate ideal profile
@@ -260,7 +283,7 @@ async def generate_and_match(
     matches = []
     
     for candidate in candidates:
-        score = calculate_match_score(
+        score, details = calculate_match_score(
             candidate, 
             ideal_profile.get("ideal_skills", [])
         )
@@ -270,6 +293,7 @@ async def generate_and_match(
             "full_name": candidate.full_name,
             "email": candidate.email,
             "match_score": score,
+            "matching_details": details,
             "gap_analysis": f"Missing: Docker, Additional: {len(candidate.experiences)} years experience"
         })
     

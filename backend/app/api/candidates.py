@@ -1,16 +1,18 @@
 """Candidates API routes ETAPES 5"""
-import os
 import uuid
+from datetime import datetime
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional, cast
 
 from app.core.dependencies import get_db, get_current_user
 from app.models.models import Candidate, User, UserRole
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
-from app.services.cv_extractor import extract_text_from_pdf
+from app.services.cv_extractor import extract_text_from_pdf, save_text_as_txt
+from ai_module.nlp.cv_cleaner import CVCleaner
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -179,13 +181,16 @@ async def upload_candidate_cv(
     email: str = "",
     db: Session = Depends(get_db)
 ):
-    """Upload a candidate CV file"""
-    file_content_type = file.content_type or ""
+    """Upload a candidate CV file and extract text from PDF."""
     file_name = file.filename or ""
-    if file_content_type != "application/pdf" and not file_name.lower().endswith(".pdf"):
+    file_content_type = file.content_type or ""
+
+    if file_content_type not in {"application/pdf", "text/plain"} and not (
+        file_name.lower().endswith(".pdf") or file_name.lower().endswith(".txt")
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF files are supported"
+            detail="Only PDF and text files are supported"
         )
 
     contents = await file.read()
@@ -196,41 +201,104 @@ async def upload_candidate_cv(
             detail="File size exceeds the 5 MB limit"
         )
 
-    upload_dir = Path(__file__).parent.parent.parent / "uploads" / "cvs"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
-    unique_filename = f"{uuid.uuid4()}.pdf"
-    file_path = upload_dir / unique_filename
-    file_path.write_bytes(contents)
-
     try:
-        raw_text = extract_text_from_pdf(str(file_path))
+        uploads_root = Path(__file__).resolve().parents[2] / "uploads"
+        pdf_dir = uploads_root / "cvs"
+        txt_dir = uploads_root / "txt"
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        txt_dir.mkdir(parents=True, exist_ok=True)
+
+        safe_filename = f"{uuid.uuid4().hex}_{Path(file_name).name}"
+        pdf_path = pdf_dir / safe_filename
+        pdf_path.write_bytes(contents)
+
+        # Check if it's a PDF or text file
+        if file_content_type == "application/pdf" or file_name.lower().endswith('.pdf'):
+            extracted_text = extract_text_from_pdf(str(pdf_path))
+        elif file_content_type == "text/plain" or file_name.lower().endswith('.txt'):
+            extracted_text = contents.decode('utf-8')
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only PDF and text files are supported"
+            )
+        cleaned_text = CVCleaner.clean_text(extracted_text)
+        txt_path = save_text_as_txt(cleaned_text, str(txt_dir), safe_filename)
+        fallback_email = email or f"candidate-{uuid.uuid4().hex}@example.com"
+
+        relative_pdf_path = str(pdf_path.relative_to(Path(__file__).resolve().parents[2]))
+
+        # Support both legacy and modern DB schemas for `candidates`.
+        columns_result = db.execute(
+            text(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'candidates'
+                """
+            )
+        )
+        available_columns = {cast(str, row[0]) for row in columns_result.fetchall()}
+
+        candidate_values = {
+            "full_name": full_name or "Unknown",
+            "email": fallback_email,
+            "phone": None,
+            "linkedin_url": None,
+            "github_url": None,
+            "cv_path": relative_pdf_path,
+            "file_path": relative_pdf_path,
+            "filename": file_name,
+            "raw_text": cleaned_text,
+            "created_at": datetime.utcnow(),
+        }
+
+        insert_columns = [
+            col for col in [
+                "full_name",
+                "email",
+                "phone",
+                "linkedin_url",
+                "github_url",
+                "cv_path",
+                "filename",
+                "file_path",
+                "raw_text",
+                "created_at",
+            ]
+            if col in available_columns
+        ]
+
+        if not insert_columns:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Candidates table schema is incompatible with upload endpoint"
+            )
+
+        placeholders = ", ".join(f":{col}" for col in insert_columns)
+        columns_sql = ", ".join(insert_columns)
+        insert_sql = text(
+            f"INSERT INTO candidates ({columns_sql}) VALUES ({placeholders}) RETURNING id"
+        )
+
+        result = db.execute(insert_sql, {col: candidate_values[col] for col in insert_columns})
+        candidate_id = cast(int, result.scalar_one())
+        db.commit()
+
+        return {
+            "message": "File uploaded and text extracted successfully",
+            "candidate_id": candidate_id,
+            "filename": file_name,
+            "pdf_path": str(pdf_path.relative_to(Path(__file__).resolve().parents[2])),
+            "txt_path": str(Path(txt_path).relative_to(Path(__file__).resolve().parents[2]))
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error extracting text from PDF: {str(e)}"
         )
-
-    db_candidate = Candidate(
-        full_name=full_name or "Unknown",
-        email=email or f"candidate-{unique_filename}@example.com",
-        phone=None,
-        linkedin_url=None,
-        github_url=None,
-        cv_path=str(file_path.relative_to(Path(__file__).parent.parent.parent)),
-        raw_text=raw_text
-    )
-    db.add(db_candidate)
-    db.commit()
-    db.refresh(db_candidate)
-
-    return {
-        "message": "File uploaded successfully",
-        "candidate_id": db_candidate.id,
-        "filename": unique_filename,
-        "cv_path": db_candidate.cv_path,
-        "raw_text": raw_text
-    }
 
 
 @router.get("/{candidate_id}/cv")

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiClient } from '@/services/api';
+import { candidatesApi } from '@/services/candidates';
 
 export default function UploadCV() {
   const router = useRouter();
@@ -58,24 +58,19 @@ export default function UploadCV() {
 
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // TODO: Implement CV upload endpoint
-      // const response = await apiClient.post('/candidates/upload-cv', formData);
-      
-      setMessage({ 
-        type: 'success', 
-        text: '✓ CV uploadé avec succès! L\'IA analyse ton profil...' 
+      const response = await candidatesApi.uploadCV(file);
+      setMessage({
+        type: 'success',
+        text: '✓ CV uploadé avec succès! L\'IA analyse ton profil...'
       });
-      
+
       setTimeout(() => {
         router.push('/candidate/profile');
       }, 2000);
     } catch (error: any) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.detail || 'Erreur lors de l\'upload' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.detail || 'Erreur lors de l\'upload'
       });
     } finally {
       setLoading(false);

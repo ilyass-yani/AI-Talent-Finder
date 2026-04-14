@@ -4,14 +4,15 @@ sqlalchemy==2.0.*
 alembic==1.14.*
 psycopg2-binary==2.9.*
 python-jose[cryptography]==3.3.*
-passlib[bcrypt]==1.8.*
-passlib-totp==1.6.*
-argon2-cffi==25.1.*
-bcrypt==4.0.*
+passlib[bcrypt]==1.7.*
+argon2-cffi==21.3.*
+bcrypt==4.1.*
 python-multipart==0.0.*
 pydantic[email]==2.*
-pymupdf==1.25.*              # Extraction texte PDF
-spacy==3.8.*                  # NLP
-scikit-learn==1.6.*           # Similarité cosinus
-anthropic==0.45.*             # API LLM pour chatbot
+pymupdf==1.25.*
+spacy==3.8.*
+scikit-learn==1.6.*
+transformers>=4.30.0
+torch>=2.0.0
+sentence-transformers>=3.0.0
 python-dotenv==1.0.*
