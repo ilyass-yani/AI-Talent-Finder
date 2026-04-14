@@ -13,6 +13,42 @@ export interface Candidate {
   created_at: string;
 }
 
+// Extracted data types
+export interface Skill {
+  id: number;
+  name: string;
+  proficiency_level: string;
+  category?: string;
+  source?: string;
+}
+
+export interface Experience {
+  id: number;
+  job_title: string;
+  company: string;
+  duration_months: number;
+  description?: string;
+}
+
+export interface Education {
+  id: number;
+  degree: string;
+  institution: string;
+  field_of_study?: string;
+  graduation_year?: number;
+}
+
+export interface CandidateProfile {
+  candidate_id: number;
+  filename: string;
+  skills_count: number;
+  experiences_count: number;
+  educations_count: number;
+  skills: Skill[];
+  experiences: Experience[];
+  educations: Education[];
+}
+
 export const candidatesApi = {
   // GET /api/candidates/ — Liste tous les candidats
   getCandidates: (skip = 0, limit = 100) =>
@@ -21,6 +57,22 @@ export const candidatesApi = {
   // GET /api/candidates/:id — Détail d'un candidat
   getCandidate: (id: number) =>
     apiClient.get<Candidate>(`/api/candidates/${id}`),
+
+  // GET /api/candidates/:id/profile-complete — Récupérer le profil complet avec toutes les données extraites
+  getCandidateProfile: (id: number) =>
+    apiClient.get<CandidateProfile>(`/api/candidates/${id}/profile-complete`),
+
+  // GET /api/candidates/:id/skills — Récupérer les compétences
+  getCandidateSkills: (id: number) =>
+    apiClient.get<{ skills: Skill[] }>(`/api/candidates/${id}/skills`),
+
+  // GET /api/candidates/:id/experiences — Récupérer les expériences
+  getCandidateExperiences: (id: number) =>
+    apiClient.get<{ experiences: Experience[] }>(`/api/candidates/${id}/experiences`),
+
+  // GET /api/candidates/:id/educations — Récupérer les formations
+  getCandidateEducations: (id: number) =>
+    apiClient.get<{ educations: Education[] }>(`/api/candidates/${id}/educations`),
 
   // POST /api/candidates/upload — Upload CV (file + full_name + email)
   uploadCV: (file: File, fullName?: string, email?: string) => {

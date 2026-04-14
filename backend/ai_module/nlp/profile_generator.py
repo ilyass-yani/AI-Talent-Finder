@@ -22,11 +22,53 @@ except ImportError:
 class ProfileGenerator:
     """
     Profile generator that can use either rule-based or AI-powered approaches.
+    
+    HUGGING FACE MODEL CONFIGURATION:
+    ================================
+    
+    To enable AI-powered profile generation from Hugging Face models:
+    
+    1. Install transformers if not already installed:
+       pip install transformers torch
+    
+    2. Set environment variables:
+       export USE_AI_PROFILE_GENERATOR=true
+       export HF_PROFILE_MODEL="model-name-here"
+    
+    3. Available model types and examples:
+    
+       A) Token Classification (NER) - Recommended for CV parsing:
+          - dslim/bert-base-multilingual-cased-ner-hrl
+          - dbmdz/bert-base-french-europeana-cased
+          Usage: Extracts entities (companies, skills, positions)
+       
+       B) Text Generation / Summarization:
+          - facebook/bart-large-cnn (summarization)
+          - t5-small (text-to-text)
+          - microsoft/DialoGPT-medium (conversational)
+          Usage: Generates structured profiles from descriptions
+       
+       C) Document Classification:
+          - distilbert-base-uncased-finetuned-sst-2-english
+          Usage: Categorizes CV sections and skills
+    
+    4. Custom model setup:
+       - Download from huggingface.co
+       - Set HF_PROFILE_MODEL to your model ID
+       - Adjust _generate_with_ai() based on model output format
+    
+    5. Model loading is lazy (first use triggers download)
+       - Models are cached in ~/.cache/huggingface
+       - First load takes time (depends on model size)
     """
 
-    # Configuration
+    # Configuration for Hugging Face models
+    # ==== CUSTOMIZE THESE FOR YOUR AI MODEL ====
     USE_AI_MODEL = os.getenv("USE_AI_PROFILE_GENERATOR", "false").lower() == "true"
-    HF_MODEL_NAME = os.getenv("HF_PROFILE_MODEL", "facebook/bart-large-cnn")  # Default summarization model
+    HF_PROFILE_MODEL = os.getenv("HF_PROFILE_MODEL", "facebook/bart-large-cnn")  # Default: Summarization model
+    
+    # Optional: NER model for entity extraction (highly recommended for CVs)
+    HF_NER_MODEL = os.getenv("HF_NER_MODEL", "dslim/bert-base-multilingual-cased-ner-hrl")  # Named Entity Recognition
 
     # Cache for loaded models
     _model_cache = {}
@@ -72,6 +114,11 @@ class ProfileGenerator:
     def _load_ai_model(cls, model_name: str = None) -> Optional[Any]:
         """
         Load and cache a Hugging Face model for profile generation.
+        
+        CUSTOMIZE: Update this method when using a specific model type:
+        - For NER models: use pipeline("token-classification", model=model_name)
+        - For text generation: use pipeline("text-generation", model=model_name)
+        - For QA: use pipeline("question-answering", model=model_name)
         """
         if not HF_AVAILABLE:
             print("Hugging Face not available. Install with: pip install transformers torch")

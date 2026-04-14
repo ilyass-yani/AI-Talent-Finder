@@ -59,6 +59,12 @@ export default function UploadCV() {
     setLoading(true);
     try {
       const response = await candidatesApi.uploadCV(file);
+      
+      // Save candidate ID from response
+      if (response.data.candidate_id) {
+        localStorage.setItem('candidateId', response.data.candidate_id.toString());
+      }
+      
       setMessage({
         type: 'success',
         text: '✓ CV uploadé avec succès! L\'IA analyse ton profil...'

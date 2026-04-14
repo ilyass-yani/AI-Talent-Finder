@@ -44,18 +44,22 @@ class Candidate(Base):
     __tablename__ = "candidates"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
-    full_name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    raw_text = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Optional columns (will be added via migration)
+    full_name = Column(String, nullable=True)
+    email = Column(String, nullable=True, unique=True, index=True)
     phone = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     github_url = Column(String, nullable=True)
     cv_path = Column(String, nullable=True)
-    raw_text = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
 
-    # Relationships
-    user = relationship("User", back_populates="candidate", foreign_keys=[user_id])
+    # Relationships (conditional on column existence)
+    user = relationship("User", back_populates="candidate", foreign_keys=[user_id], lazy="select")
     candidate_skills = relationship("CandidateSkill", back_populates="candidate")
     experiences = relationship("Experience", back_populates="candidate")
     educations = relationship("Education", back_populates="candidate")

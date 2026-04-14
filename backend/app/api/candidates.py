@@ -12,10 +12,11 @@ from app.core.dependencies import get_db, get_current_user
 from app.models.models import Candidate, User, UserRole
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
 from app.services.cv_extractor import extract_text_from_pdf, save_text_as_txt
+from app.services.skill_service import SkillService
+from app.services.cv_extraction_service import CVExtractionService
 from ai_module.nlp.cv_cleaner import CVCleaner
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
-
 
 
 @router.get("/", response_model=List[CandidateResponse])
@@ -285,12 +286,27 @@ async def upload_candidate_cv(
         candidate_id = cast(int, result.scalar_one())
         db.commit()
 
+        # ÉTAPE 6: Extract ALL information from CV (skills, experiences, educations, contact info)
+        cv_extraction_service = CVExtractionService(db)
+        extraction_result = cv_extraction_service.extract_all(
+            candidate_id=candidate_id,
+            cv_text=cleaned_text
+        )
+
         return {
-            "message": "File uploaded and text extracted successfully",
+            "message": "File uploaded and all information extracted successfully",
             "candidate_id": candidate_id,
             "filename": file_name,
             "pdf_path": str(pdf_path.relative_to(Path(__file__).resolve().parents[2])),
-            "txt_path": str(Path(txt_path).relative_to(Path(__file__).resolve().parents[2]))
+            "txt_path": str(Path(txt_path).relative_to(Path(__file__).resolve().parents[2])),
+            "extraction_result": {
+                "success": extraction_result.get("success"),
+                "contact_info": extraction_result.get("contact_info", {}),
+                "skills_extracted": len(extraction_result.get("skills", [])),
+                "experiences_extracted": len(extraction_result.get("experiences", [])),
+                "educations_extracted": len(extraction_result.get("educations", [])),
+                "errors": extraction_result.get("errors", [])
+            }
         }
     except HTTPException:
         raise
@@ -333,3 +349,238 @@ def download_candidate_cv(
         media_type="application/pdf",
         filename=file_path.name
     )
+
+
+@router.get("/{candidate_id}/skills")
+def get_candidate_skills(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all extracted skills for a candidate with their proficiency levels"""
+    skill_service = SkillService(db)
+    result = skill_service.get_candidate_skills(candidate_id)
+    
+    if "error" in result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=result["error"]
+        )
+    
+    return result
+
+
+@router.get("/{candidate_id}/experiences")
+def get_candidate_experiences(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all extracted work experiences for a candidate"""
+    try:
+        result = db.execute(
+            text("SELECT id FROM candidates WHERE id = :id"),
+            {"id": candidate_id}
+        ).first()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Candidate {candidate_id} not found"
+            )
+        
+        # Get all experiences
+        experiences = db.execute(
+            text("""
+                SELECT id, title, company, duration_months, description
+                FROM experiences
+                WHERE candidate_id = :candidate_id
+                ORDER BY id DESC
+            """),
+            {"candidate_id": candidate_id}
+        ).fetchall()
+        
+        experiences_list = [
+            {
+                "id": exp[0],
+                "title": exp[1],
+                "company": exp[2],
+                "duration_months": exp[3],
+                "description": exp[4]
+            }
+            for exp in experiences
+        ]
+        
+        return {
+            "candidate_id": candidate_id,
+            "experiences_count": len(experiences_list),
+            "experiences": experiences_list
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching experiences: {str(e)}"
+        )
+
+
+@router.get("/{candidate_id}/educations")
+def get_candidate_educations(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all extracted education records for a candidate"""
+    try:
+        result = db.execute(
+            text("SELECT id FROM candidates WHERE id = :id"),
+            {"id": candidate_id}
+        ).first()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Candidate {candidate_id} not found"
+            )
+        
+        # Get all educations
+        educations = db.execute(
+            text("""
+                SELECT id, degree, institution, field, year
+                FROM educations
+                WHERE candidate_id = :candidate_id
+                ORDER BY year DESC, id DESC
+            """),
+            {"candidate_id": candidate_id}
+        ).fetchall()
+        
+        educations_list = [
+            {
+                "id": edu[0],
+                "degree": edu[1],
+                "institution": edu[2],
+                "field": edu[3],
+                "year": edu[4]
+            }
+            for edu in educations
+        ]
+        
+        return {
+            "candidate_id": candidate_id,
+            "educations_count": len(educations_list),
+            "educations": educations_list
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching educations: {str(e)}"
+        )
+
+
+@router.get("/{candidate_id}/profile-complete")
+def get_candidate_complete_profile(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get complete candidate profile with all extracted information"""
+    try:
+        # Get candidate basic info (use columns that actually exist)
+        candidate = db.execute(
+            text("""
+                SELECT id, filename
+                FROM candidates
+                WHERE id = :id
+            """),
+            {"id": candidate_id}
+        ).first()
+        
+        if not candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Candidate {candidate_id} not found"
+            )
+        
+        candidate_id_db, filename = candidate
+        
+        # Get skills
+        skills = db.execute(
+            text("""
+                SELECT cs.id, s.name, s.category, cs.proficiency_level, cs.source
+                FROM candidate_skills cs
+                JOIN skills s ON cs.skill_id = s.id
+                WHERE cs.candidate_id = :candidate_id
+            """),
+            {"candidate_id": candidate_id}
+        ).fetchall()
+        
+        skills_list = [
+            {
+                "id": s[0],
+                "name": s[1],
+                "category": s[2],
+                "proficiency_level": s[3],
+                "source": s[4]
+            }
+            for s in skills
+        ]
+        
+        # Get experiences
+        experiences = db.execute(
+            text("""
+                SELECT id, title, company, duration_months, description
+                FROM experiences
+                WHERE candidate_id = :candidate_id
+                ORDER BY id DESC
+            """),
+            {"candidate_id": candidate_id}
+        ).fetchall()
+        
+        experiences_list = [
+            {
+                "id": exp[0],
+                "title": exp[1],
+                "company": exp[2],
+                "duration_months": exp[3],
+                "description": exp[4]
+            }
+            for exp in experiences
+        ]
+        
+        # Get educations
+        educations = db.execute(
+            text("""
+                SELECT id, degree, institution, field, year
+                FROM educations
+                WHERE candidate_id = :candidate_id
+                ORDER BY year DESC, id DESC
+            """),
+            {"candidate_id": candidate_id}
+        ).fetchall()
+        
+        educations_list = [
+            {
+                "id": edu[0],
+                "degree": edu[1],
+                "institution": edu[2],
+                "field": edu[3],
+                "year": edu[4]
+            }
+            for edu in educations
+        ]
+        
+        return {
+            "candidate_id": candidate_id_db,
+            "filename": filename,
+            "skills_count": len(skills_list),
+            "skills": skills_list,
+            "experiences_count": len(experiences_list),
+            "experiences": experiences_list,
+            "educations_count": len(educations_list),
+            "educations": educations_list
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching complete profile: {str(e)}"
+        )

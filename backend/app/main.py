@@ -1,8 +1,11 @@
 import os
+import logging
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables from root .env file
 env_path = Path(__file__).parent.parent.parent / ".env"
@@ -11,9 +14,21 @@ load_dotenv(dotenv_path=env_path)
 from app.core.database import Base, engine
 from app.models.models import User, Candidate, Skill, CandidateSkill, Experience, Education, JobCriteria, CriteriaSkill, MatchResult, Favorite
 from app.api import auth, candidates, skills, jobs, matching, favorites, experiences, educations, match_results
+from app.core.nlp_container import NLPContainer
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
+
+# Load NLP service at startup (one-time)
+try:
+    nlp_service = NLPContainer.get_service()
+    if nlp_service:
+        logger.info("✓ NLP Service loaded successfully")
+    else:
+        logger.warning("⚠ NLP Service not available - using regex extraction only")
+except Exception as e:
+    logger.error(f"Error loading NLP Service: {e}")
+    nlp_service = None
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -47,4 +62,8 @@ app.include_router(match_results.router)
 @app.get("/health")
 def health():
     """Health check endpoint"""
-    return {"status": "ok", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "version": "1.0.0",
+        "nlp_service_available": nlp_service is not None
+    }
