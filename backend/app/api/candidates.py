@@ -1,13 +1,19 @@
-"""Candidates API routes"""
+"""Candidates API routes ETAPES 5"""
+import os
+import uuid
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, cast
 
 from app.core.dependencies import get_db, get_current_user
-from app.models.models import Candidate, User
+from app.models.models import Candidate, User, UserRole
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
+from app.services.cv_extractor import extract_text_from_pdf
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
+
 
 
 @router.get("/", response_model=List[CandidateResponse])
@@ -107,7 +113,8 @@ def get_my_candidate_profile(
     db: Session = Depends(get_db)
 ):
     """Get my candidate profile (authenticated candidate only)"""
-    if current_user.role != "candidate":
+    current_user_role = cast(UserRole, current_user.role)
+    if current_user_role != UserRole.candidate:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only candidates can access this endpoint"
@@ -131,7 +138,8 @@ def create_or_update_my_profile(
     db: Session = Depends(get_db)
 ):
     """Create or update my candidate profile (authenticated candidate only)"""
-    if current_user.role != "candidate":
+    current_user_role = cast(UserRole, current_user.role)
+    if current_user_role != UserRole.candidate:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only candidates can access this endpoint"
@@ -172,28 +180,88 @@ async def upload_candidate_cv(
     db: Session = Depends(get_db)
 ):
     """Upload a candidate CV file"""
-    try:
-        contents = await file.read()
-        # Here you would process the PDF file and extract text
-        # For now, we'll just save the file information
-        
-        db_candidate = Candidate(
-            full_name=full_name or "Unknown",
-            email=email or f"candidate-{file.filename}@example.com",
-            cv_path=f"uploads/cvs/{file.filename}",
-            raw_text=None  # Would be populated after extraction
+    file_content_type = file.content_type or ""
+    file_name = file.filename or ""
+    if file_content_type != "application/pdf" and not file_name.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are supported"
         )
-        db.add(db_candidate)
-        db.commit()
-        db.refresh(db_candidate)
-        
-        return {
-            "message": "File uploaded successfully",
-            "candidate_id": db_candidate.id,
-            "filename": file.filename
-        }
+
+    contents = await file.read()
+    max_size_bytes = 5 * 1024 * 1024
+    if len(contents) > max_size_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds the 5 MB limit"
+        )
+
+    upload_dir = Path(__file__).parent.parent.parent / "uploads" / "cvs"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    unique_filename = f"{uuid.uuid4()}.pdf"
+    file_path = upload_dir / unique_filename
+    file_path.write_bytes(contents)
+
+    try:
+        raw_text = extract_text_from_pdf(str(file_path))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error uploading file: {str(e)}"
+            detail=f"Error extracting text from PDF: {str(e)}"
         )
+
+    db_candidate = Candidate(
+        full_name=full_name or "Unknown",
+        email=email or f"candidate-{unique_filename}@example.com",
+        phone=None,
+        linkedin_url=None,
+        github_url=None,
+        cv_path=str(file_path.relative_to(Path(__file__).parent.parent.parent)),
+        raw_text=raw_text
+    )
+    db.add(db_candidate)
+    db.commit()
+    db.refresh(db_candidate)
+
+    return {
+        "message": "File uploaded successfully",
+        "candidate_id": db_candidate.id,
+        "filename": unique_filename,
+        "cv_path": db_candidate.cv_path,
+        "raw_text": raw_text
+    }
+
+
+@router.get("/{candidate_id}/cv")
+def download_candidate_cv(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Download the original CV PDF for a candidate"""
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+
+    cv_path = cast(Optional[str], candidate.cv_path)
+    if not cv_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No CV file associated with this candidate"
+        )
+
+    file_path = Path(__file__).parent.parent.parent / cv_path
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="CV file not found on server"
+        )
+
+    return FileResponse(
+        path=str(file_path),
+        media_type="application/pdf",
+        filename=file_path.name
+    )
