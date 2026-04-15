@@ -1,0 +1,44 @@
+--- PAGE 1 ---
+Thomas Lefèvre
+Data Analyst — Business Intelligence & Visualisation
+t.lefevre@datamail.fr • +33 6 98 76 54 32 • Nantes, France • linkedin.com/in/thomaslefevre-data
+PROFIL
+Data Analyst avec 5 ans d'expérience dans la transformation de données brutes en insights actionnables pour des
+équipes métier. Spécialisé en SQL avancé, Python analytique et dashboarding (Power BI, Tableau). Passionné par la
+data quality et la démocratisation de la donnée au sein des organisations.
+EXPÉRIENCES PROFESSIONNELLES
+Data Analyst Senior
+Neopharma (pharmaceutique) | Fév. 2022 – Présent | Nantes
+• Construction et maintenance d'un data warehouse sur Snowflake (modélisation en étoile, dbt)
+• Développement de 12 dashboards Power BI utilisés par 200+ utilisateurs internes
+• Analyse des performances commerciales et propositions ayant généré +2M€ de CA additionnel
+• Référent data quality : implémentation de contrôles automatisés (Great Expectations)
+Data Analyst
+Vinci Energies | Sep. 2019 – Jan. 2022 | Saint-Herblain
+• Automatisation de 8 rapports Excel récurrents via Python (pandas, openpyxl) — gain de 15h/semaine
+• Analyse des données chantiers pour optimisation des plannings et ressources
+• Création de tableaux de bord Tableau pour le suivi KPI des directeurs régionaux
+Analyste Junior — Stage puis CDI
+Decathlon Digital | Mar. 2018 – Aoû. 2019 | Villeneuve-d'Ascq
+• Analyse du parcours client e-commerce via Google Analytics et Adobe Analytics
+• Support aux équipes produit pour le suivi des A/B tests (VWO)
+FORMATION
+Master Statistiques & Informatique Décisionnelle
+Université de Nantes | 2018
+Mention : Bien
+Licence Mathématiques Appliquées
+Université de Nantes | 2016
+COMPÉTENCES
+Langages
+SQL (avancé), Python (pandas, numpy, matplotlib), R (bases)
+BI / Viz
+Power BI, Tableau, Looker, Metabase
+Data Eng.
+Snowflake, dbt, Airflow (bases), BigQuery
+Outils
+Excel avancé, Git, Confluence, Jira, Notion
+LANGUES
+Français — Langue maternelle
+Anglais — Courant (C1) — documentation technique et réunions internationales
+CENTRES D'INTÉRÊT
+Running (semi-marathon) • Data visualisation créative (blog personnel) • Jeux de société • Guitare

@@ -1,0 +1,114 @@
+{
+  "success": true,
+  "file": "a2f7242008414d5dbe2b8983038822f4_test1.pdf",
+  "source_type": "pdf",
+  "metadata": {
+    "title": "CV - Exemple Type",
+    "author": "",
+    "pages": 1,
+    "has_images": true,
+    "file_type": "pdf"
+  },
+  "extraction": {
+    "pages": 1,
+    "images_detected": 1,
+    "text_length": 1304
+  },
+  "parsed_entities": {
+    "EDUCATION": [
+      {
+        "value": "K",
+        "confidence": 0.7720000147819519
+      },
+      {
+        "value": "##yl",
+        "confidence": 0.8730000257492065
+      },
+      {
+        "value": "##ian",
+        "confidence": 0.9100000262260437
+      }
+    ],
+    "PHONE": [
+      {
+        "value": "Ad",
+        "confidence": 0.9300000071525574
+      },
+      {
+        "value": "##ress",
+        "confidence": 0.9779999852180481
+      },
+      {
+        "value": "##e",
+        "confidence": 0.984000027179718
+      },
+      {
+        "value": "de",
+        "confidence": 0.5640000104904175
+      },
+      {
+        "value": "Libération",
+        "confidence": 0.7590000033378601
+      },
+      {
+        "value": "Bond",
+        "confidence": 0.8999999761581421
+      },
+      {
+        "value": "##y Téléphone",
+        "confidence": 0.718999981880188
+      },
+      {
+        "value": "St",
+        "confidence": 0.9750000238418579
+      },
+      {
+        "value": "##ain",
+        "confidence": 0.984000027179718
+      },
+      {
+        "value": "##s",
+        "confidence": 0.9819999933242798
+      },
+      {
+        "value": "Seine Saint Denis",
+        "confidence": 0.9800000190734863
+      },
+      {
+        "value": "Col",
+        "confidence": 0.6330000162124634
+      },
+      {
+        "value": "##l",
+        "confidence": 0.4399999976158142
+      },
+      {
+        "value": "##s Matières",
+        "confidence": 0.8579999804496765
+      },
+      {
+        "value": "R",
+        "confidence": 0.9769999980926514
+      },
+      {
+        "value": "##o",
+        "confidence": 0.9779999852180481
+      }
+    ],
+    "EMAIL": [
+      {
+        "value": "La",
+        "confidence": 0.5059999823570251
+      }
+    ],
+    "NAME": [
+      {
+        "value": "Pablo Neruda",
+        "confidence": 0.8460000157356262
+      }
+    ],
+    "languages": []
+  },
+  "extracted_text": "--- PAGE 1 ---\nKylian DUPONT\n\nAdresse : 1 rue de La Libération, 93140 Bondy\nTéléphone : 06 07 08 09 10\nAdresse Mail : kylian.dupont@gmail.com \nÂge : 14 ans\nÉlève en classe de 3ème au collège Pablo Neruda (à Stains, Seine Saint Denis), en \nrecherche d’un stage du 12 au 16 décembre 2022, dans le secteur des jeux vidéo. \nÉTUDES / DIPLÔMES \n2019-2023 : élève au Collège Pablo Neruda, Stains\nMatières favorites : anglais, informatique.\nOption : latin.\nParticipation au voyage scolaire à Rome en 2019\nEXPÉRIENCES & SAVOIR-FAIRE\nBaby-sitting : garde d’enfants de 6 à 10 ans, une fois par semaine depuis un an.\nInformatique : travail sur un ordinateur, utilisation de Word et PowerPoint.\nDélégué de classe en 6e : dialogue avec les professeurs, participation aux conseils \nde classe.\nAttestation de Sécurité routière (ASSR1).\nLangues : anglais et espagnol (niveau scolaire), arabe (lu, écrit, parlé).\nLOISIRS & CENTRES D’INTÉRÊT\nSport : membre du club de football de Bondy (2 entraînements et 1 match par \nsemaine ; participation à la compétition départementale)\nLecture : mangas, romans\nVoyages : Espagne, Angleterre, Maroc.\nAutres activités possibles : cuisine, dessin, bricolage, club du collège, réalisation de film ou \npièce de théâtre, sorties scolaires, aide au travail de ses parents…\nPhoto optionnelle",
+  "timestamp": "2026-04-15T22:17:32.859401"
+}

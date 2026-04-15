@@ -20,8 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add missing columns to candidates table
-    # Check if columns exist before adding
-    with op.batch_operations.batch_alter_table('candidates', schema=None) as batch_op:
+    with op.batch_alter_table('candidates', schema=None) as batch_op:
         # Add full_name if not exists
         try:
             batch_op.add_column(sa.Column('full_name', sa.String(), nullable=True))
@@ -67,7 +66,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # Remove the added columns
-    with op.batch_operations.batch_alter_table('candidates', schema=None) as batch_op:
+    with op.batch_alter_table('candidates', schema=None) as batch_op:
         try:
             batch_op.drop_column('cv_path')
         except:

@@ -64,7 +64,7 @@ class SkillExtractor:
                     category_map[skill.lower()] = category
         return category_map
     
-    def extract_skills(self, text: str, threshold: int = 80) -> List[Dict]:
+    def extract_skills(self, text: str, threshold: int = 90) -> List[Dict]:
         """
         Extract skills from text
         
@@ -102,22 +102,34 @@ class SkillExtractor:
         # 2. Fuzzy matching for variations
         words = re.findall(r'\b[\w\-]+\b', text_lower)
         unique_words = list(set(words))
+
+        stopwords = {
+            "resume", "cv", "profile", "profil", "experience", "expérience", "expériences",
+            "education", "education", "formation", "formations", "skills", "competences", "compétences",
+            "contact", "address", "adresse", "telephone", "téléphone", "email", "mail", "page",
+            "photo", "objective", "summary", "about", "me"
+        }
         
         for word in unique_words:
-            if word not in seen and len(word) > 2:
-                # Find best match in skills dictionary
-                matches = process.extract(word, self.all_skills, limit=1, scorer=fuzz.token_sort_ratio)
-                
-                if matches and matches[0][1] >= threshold:
-                    best_match = matches[0][0]
-                    if best_match.lower() not in seen:
-                        extracted.append({
-                            "name": best_match,
-                            "category": self.skill_categories.get(best_match.lower(), "unknown"),
-                            "method": "fuzzy",
-                            "confidence": matches[0][1]
-                        })
-                        seen.add(best_match.lower())
+            if word in stopwords or word in seen or len(word) < 4:
+                continue
+
+            if word.isdigit() or re.fullmatch(r"\d+", word):
+                continue
+
+            # Find best match in skills dictionary
+            matches = process.extract(word, self.all_skills, limit=1, scorer=fuzz.token_sort_ratio)
+
+            if matches and matches[0][1] >= threshold:
+                best_match = matches[0][0]
+                if best_match.lower() not in seen:
+                    extracted.append({
+                        "name": best_match,
+                        "category": self.skill_categories.get(best_match.lower(), "unknown"),
+                        "method": "fuzzy",
+                        "confidence": matches[0][1]
+                    })
+                    seen.add(best_match.lower())
         
         return extracted
     

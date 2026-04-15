@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "file": "c720798c6ca54052a8ac01a75f1b2c3a_test1.pdf",
+  "metadata": {
+    "title": "CV - Exemple Type",
+    "author": "",
+    "pages": 1,
+    "has_images": true
+  },
+  "extraction": {
+    "pages": 1,
+    "images_detected": 1,
+    "text_length": 1326
+  },
+  "parsed_entities": {
+    "EDUCATION": [
+      {
+        "value": "K",
+        "confidence": 

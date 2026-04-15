@@ -5,6 +5,14 @@ from sqlalchemy import pool
 
 from alembic import context
 
+# Load environment variables from .env file before importing app modules
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

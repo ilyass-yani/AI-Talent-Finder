@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "file": "7cb0a5b004bb4faf9ccb9dd0f0ae580d_test5.pdf",
+  "source_type": "pdf",
+  "metadata": {
+    "title": "(anonymous)",
+    "author": "(anonymous)",
+    "pages": 2,
+    "has_images": false,
+    "file_type": "pdf"
+  },
+  "extraction": {
+    "pages": 2,
+    "images_detected": 0,
+    "text_length": 2160
+  },
+  "parsed_entities": {
+    "NAME": [
+      {
+        "value": "Sophie Marchand",
+        "confidence": 0.996999979019165
+      }
+    ],
+    "PHONE": [
+      {
+        "value": "Lyon",
+        "confidence": 0.9950000047683716
+      },
+      {
+        "value": "France",
+        "confidence": 0.9959999918937683
+      }
+    ],
+    "languages": [
+      {
+        "language": "French",
+        "confidence": 0.9,
+        "type": "implicit"
+      }
+    ]
+  },
+  "extracted_text": "--- PAGE 1 ---\nSophie Marchand\nResponsable Marketing Digital — Growth & Acquisition\nsophie.marchand@promail.fr • +33 7 45 67 89 10 • Lyon, France • linkedin.com/in/sophiemarchand\nPROFIL\nResponsable marketing digital avec 6 ans d'expérience en acquisition payante, SEO et stratégie de contenu. J'ai géré\ndes budgets publicitaires jusqu'à 500k€/an et conduit des campagnes multi-canaux pour des marques B2C et B2B.\nOrientée résultats, j'allie créativité et rigueur analytique.\nEXPÉRIENCES PROFESSIONNELLES\nHead of Digital Marketing\nMaison Léa (e-commerce mode) | Jan. 2022 – Présent | Lyon\n• Pilotage d'un budget publicitaire de 480k€/an sur Google Ads, Meta Ads et Pinterest\n• Croissance du chiffre d'affaires online de +65% en 18 mois grâce à une stratégie full-funnel\n• Refonte complète du SEO : +120% de trafic organique en 12 mois (audit, cocon sémantique, netlinking)\n• Management d'une équipe de 3 personnes (community manager, rédactrice, graphiste)\nChargée d'Acquisition & SEA\nAgenceClick360 | Mar. 2019 – Déc. 2021 | Paris\n• Gestion de 15 comptes clients (e-commerce, services, immobilier) — budgets de 10k à 80k€/mois\n• Réduction du CPA moyen de 28% grâce à l'optimisation des enchères Smart Bidding\n• Formation et accompagnement des clients sur Google Analytics 4 et Data Studio\nAssistante Marketing\nGroupe Rhône Presse | Sep. 2017 – Fév. 2019 | Lyon\n• Animation des réseaux sociaux (Facebook, Instagram, LinkedIn) — communauté de 80k abonnés\n• Rédaction de newsletters bi-hebdomadaires (taux d'ouverture moyen : 34%)\nFORMATION\nMaster 2 Marketing & Communication Digitale\nIAE Lyon | 2017\nMention : Bien\nLicence Éco-Gestion\nUniversité Lyon 2 | 2015\nCOMPÉTENCES\nAcquisition\nGoogle Ads, Meta Ads, LinkedIn Ads, Pinterest Ads\nSEO / Contenu\nSemrush, Screaming Frog, Ahrefs, WordPress\nAnalytics\nGoogle Analytics 4, Looker Studio, Hotjar, A/B testing\nOutils\nHubSpot, Mailchimp, Canva, Trello, Slack\nLANGUES\nFrançais — Langue maternelle\nAnglais — Courant (B2) — lectures professionnelles quotidiennes\nEspagnol — Intermédiaire (B1)\nCENTRES D'INTÉRÊT\n\n--- PAGE 2 ---\nYoga & méditation • Voyages (30+ pays) • Photographie argentique • Lecture (essais marketing)",
+  "timestamp": "2026-04-15T22:36:51.095021"
+}

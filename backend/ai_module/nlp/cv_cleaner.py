@@ -13,33 +13,37 @@ class CVCleaner:
     @staticmethod
     def clean_text(text: str) -> str:
         """
-        Clean and normalize CV text
+        Clean and normalize CV text while PRESERVING important contact information
         
         Args:
             text: Raw CV text
         
         Returns:
-            Cleaned text
+            Cleaned text (emails, URLs, phones preserved)
         """
         if not text:
             return ""
         
-        # 1. Remove extra whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
+        # 1. Normalize whitespace (preserve paragraph structure)
+        # Replace multiple spaces/tabs with single space
+        text = re.sub(r'[ \t]+', ' ', text)
+        # Replace multiple newlines with double newline
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
         
-        # 2. Remove URLs
-        text = re.sub(r'http\S+|www\S+', '', text)
+        # 2. Remove control characters and unusual Unicode
+        text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
         
-        # 3. Remove email patterns
-        text = re.sub(r'[\w\.-]+@[\w\.-]+\.\w+', '', text)
+        # 3. Fix common OCR artifacts
+        # Replace common character substitutions
+        text = text.replace('|', 'I')  # Vertical bar often becomes I
         
-        # 4. Remove phone numbers
-        text = re.sub(r'\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b', '', text)
+        # 4. Clean up excessive punctuation
+        text = re.sub(r'([.!?,;:]){2,}', r'\1', text)
         
-        # 5. Remove special characters but keep spaces
-        text = re.sub(r'[^a-zA-Z0-9\s\-]', '', text)
+        # 5. Normalize common abbreviations spacing
+        text = re.sub(r'\b([A-Z])\.\s+([A-Z])', r'\1. \2', text)
         
-        return text
+        return text.strip()
     
     @staticmethod
     def extract_sections(text: str) -> dict:
@@ -59,11 +63,23 @@ class CVCleaner:
             "summary": ""
         }
         
-        # Common section headers (case-insensitive)
-        exp_patterns = [r'(?:professional\s+)?experience', r'work\s+history', r'employment history']
-        edu_patterns = [r'education', r'academic background', r'qualifications']
-        skill_patterns = [r'skills?', r'competencies', r'technical skills']
-        summary_patterns = [r'summary', r'objective', r'professional summary', r'about me']
+        # Common section headers (case-insensitive) in English and French
+        exp_patterns = [
+            r'(?:professional\s+)?experience', r'work\s+history', r'employment history',
+            r'exp[ée]rience(?:s)?', r'exp[ée]riences\s+professionnelles?'
+        ]
+        edu_patterns = [
+            r'education', r'academic background', r'qualifications',
+            r'formation(?:s)?', r'dipl[ôo]me(?:s)?', r'parcours\s+scolaire'
+        ]
+        skill_patterns = [
+            r'skills?', r'competencies', r'technical skills',
+            r'comp[ée]tences?', r'savoir[-\s]?faire'
+        ]
+        summary_patterns = [
+            r'summary', r'objective', r'professional summary', r'about me',
+            r'profil', r'r[ée]sum[ée]', r'pr[ée]sentation'
+        ]
         
         text_lower = text.lower()
         

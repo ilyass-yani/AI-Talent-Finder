@@ -1,0 +1,50 @@
+{
+  "success": true,
+  "file": "119e32ef2ae14b26a44d28281554f5a5_test2.pdf",
+  "metadata": {
+    "title": "",
+    "author": "Charles Houssiaux AZURIUS SL;©AZURIUS",
+    "pages": 1,
+    "has_images": true
+  },
+  "extraction": {
+    "pages": 1,
+    "images_detected": 2,
+    "text_length": 1822
+  },
+  "parsed_entities": {
+    "NAME": [
+      {
+        "value": "Charles Houssiaux",
+        "confidence": 0.9950000047683716
+      }
+    ],
+    "EMAIL": [
+      {
+        "value": "Pol",
+        "confidence": 0.9480000138282776
+      },
+      {
+        "value": "##y",
+        "confidence": 0.9610000252723694
+      },
+      {
+        "value": "##vale",
+        "confidence": 0.9729999899864197
+      },
+      {
+        "value": "##nc",
+        "confidence": 0.9679999947547913
+      }
+    ],
+    "languages": [
+      {
+        "language": "French",
+        "confidence": 0.9,
+        "type": "implicit"
+      }
+    ]
+  },
+  "extracted_text": "--- PAGE 1 ---\n\n• \nProspection commercial et gestion d’un portefeuille client. \n• \nDéveloppement de nouveaux produits et projets innovants. \n• \nGarantir le bon déroulement des formations, aussi bien à leur \ndémarrage qu’à leur aboutissement. \n• \nParticiper au développement de marque via l’organisation de la \ncommunication et d’évènements locaux. \nINTITULÉ DU POSTE / STAGE \nRaphaël MARTIN \n• Sens du contact \n• Communication \n• Capacité d’adaptation \n• Polyvalence \n• Logique \n• Rigueur \n• Autonomie \nCOMPÉTENCES \nLANGUES \nCommercial diplômé, j’ai une expérience de 3 ans en tant \nqu’Assistant Commercial, et 4 ans en tant que Commercial chez \nDIOR. Je suis passionné et ai un bon sens relationnel que je saurai \nmettre au service de votre entreprise. \nPROFIL \n06 06 06 06 06 \nraphael.martin@gnail.com \nParis, France \nlinkedin.com/raphael-martin \nCONTACT \nEXPERIENCES PROFESSIONNELLES \nDIOR, Paris | 2019 – 2022 \nCommercial \nAssistant Commercial Export \nFrançais \nAnglais \nEspagnol \nORANGE, Paris | 2016-2019 \n• \nAssurer la mise à jour des coordonnées administrative relatives au \ncompte client. \n• \nTraiter les demandes d’échantillon depuis la saisie jusqu’à l’expédition. \n• \nAssurer l'interface entreprise-client export pour tout service sollicité. \n• \nEtablir des documents nécessaires à l'expédition des commandes en \nfonction de son pays de destination, de l’incoterm ainsi que du mode de \nrèglement convenu. \n• \nAssurer l'accueil téléphonique des clients, fournisseurs et autres tiers. \nFORMATION \nAssistant Commercial Stagiaire \nDANONE, Paris | 2015 \nCENTRES D’INTÉRÊT \n• Triathlon \n• Randonnée \n• Bénévolat \n• Voyage en sac à dos \n• Théâtre et concerts \nUniversité Sorbonne, Paris | 2012 - 2015 \nLicence Pro Commerce et Distribution \nESUP, Paris | 2012 - 2015 \nBTS Négociations et digitalisation relation client",
+  "timestamp": "2026-04-15T22:07:48.679251"
+}

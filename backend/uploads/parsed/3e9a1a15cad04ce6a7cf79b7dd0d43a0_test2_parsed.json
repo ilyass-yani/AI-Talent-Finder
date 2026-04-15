@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "file": "3e9a1a15cad04ce6a7cf79b7dd0d43a0_test2.pdf",
+  "metadata": {
+    "title": "",
+    "author": "Charles Houssiaux AZURIUS SL;©AZURIUS",
+    "pages": 1,
+    "has_images": true
+  },
+  "extraction": {
+    "pages": 1,
+    "images_detected": 2,
+    "text_length": 1822
+  },
+  "parsed_entities": {
+    "NAME": [
+      {
+        "value": "Charles Houssiaux",
+        "confidence": 

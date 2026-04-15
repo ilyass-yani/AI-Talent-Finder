@@ -24,7 +24,8 @@ export interface Skill {
 
 export interface Experience {
   id: number;
-  job_title: string;
+  job_title?: string;
+  title?: string;
   company: string;
   duration_months: number;
   description?: string;
@@ -34,13 +35,25 @@ export interface Education {
   id: number;
   degree: string;
   institution: string;
+  field?: string;
   field_of_study?: string;
+  year?: number;
   graduation_year?: number;
 }
 
 export interface CandidateProfile {
   candidate_id: number;
   filename: string;
+  full_name?: string;
+  email?: string | null;
+  phone?: string | null;
+  headline?: string;
+  summary?: string;
+  contact?: {
+    email?: string | null;
+    phone?: string | null;
+  };
+  sections_detected?: string[];
   skills_count: number;
   experiences_count: number;
   educations_count: number;

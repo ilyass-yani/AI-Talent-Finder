@@ -6,8 +6,9 @@ MODES:
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional, Dict, Tuple
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
@@ -19,7 +20,8 @@ from app.models.models import (
     User,
     CriteriaSkill,
     Skill,
-    CandidateSkill
+    CandidateSkill,
+    SkillCategory,
 )
 from ai_module.nlp.profile_generator import ProfileGenerator
 from ai_module.matching.semantic_matcher import SemanticSkillMatcher
@@ -42,7 +44,7 @@ class JobCriteriaCreate(BaseModel):
     title: str  # e.g., "Senior Python Developer"
     description: str  # Job description
     mode: MatchingMode = MatchingMode.search
-    required_skills: List[dict] = []  # [{"name": "Python", "weight": 100}, ...]
+    required_skills: List[dict] = Field(default_factory=list)  # [{"name": "Python", "weight": 100}, ...]
 
 
 class MatchResultResponse(BaseModel):
@@ -65,7 +67,7 @@ class JobCriteriaResponse(BaseModel):
     title: str
     description: str
     created_at: datetime
-    required_skills: List[dict] = []
+    required_skills: List[dict] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -171,9 +173,40 @@ async def create_job_criteria(
     )
     db.add(db_criteria)
     db.flush()
-    
-    # Store required skills (you'd need to create/link actual Skill objects)
-    # For MVP, store as metadata
+
+    # Persist required skills for downstream matching.
+    persisted_required_skills: List[dict] = []
+    for raw_skill in criteria.required_skills:
+        skill_name = (raw_skill.get("name") or "").strip()
+        if not skill_name:
+            continue
+
+        raw_weight = raw_skill.get("weight", 50)
+        try:
+            weight = int(raw_weight)
+        except (TypeError, ValueError):
+            weight = 50
+        weight = max(0, min(100, weight))
+
+        skill = (
+            db.query(Skill)
+            .filter(func.lower(Skill.name) == skill_name.lower())
+            .first()
+        )
+        if not skill:
+            skill = Skill(name=skill_name, category=SkillCategory.TECHNICAL)
+            db.add(skill)
+            db.flush()
+
+        db.add(
+            CriteriaSkill(
+                criteria_id=db_criteria.id,
+                skill_id=skill.id,
+                weight=weight,
+            )
+        )
+
+        persisted_required_skills.append({"name": skill.name, "weight": weight})
     
     db.commit()
     db.refresh(db_criteria)
@@ -184,7 +217,7 @@ async def create_job_criteria(
         title=db_criteria.title,
         description=db_criteria.description,
         created_at=db_criteria.created_at,
-        required_skills=criteria.required_skills
+        required_skills=persisted_required_skills
     )
 
 
@@ -211,27 +244,26 @@ async def search_candidates(
     
     # Get all candidates
     candidates = db.query(Candidate).all()
+
+    # Load criteria skills once.
+    criteria_skills = db.query(CriteriaSkill).filter(
+        CriteriaSkill.criteria_id == criteria_id
+    ).all()
+    criteria_skills_dict = [
+        {"name": cs.skill.name, "weight": cs.weight}
+        for cs in criteria_skills
+    ]
     
     # Calculate match scores
     matches = []
     for candidate in candidates:
-        # Get criteria skills
-        criteria_skills = db.query(CriteriaSkill).filter(
-            CriteriaSkill.criteria_id == criteria_id
-        ).all()
-        
-        criteria_skills_dict = [
-            {"name": cs.skill.name, "weight": cs.weight}
-            for cs in criteria_skills
-        ]
-        
         # Now returns tuple (score, details)
         score, details = calculate_match_score(candidate, criteria_skills_dict)
         
         matches.append(CandidateMatchResponse(
             candidate_id=candidate.id,
-            full_name=candidate.full_name,
-            email=candidate.email,
+            full_name=candidate.full_name or f"Candidate #{candidate.id}",
+            email=candidate.email or "",
             match_score=score,
             explanation=details.get("details", "")
         ))
@@ -339,11 +371,17 @@ async def get_criteria(
     criteria = db.query(JobCriteria).filter(JobCriteria.id == criteria_id).first()
     if not criteria:
         raise HTTPException(status_code=404, detail="Criteria not found")
+
+    required_skills = [
+        {"name": cs.skill.name, "weight": cs.weight}
+        for cs in criteria.criteria_skills
+    ]
     
     return JobCriteriaResponse(
         id=criteria.id,
         recruiter_id=criteria.recruiter_id,
         title=criteria.title,
         description=criteria.description,
-        created_at=criteria.created_at
+        created_at=criteria.created_at,
+        required_skills=required_skills,
     )

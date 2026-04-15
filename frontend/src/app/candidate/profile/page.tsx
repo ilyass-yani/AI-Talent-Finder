@@ -62,6 +62,11 @@ export default function CandidateProfile() {
         if (response.data) {
           setCandidateInfo({
             filename: response.data.filename,
+            full_name: response.data.full_name,
+            headline: response.data.headline,
+            summary: response.data.summary,
+            contact: response.data.contact,
+            sections_detected: response.data.sections_detected,
             skills_count: response.data.skills_count,
             experiences_count: response.data.experiences_count,
             educations_count: response.data.educations_count,
@@ -149,6 +154,29 @@ export default function CandidateProfile() {
             Voici comment les recruteurs verront ton profil
           </p>
 
+          {candidateInfo?.headline && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm uppercase tracking-wide text-blue-700 font-semibold mb-1">Titre détecté</p>
+              <p className="text-lg font-bold text-blue-900">{candidateInfo.headline}</p>
+              {candidateInfo.summary && (
+                <p className="text-sm text-blue-800 mt-2 leading-relaxed">{candidateInfo.summary}</p>
+              )}
+              {Array.isArray(candidateInfo.sections_detected) && candidateInfo.sections_detected.length > 0 && (
+                <p className="text-xs text-blue-700 mt-3">
+                  Sections détectées: {candidateInfo.sections_detected.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {candidateInfo?.contact && (
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+              <p className="font-semibold text-gray-900 mb-1">Contact reconnu</p>
+              <p>Email: {candidateInfo.contact.email || 'Non détecté'}</p>
+              <p>Téléphone: {candidateInfo.contact.phone || 'Non détecté'}</p>
+            </div>
+          )}
+
           {loading && (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
               <p className="text-blue-700">Chargement de ton profil...</p>
@@ -215,7 +243,7 @@ export default function CandidateProfile() {
                       <div key={exp.id} className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 text-lg">{exp.job_title}</h4>
+                            <h4 className="font-bold text-gray-900 text-lg">{exp.job_title || exp.title}</h4>
                             <p className="text-gray-600 font-semibold">{exp.company}</p>
                             <p className="text-sm text-gray-500 mt-2">
                               📅 {formatDuration(exp.duration_months)}
@@ -249,11 +277,11 @@ export default function CandidateProfile() {
                           <div className="flex-1">
                             <h4 className="font-bold text-gray-900 text-lg">{edu.degree}</h4>
                             <p className="text-gray-600 font-semibold">{edu.institution}</p>
-                            {edu.field_of_study && (
-                              <p className="text-sm text-gray-500 mt-1">Spécialité: {edu.field_of_study}</p>
+                            {(edu.field_of_study || edu.field) && (
+                              <p className="text-sm text-gray-500 mt-1">Spécialité: {edu.field_of_study || edu.field}</p>
                             )}
-                            {edu.graduation_year && (
-                              <p className="text-sm text-gray-500">🎓 {edu.graduation_year}</p>
+                            {(edu.graduation_year || edu.year) && (
+                              <p className="text-sm text-gray-500">🎓 {edu.graduation_year || edu.year}</p>
                             )}
                           </div>
                         </div>

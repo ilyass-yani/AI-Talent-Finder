@@ -1,0 +1,95 @@
+{
+  "success": true,
+  "file": "2edbc50449e74a1a92dab99b46782d85_test3.pdf",
+  "source_type": "pdf",
+  "metadata": {
+    "title": "(anonymous)",
+    "author": "(anonymous)",
+    "pages": 1,
+    "has_images": false,
+    "file_type": "pdf"
+  },
+  "extraction": {
+    "pages": 1,
+    "images_detected": 0,
+    "text_length": 2139
+  },
+  "parsed_entities": {
+    "NAME": [
+      {
+        "value": "Thomas Lefèvre",
+        "confidence": 0.9950000047683716
+      }
+    ],
+    "EMAIL": [
+      {
+        "value": "Intelligence & Visualisation",
+        "confidence": 0.8650000095367432
+      },
+      {
+        "value": "Power BI",
+        "confidence": 0.6830000281333923
+      },
+      {
+        "value": "Table",
+        "confidence": 0.6420000195503235
+      },
+      {
+        "value": "##au",
+        "confidence": 0.7599999904632568
+      }
+    ],
+    "PHONE": [
+      {
+        "value": "Nan",
+        "confidence": 0.9959999918937683
+      },
+      {
+        "value": "##tes",
+        "confidence": 0.996999979019165
+      },
+      {
+        "value": "France",
+        "confidence": 0.9940000176429749
+      }
+    ],
+    "EDUCATION": [
+      {
+        "value": "S",
+        "confidence": 0.8619999885559082
+      },
+      {
+        "value": "##QL",
+        "confidence": 0.671999990940094
+      },
+      {
+        "value": "Python",
+        "confidence": 0.8029999732971191
+      }
+    ],
+    "languages": [
+      {
+        "language": "Python",
+        "confidence": 0.9,
+        "type": "implicit"
+      },
+      {
+        "language": "SQL",
+        "confidence": 0.9,
+        "type": "implicit"
+      },
+      {
+        "language": "R",
+        "confidence": 0.9,
+        "type": "implicit"
+      },
+      {
+        "language": "French",
+        "confidence": 0.9,
+        "type": "implicit"
+      }
+    ]
+  },
+  "extracted_text": "--- PAGE 1 ---\nThomas Lefèvre\nData Analyst — Business Intelligence & Visualisation\nt.lefevre@datamail.fr • +33 6 98 76 54 32 • Nantes, France • linkedin.com/in/thomaslefevre-data\nPROFIL\nData Analyst avec 5 ans d'expérience dans la transformation de données brutes en insights actionnables pour des\néquipes métier. Spécialisé en SQL avancé, Python analytique et dashboarding (Power BI, Tableau). Passionné par la\ndata quality et la démocratisation de la donnée au sein des organisations.\nEXPÉRIENCES PROFESSIONNELLES\nData Analyst Senior\nNeopharma (pharmaceutique) | Fév. 2022 – Présent | Nantes\n• Construction et maintenance d'un data warehouse sur Snowflake (modélisation en étoile, dbt)\n• Développement de 12 dashboards Power BI utilisés par 200+ utilisateurs internes\n• Analyse des performances commerciales et propositions ayant généré +2M€ de CA additionnel\n• Référent data quality : implémentation de contrôles automatisés (Great Expectations)\nData Analyst\nVinci Energies | Sep. 2019 – Jan. 2022 | Saint-Herblain\n• Automatisation de 8 rapports Excel récurrents via Python (pandas, openpyxl) — gain de 15h/semaine\n• Analyse des données chantiers pour optimisation des plannings et ressources\n• Création de tableaux de bord Tableau pour le suivi KPI des directeurs régionaux\nAnalyste Junior — Stage puis CDI\nDecathlon Digital | Mar. 2018 – Aoû. 2019 | Villeneuve-d'Ascq\n• Analyse du parcours client e-commerce via Google Analytics et Adobe Analytics\n• Support aux équipes produit pour le suivi des A/B tests (VWO)\nFORMATION\nMaster Statistiques & Informatique Décisionnelle\nUniversité de Nantes | 2018\nMention : Bien\nLicence Mathématiques Appliquées\nUniversité de Nantes | 2016\nCOMPÉTENCES\nLangages\nSQL (avancé), Python (pandas, numpy, matplotlib), R (bases)\nBI / Viz\nPower BI, Tableau, Looker, Metabase\nData Eng.\nSnowflake, dbt, Airflow (bases), BigQuery\nOutils\nExcel avancé, Git, Confluence, Jira, Notion\nLANGUES\nFrançais — Langue maternelle\nAnglais — Courant (C1) — documentation technique et réunions internationales\nCENTRES D'INTÉRÊT\nRunning (semi-marathon) • Data visualisation créative (blog personnel) • Jeux de société • Guitare",
+  "timestamp": "2026-04-15T22:35:13.787158"
+}
