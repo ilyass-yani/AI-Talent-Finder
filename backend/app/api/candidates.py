@@ -1,5 +1,6 @@
-"""Candidates API routes ETAPES 5"""
+"""Candidates API routes - ÉTAPE 5 OPTIMIZED with NER"""
 import uuid
+import json
 from datetime import datetime
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
@@ -9,14 +10,15 @@ from sqlalchemy import text
 from typing import List, Optional, cast
 
 from app.core.dependencies import get_db, get_current_user
-from app.models.models import Candidate, User, UserRole
+from app.models.models import Candidate, User, UserRole, CandidateSkill, Skill
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
-from app.services.cv_extractor import extract_text_from_pdf, save_text_as_txt
+from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf, save_text_as_txt
 from ai_module.nlp.cv_cleaner import CVCleaner
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
 
+# ===== GENERAL ROUTES (un-authenticated) =====
 
 @router.get("/", response_model=List[CandidateResponse])
 def get_candidates(
@@ -27,21 +29,6 @@ def get_candidates(
     """Get all candidates"""
     candidates = db.query(Candidate).offset(skip).limit(limit).all()
     return candidates
-
-
-@router.get("/{candidate_id}", response_model=CandidateResponse)
-def get_candidate(
-    candidate_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get a specific candidate by ID"""
-    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
-    if not candidate:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Candidate not found"
-        )
-    return candidate
 
 
 @router.post("/", response_model=CandidateResponse)
@@ -65,49 +52,7 @@ def create_candidate(
     return db_candidate
 
 
-@router.put("/{candidate_id}", response_model=CandidateResponse)
-def update_candidate(
-    candidate_id: int,
-    candidate: CandidateUpdate,
-    db: Session = Depends(get_db)
-):
-    """Update a candidate"""
-    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
-    if not db_candidate:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Candidate not found"
-        )
-    
-    # Update only provided fields
-    update_data = candidate.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_candidate, key, value)
-    
-    db.commit()
-    db.refresh(db_candidate)
-    return db_candidate
-
-
-@router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_candidate(
-    candidate_id: int,
-    db: Session = Depends(get_db)
-):
-    """Delete a candidate"""
-    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
-    if not db_candidate:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Candidate not found"
-        )
-    
-    db.delete(db_candidate)
-    db.commit()
-    return None
-
-
-# ===== Endpoints for authenticated candidate users =====
+# ===== AUTHENTICATED ROUTES (specific paths MUST be before /{id}) =====
 
 @router.get("/me/profile", response_model=CandidateResponse)
 def get_my_candidate_profile(
@@ -122,13 +67,75 @@ def get_my_candidate_profile(
             detail="Only candidates can access this endpoint"
         )
     
-    # Get or create candidate profile for this user
-    candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+    # Return the latest profile for this user, even if extraction is partial.
+    # This avoids false 404 responses right after upload when extraction metadata is incomplete.
+    candidate = db.query(Candidate).filter(
+        Candidate.user_id == current_user.id
+    ).order_by(Candidate.created_at.desc()).first()
+    
     if not candidate:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Candidate profile not found. Please create your profile first."
+            detail="Candidate profile not found. Please upload a CV first."
         )
+
+    needs_refresh = bool(
+        candidate.raw_text and (
+            (candidate.extraction_quality_score or 0) < 80
+            or candidate.full_name == "Unknown"
+            or not candidate.linkedin_url
+            or not candidate.extracted_job_titles
+            or not candidate.extracted_companies
+            or not candidate.extracted_education
+            or not candidate.ner_extraction_data
+            or '"languages"' not in candidate.ner_extraction_data
+            or '"experiences"' not in candidate.ner_extraction_data
+            or '"projects"' not in candidate.ner_extraction_data
+            or '"certifications"' not in candidate.ner_extraction_data
+            or '"github_urls"' not in candidate.ner_extraction_data
+            or '"portfolio_urls"' not in candidate.ner_extraction_data
+        )
+    )
+
+    if needs_refresh:
+        try:
+            extraction_service = CVExtractionService()
+            refreshed = extraction_service.extract_from_text(candidate.raw_text)
+            refreshed_candidate = extraction_service.to_candidate_dict(refreshed)
+
+            should_update = (
+                refreshed.quality_score > (candidate.extraction_quality_score or 0)
+                or candidate.full_name == "Unknown"
+                or not candidate.linkedin_url
+                or not candidate.extracted_job_titles
+                or not candidate.extracted_companies
+                or not candidate.extracted_education
+                or not candidate.ner_extraction_data
+                or '"languages"' not in candidate.ner_extraction_data
+                or '"experiences"' not in candidate.ner_extraction_data
+                or '"projects"' not in candidate.ner_extraction_data
+                or '"certifications"' not in candidate.ner_extraction_data
+                or '"github_urls"' not in candidate.ner_extraction_data
+                or '"portfolio_urls"' not in candidate.ner_extraction_data
+            )
+
+            if should_update:
+                refreshed_candidate["user_id"] = candidate.user_id
+                refreshed_candidate["cv_path"] = candidate.cv_path
+                refreshed_candidate["raw_text"] = candidate.raw_text
+                refreshed_candidate["email"] = candidate.email or refreshed_candidate.get("email")
+                refreshed_candidate["full_name"] = (
+                    candidate.full_name
+                    if candidate.full_name and candidate.full_name != "Unknown"
+                    else refreshed_candidate.get("full_name")
+                )
+
+                for key, value in refreshed_candidate.items():
+                    setattr(candidate, key, value)
+                db.commit()
+                db.refresh(candidate)
+        except Exception:
+            db.rollback()
     
     return candidate
 
@@ -179,12 +186,24 @@ async def upload_candidate_cv(
     file: UploadFile = File(...),
     full_name: str = "",
     email: str = "",
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Upload a candidate CV file and extract text from PDF."""
+    """
+    Upload a candidate CV file with NER extraction (Étape 5 Optimized)
+    
+    Steps:
+    1. Validate file (PDF/TXT, max 5 MB)
+    2. Extract text from PDF
+    3. Use NER to extract structured data (name, email, companies, jobs, skills)
+    4. Create/update candidate with auto-filled fields
+    5. Extract skills (hybrid NER + fuzzy matching)
+    6. Store in database
+    """
     file_name = file.filename or ""
     file_content_type = file.content_type or ""
 
+    # Validate file type
     if file_content_type not in {"application/pdf", "text/plain"} and not (
         file_name.lower().endswith(".pdf") or file_name.lower().endswith(".txt")
     ):
@@ -193,6 +212,7 @@ async def upload_candidate_cv(
             detail="Only PDF and text files are supported"
         )
 
+    # Validate file size
     contents = await file.read()
     max_size_bytes = 5 * 1024 * 1024
     if len(contents) > max_size_bytes:
@@ -202,104 +222,134 @@ async def upload_candidate_cv(
         )
 
     try:
+        # Setup directories
         uploads_root = Path(__file__).resolve().parents[2] / "uploads"
         pdf_dir = uploads_root / "cvs"
         txt_dir = uploads_root / "txt"
         pdf_dir.mkdir(parents=True, exist_ok=True)
         txt_dir.mkdir(parents=True, exist_ok=True)
 
+        # Save file with unique name
         safe_filename = f"{uuid.uuid4().hex}_{Path(file_name).name}"
         pdf_path = pdf_dir / safe_filename
         pdf_path.write_bytes(contents)
 
-        # Check if it's a PDF or text file
+        # Extract text from PDF/TXT
         if file_content_type == "application/pdf" or file_name.lower().endswith('.pdf'):
             extracted_text = extract_text_from_pdf(str(pdf_path))
-        elif file_content_type == "text/plain" or file_name.lower().endswith('.txt'):
-            extracted_text = contents.decode('utf-8')
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only PDF and text files are supported"
-            )
-        cleaned_text = CVCleaner.clean_text(extracted_text)
-        txt_path = save_text_as_txt(cleaned_text, str(txt_dir), safe_filename)
-        fallback_email = email or f"candidate-{uuid.uuid4().hex}@example.com"
+            extracted_text = contents.decode('utf-8')
 
-        relative_pdf_path = str(pdf_path.relative_to(Path(__file__).resolve().parents[2]))
+        # ===== NER EXTRACTION PIPELINE (NEW) =====
+        extraction_service = CVExtractionService()
+        extraction_result = extraction_service.extract_from_text(extracted_text)
+        
+        # Get candidate data from extraction
+        candidate_dict = extraction_service.to_candidate_dict(extraction_result)
+        candidate_dict["cv_path"] = str(pdf_path.relative_to(Path(__file__).resolve().parents[2]))
 
-        # Support both legacy and modern DB schemas for `candidates`.
-        columns_result = db.execute(
-            text(
-                """
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'candidates'
-                """
-            )
+        # Prioritize user-provided data, then extraction, then authenticated user defaults.
+        candidate_dict["full_name"] = (
+            full_name
+            or candidate_dict.get("full_name")
+            or current_user.full_name
+            or "Unknown"
         )
-        available_columns = {cast(str, row[0]) for row in columns_result.fetchall()}
-
-        candidate_values = {
-            "full_name": full_name or "Unknown",
-            "email": fallback_email,
-            "phone": None,
-            "linkedin_url": None,
-            "github_url": None,
-            "cv_path": relative_pdf_path,
-            "file_path": relative_pdf_path,
-            "filename": file_name,
-            "raw_text": cleaned_text,
-            "created_at": datetime.utcnow(),
-        }
-
-        insert_columns = [
-            col for col in [
-                "full_name",
-                "email",
-                "phone",
-                "linkedin_url",
-                "github_url",
-                "cv_path",
-                "filename",
-                "file_path",
-                "raw_text",
-                "created_at",
-            ]
-            if col in available_columns
-        ]
-
-        if not insert_columns:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Candidates table schema is incompatible with upload endpoint"
-            )
-
-        placeholders = ", ".join(f":{col}" for col in insert_columns)
-        columns_sql = ", ".join(insert_columns)
-        insert_sql = text(
-            f"INSERT INTO candidates ({columns_sql}) VALUES ({placeholders}) RETURNING id"
+        candidate_dict["email"] = (
+            email
+            or candidate_dict.get("email")
+            or current_user.email
+            or f"candidate-{uuid.uuid4().hex}@example.com"
         )
 
-        result = db.execute(insert_sql, {col: candidate_values[col] for col in insert_columns})
-        candidate_id = cast(int, result.scalar_one())
+        # Link candidate to authenticated user
+        candidate_dict["user_id"] = current_user.id
+
+        # Check if user already has a candidate profile
+        existing_candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+        
+        if existing_candidate:
+            # Update existing profile
+            for key, value in candidate_dict.items():
+                setattr(existing_candidate, key, value)
+            existing_candidate.user_id = current_user.id  # Ensure user_id is set
+            db_candidate = existing_candidate
+        else:
+            # Create new candidate in database
+            db_candidate = Candidate(**candidate_dict)
+            db_candidate.user_id = current_user.id  # Explicitly set user_id
+            db.add(db_candidate)
+        
+        db.flush()  # Get the ID
+        candidate_id = db_candidate.id
+
+        # ===== ADD EXTRACTED SKILLS =====
+        for skill_data in extraction_result.skills:
+            skill_name = skill_data["name"]
+            
+            # Check if skill exists in DB
+            db_skill = db.query(Skill).filter(
+                Skill.name.ilike(skill_name)
+            ).first()
+            
+            if not db_skill:
+                # Create new skill
+                db_skill = Skill(
+                    name=skill_name,
+                    category=skill_data.get("category", "tech"),
+                    synonyms=None
+                )
+                db.add(db_skill)
+                db.flush()
+            
+            # Link skill to candidate
+            candidate_skill = CandidateSkill(
+                candidate_id=candidate_id,
+                skill_id=db_skill.id,
+                proficiency_level="intermediate",  # Default
+                source=skill_data.get("source", "extracted")  # NER or DICT-FUZZY
+            )
+            db.add(candidate_skill)
+
         db.commit()
 
+        # ===== RETURN RESPONSE =====
         return {
-            "message": "File uploaded and text extracted successfully",
+            "message": "File uploaded and structured extraction successful",
             "candidate_id": candidate_id,
-            "filename": file_name,
-            "pdf_path": str(pdf_path.relative_to(Path(__file__).resolve().parents[2])),
-            "txt_path": str(Path(txt_path).relative_to(Path(__file__).resolve().parents[2]))
+            "candidate": {
+                "id": candidate_id,
+                "full_name": db_candidate.full_name,
+                "email": db_candidate.email,
+                "phone": db_candidate.phone,
+                "companies": json.loads(candidate_dict["extracted_companies"] or "[]"),
+                "job_titles": json.loads(candidate_dict["extracted_job_titles"] or "[]"),
+                "skills_count": len(extraction_result.skills),
+                "extraction_quality": extraction_result.quality_score,
+                "fully_extracted": candidate_dict["is_fully_extracted"]
+            },
+            "extraction": {
+                "quality_score": extraction_result.quality_score,
+                "entities_found": extraction_result.extraction_metadata.get("entities_found", 0),
+                "skills_extracted": len(extraction_result.skills),
+                "top_skills": [s["name"] for s in extraction_result.skills[:5]],
+                "metadata": extraction_result.extraction_metadata
+            }
         }
+
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error extracting text from PDF: {str(e)}"
+            detail=f"Error processing CV: {str(e)}"
         )
 
+
+# ===== ID-BASED ROUTES (generic patterns, must be AFTER specific routes) =====
 
 @router.get("/{candidate_id}/cv")
 def download_candidate_cv(
@@ -333,3 +383,154 @@ def download_candidate_cv(
         media_type="application/pdf",
         filename=file_path.name
     )
+
+
+@router.get("/{candidate_id}", response_model=CandidateResponse)
+def get_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific candidate by ID"""
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    return candidate
+
+
+@router.put("/{candidate_id}", response_model=CandidateResponse)
+def update_candidate(
+    candidate_id: int,
+    candidate: CandidateUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a candidate"""
+    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not db_candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    
+    # Update only provided fields
+    update_data = candidate.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_candidate, key, value)
+    
+    db.commit()
+    db.refresh(db_candidate)
+    return db_candidate
+
+
+@router.post("/upload-cv-with-ner")
+async def upload_cv_with_ner(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload CV with NER extraction (Anjali Resume NER BERT v2)
+    Extracts: name, email, phone, skills, companies, job titles, education
+    """
+    try:
+        from ai_module.nlp.resume_ner_extractor import ResumeNERExtractor
+        import pdfplumber
+        
+        file_name = file.filename or ""
+        contents = await file.read()
+        
+        # Validate file size (5 MB max)
+        if len(contents) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 5MB)")
+        
+        # Extract text based on file type
+        if file_name.lower().endswith('.pdf'):
+            with open('/tmp/temp_cv.pdf', 'wb') as tmp:
+                tmp.write(contents)
+            try:
+                with pdfplumber.open('/tmp/temp_cv.pdf') as pdf:
+                    text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"PDF extraction failed: {str(e)}")
+        elif file_name.lower().endswith('.txt'):
+            text = contents.decode('utf-8', errors='ignore')
+        else:
+            raise HTTPException(status_code=400, detail="Only PDF and TXT files supported")
+        
+        if not text or len(text.strip()) < 10:
+            raise HTTPException(status_code=400, detail="CV text is empty or too short")
+        
+        # Extract with NER
+        extractor = ResumeNERExtractor()
+        profile = extractor.extract_structured_profile(text)
+        
+        # Get or create candidate
+        candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+        
+        if not candidate:
+            candidate = Candidate(
+                user_id=current_user.id,
+                full_name=profile.get('full_name') or current_user.full_name,
+                email=profile.get('email') or current_user.email,
+                phone=profile.get('phone'),
+                raw_text=text[:5000],  # Store first 5000 chars
+                # Save extracted data - convert to JSON strings
+                extracted_name=profile.get('full_name'),
+                extracted_emails=json.dumps([profile.get('email')] if profile.get('email') else []),
+                extracted_phones=json.dumps([profile.get('phone')] if profile.get('phone') else []),
+                extracted_job_titles=json.dumps(profile.get('job_titles', [])),
+                extracted_companies=json.dumps(profile.get('companies', [])),
+                extracted_education=json.dumps(profile.get('education', [])),
+                ner_extraction_data=json.dumps(profile),  # Store full profile as JSON
+                is_fully_extracted=True
+            )
+            db.add(candidate)
+            db.flush()
+        else:
+            candidate.full_name = profile.get('full_name') or candidate.full_name
+            candidate.email = profile.get('email') or candidate.email
+            candidate.phone = profile.get('phone') or candidate.phone
+            candidate.raw_text = text[:5000]
+            # Update extracted data - convert to JSON strings
+            candidate.extracted_name = profile.get('full_name')
+            candidate.extracted_emails = json.dumps([profile.get('email')] if profile.get('email') else [])
+            candidate.extracted_phones = json.dumps([profile.get('phone')] if profile.get('phone') else [])
+            candidate.extracted_job_titles = json.dumps(profile.get('job_titles', []))
+            candidate.extracted_companies = json.dumps(profile.get('companies', []))
+            candidate.extracted_education = json.dumps(profile.get('education', []))
+            candidate.ner_extraction_data = json.dumps(profile)
+            candidate.is_fully_extracted = True
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "candidate_id": candidate.id,
+            "extracted_data": profile,
+            "message": "CV uploaded and NER extraction complete"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a candidate"""
+    db_candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not db_candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+    
+    db.delete(db_candidate)
+    db.commit()
+    return None

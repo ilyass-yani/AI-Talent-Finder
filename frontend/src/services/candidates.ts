@@ -11,9 +11,23 @@ export interface Candidate {
   cv_path?: string | null;
   raw_text?: string | null;
   created_at: string;
+  // NER Extraction Fields (Étape 5-6)
+  extracted_name?: string | null;
+  extracted_emails?: string | null;
+  extracted_phones?: string | null;
+  extracted_job_titles?: string | null;
+  extracted_companies?: string | null;
+  extracted_education?: string | null;
+  extraction_quality_score?: number;
+  ner_extraction_data?: string | null;
+  is_fully_extracted?: boolean;
 }
 
 export const candidatesApi = {
+  // GET /api/candidates/me/profile — Récupérer mon profil (candidat authentifié)
+  getMyProfile: () =>
+    apiClient.get<Candidate>('/api/candidates/me/profile'),
+
   // GET /api/candidates/ — Liste tous les candidats
   getCandidates: (skip = 0, limit = 100) =>
     apiClient.get<Candidate[]>('/api/candidates/', { params: { skip, limit } }),
@@ -28,9 +42,8 @@ export const candidatesApi = {
     formData.append('file', file);
     if (fullName) formData.append('full_name', fullName);
     if (email) formData.append('email', email);
-    return apiClient.post('/api/candidates/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Don't manually set Content-Type for FormData - axios will set it with proper boundary
+    return apiClient.post('/api/candidates/upload', formData);
   },
 
   // POST /api/candidates/ — Créer un candidat manuellement

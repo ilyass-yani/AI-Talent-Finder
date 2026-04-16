@@ -13,7 +13,7 @@ from app.schemas.job_criteria import (
     CriteriaSkillCreate
 )
 
-router = APIRouter(prefix="/api/criteria", tags=["job-criteria"])
+router = APIRouter(prefix="/api/jobs", tags=["job-criteria"])
 
 
 @router.get("/", response_model=List[JobCriteriaResponse])

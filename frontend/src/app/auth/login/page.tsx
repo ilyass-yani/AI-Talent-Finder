@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/services/auth';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function LoginPage() {
         router.push('/');
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur lors de la connexion');
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -59,38 +60,47 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
                   Email
                 </label>
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre@email.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   required
+                  aria-required="true"
                 />
               </div>
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-900 mb-2">
                   Mot de passe
                 </label>
                 <input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   required
                   minLength={6}
+                  aria-required="true"
                 />
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  aria-atomic="true"
+                  className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
+                >
                   {error}
                 </div>
               )}
@@ -99,7 +109,8 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Se connecter à ton compte"
+                className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {isLoading ? 'Connexion...' : 'Se connecter'}
               </button>
@@ -108,14 +119,22 @@ export default function LoginPage() {
             {/* Register Link */}
             <div className="mt-6 text-center">
               <span className="text-gray-600">Pas encore de compte? </span>
-              <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-semibold">
+              <Link
+                href="/auth/register"
+                aria-label="Aller à la page de création de compte"
+                className="text-blue-600 hover:text-blue-700 font-semibold focus:outline-none focus:underline"
+              >
                 Créer un compte
               </Link>
             </div>
 
             {/* Back to Home */}
             <div className="mt-4 text-center">
-              <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">
+              <Link
+                href="/"
+                aria-label="Revenir à la page d'accueil"
+                className="text-gray-500 hover:text-gray-700 text-sm focus:outline-none focus:underline"
+              >
                 ← Retour à l'accueil
               </Link>
             </div>

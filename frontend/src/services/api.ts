@@ -5,14 +5,18 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const apiClient = axios.create({
   baseURL: apiUrl,
   timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
+    // Only set Content-Type for non-FormData requests
+    if (!(config.data instanceof FormData)) {
+      if (!config.headers['Content-Type']) {
+        config.headers['Content-Type'] = 'application/json';
+      }
+    }
+    
     // Add auth token if available
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');

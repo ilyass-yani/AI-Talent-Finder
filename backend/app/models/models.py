@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -53,6 +53,17 @@ class Candidate(Base):
     cv_path = Column(String, nullable=True)
     raw_text = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # NER Extraction Fields (Étape 5-6 optimization)
+    extracted_name = Column(String, nullable=True)  # From NER
+    extracted_emails = Column(Text, nullable=True)  # JSON list: ["email1", "email2"]
+    extracted_phones = Column(Text, nullable=True)  # JSON list: ["+33612345"]
+    extracted_job_titles = Column(Text, nullable=True)  # JSON list with confidence
+    extracted_companies = Column(Text, nullable=True)  # JSON list with confidence
+    extracted_education = Column(Text, nullable=True)  # JSON list
+    extraction_quality_score = Column(Float, default=0.0)  # 0-100 quality metric
+    ner_extraction_data = Column(Text, nullable=True)  # Full JSON from NER
+    is_fully_extracted = Column(Boolean, default=False)  # Flag: quality > 70%
 
     # Relationships
     user = relationship("User", back_populates="candidate", foreign_keys=[user_id])

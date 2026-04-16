@@ -11,6 +11,9 @@ load_dotenv(dotenv_path=env_path)
 from app.core.database import Base, engine
 from app.models.models import User, Candidate, Skill, CandidateSkill, Experience, Education, JobCriteria, CriteriaSkill, MatchResult, Favorite
 from app.api import auth, candidates, skills, jobs, matching, favorites, experiences, educations, match_results
+from app.api.chat import router as chat_router
+from app.api.export import router as export_router
+from app.api.criteria import criteria_router, matching_router
 
 # Create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -37,11 +40,15 @@ app.include_router(auth.router)
 app.include_router(candidates.router)
 app.include_router(skills.router)
 app.include_router(jobs.router)
+app.include_router(criteria_router)
+app.include_router(matching_router)
 app.include_router(matching.router)
 app.include_router(favorites.router)
 app.include_router(experiences.router)
 app.include_router(educations.router)
 app.include_router(match_results.router)
+app.include_router(chat_router)
+app.include_router(export_router)
 
 # Health check endpoint
 @app.get("/health")

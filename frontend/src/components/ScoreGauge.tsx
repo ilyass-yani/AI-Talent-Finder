@@ -1,6 +1,6 @@
 interface Props { score: number; size?: "sm"|"md"|"lg"; }
 export default function ScoreGauge({ score, size="md" }: Props) {
-  const pct = Math.round(score * 100);
+  const pct = score <= 1 ? Math.round(score * 100) : Math.round(score);
   const d={sm:48,md:72,lg:96}[size], s={sm:4,md:6,lg:8}[size], f={sm:"text-xs",md:"text-sm",lg:"text-lg"}[size];
   const r=(d-s)/2, c=2*Math.PI*r, o=c-(pct/100)*c;
   const cl = pct>=80?"text-green-500":pct>=50?"text-amber-500":"text-red-500";

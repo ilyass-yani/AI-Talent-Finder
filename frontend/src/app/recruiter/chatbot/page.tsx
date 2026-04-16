@@ -2,22 +2,20 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Send, MessageCircle, Loader } from "lucide-react";
+import ChatMessage from "@/components/ChatMessage";
+import { chatApi, type ChatHistoryEntry } from "@/services/chat";
+import { criteriaApi } from "@/services/criteria";
+import { matchingApi, type CriteriaMatchResult } from "@/services/matching";
 
-interface ChatMessage {
+interface ChatEntry {
   id: string;
   type: "user" | "assistant";
   content: string;
   timestamp: Date;
 }
 
-interface Candidate {
-  id: number;
-  full_name: string;
-  score: number;
-}
-
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  const [messages, setMessages] = useState<ChatEntry[]>([
     {
       id: "1",
       type: "assistant",
@@ -28,7 +26,8 @@ export default function ChatbotPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [topCandidates, setTopCandidates] = useState<Candidate[]>([]);
+  const [topCandidates, setTopCandidates] = useState<CriteriaMatchResult[]>([]);
+  const [currentCriteria, setCurrentCriteria] = useState<{ id: number; title: string; required_skills: Array<{ name: string; weight: number }> } | null>(null);
 
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -42,14 +41,18 @@ export default function ChatbotPage() {
 
   const fetchTopCandidates = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch("http://localhost:8000/api/candidates/", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTopCandidates(data.slice(0, 3));
+      const criteriaResponse = await criteriaApi.getCriteria();
+      const latestCriteria = criteriaResponse.data[0];
+      if (!latestCriteria) {
+        setCurrentCriteria(null);
+        setTopCandidates([]);
+        return;
       }
+
+      setCurrentCriteria(latestCriteria);
+
+      const rankingResponse = await matchingApi.getCriteriaMatchingResults(latestCriteria.id);
+      setTopCandidates(rankingResponse.data.slice(0, 3));
     } catch (error) {
       console.error("Error fetching candidates:", error);
     }
@@ -60,7 +63,7 @@ export default function ChatbotPage() {
     if (!input.trim()) return;
 
     // Add user message
-    const userMessage: ChatMessage = {
+    const userMessage: ChatEntry = {
       id: Date.now().toString(),
       type: "user",
       content: input,
@@ -71,36 +74,32 @@ export default function ChatbotPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch("http://localhost:8000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          message: input,
-          context: {
-            top_candidates: topCandidates
-          }
-        })
+      const history: ChatHistoryEntry[] = [...messages, userMessage].slice(-8).map(message => ({
+        role: message.type,
+        content: message.content,
+        timestamp: message.timestamp.toISOString()
+      }));
+
+      const response = await chatApi.sendMessage({
+        message: userMessage.content,
+        context: {
+          current_criteria: currentCriteria,
+          current_criteria_id: currentCriteria?.id,
+          top_candidates: topCandidates,
+          history,
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: "assistant",
-          content: data.response,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-      } else {
-        throw new Error("Failed to get response");
-      }
+      const assistantMessage: ChatEntry = {
+        id: (Date.now() + 1).toString(),
+        type: "assistant",
+        content: response.data.response,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
-      const errorMessage: ChatMessage = {
+      const errorMessage: ChatEntry = {
         id: (Date.now() + 2).toString(),
         type: "assistant",
         content: "❌ Désolé, une erreur s'est produite. Veuillez réessayer.",
@@ -127,7 +126,7 @@ export default function ChatbotPage() {
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map(msg => (
+          {messages.map(msg => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
         {loading && (
@@ -162,34 +161,10 @@ export default function ChatbotPage() {
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-2">
-          💡 Conseil: Essayez "Explique pourquoi Ahmed a un score de 95%" ou "Compare les 3 candidats"
+          💡 Conseil: Essayez &quot;Explique pourquoi Ahmed a un score de 95%&quot; ou &quot;Compare les 3 candidats&quot;
         </p>
       </div>
     </div>
   );
 }
 
-interface ChatMessageProps {
-  message: ChatMessage;
-}
-
-function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.type === "user";
-
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-md px-4 py-3 rounded-lg ${
-          isUser
-            ? "bg-indigo-600 text-white rounded-br-none"
-            : "bg-gray-200 text-gray-900 rounded-bl-none"
-        }`}
-      >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-        <span className={`text-xs ${isUser ? "text-indigo-200" : "text-gray-600"} mt-2 block`}>
-          {message.timestamp.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
-        </span>
-      </div>
-    </div>
-  );
-}

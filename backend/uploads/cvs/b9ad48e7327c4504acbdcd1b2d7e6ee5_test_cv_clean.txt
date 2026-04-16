@@ -1,0 +1,30 @@
+JOHN SMITH
+Email: john.smith@example.com
+Phone: +33 6 12 34 56 78
+LinkedIn: linkedin.com/in/johnsmith
+
+PROFESSIONAL SUMMARY
+Senior Full Stack Developer with 8 years of experience in web development and cloud infrastructure.
+
+EXPERIENCE
+Senior Developer - Tech Company Inc (2020-2024)
+- Led team of 5 developers
+- Built microservices using Python and FastAPI
+- Managed PostgreSQL databases
+- Implemented CI/CD pipelines with Docker and Kubernetes
+
+Junior Developer - Startup LLC (2016-2020)
+- Developed React frontend applications
+- Worked with Node.js backend
+- Contributed to database optimization
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Technology (2016)
+
+SKILLS
+Languages: Python, JavaScript, TypeScript, SQL, HTML/CSS
+Frameworks: FastAPI, React, Django, Node.js
+Databases: PostgreSQL, MongoDB, Redis
+Tools: Docker, Kubernetes, Git, AWS, Jenkins
+Soft Skills: Leadership, Communication, Project Management

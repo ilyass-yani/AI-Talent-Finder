@@ -1,0 +1,41 @@
+
+JOHN DEVELOPER
+john.dev@company.com
++1 (555) 987-6543
+linkedin.com/in/johndev
+
+PROFESSIONAL SUMMARY
+Experienced full-stack developer with 8 years of expertise in cloud technologies.
+
+EXPERIENCE
+
+Senior Software Engineer
+Tech Corp - San Francisco (2021-2026)
+- Led development of microservices architecture
+- Managed team of 8 engineers
+- Improved system performance by 40%
+
+Software Engineer
+StartupXYZ - Remote (2019-2021)
+- Built RESTful APIs with Python/FastAPI
+- Implemented CI/CD pipelines
+- Worked with React frontend
+
+Junior Developer
+WebStudio Inc - New York (2018-2019)
+- Full-stack web development
+- Database optimization
+- Bug fixes and feature delivery
+
+TECHNICAL SKILLS
+Languages: Python, JavaScript, TypeScript, Go, C++
+Frameworks: FastAPI, Django, React, Next.js, Node.js
+Cloud: AWS, GCP, Docker, Kubernetes
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch
+DevOps: CI/CD, Jenkins, GitLab, GitHub Actions
+AI/ML: TensorFlow, PyTorch, Scikit-learn, BERT
+
+EDUCATION
+B.S. Computer Science
+University of California, Berkeley (2018)
+GPA: 3.9/4.0
