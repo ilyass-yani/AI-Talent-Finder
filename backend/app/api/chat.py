@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
+import logging
 import re
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-from urllib import error, request
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -15,6 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
 from app.models.models import Candidate, CriteriaSkill, JobCriteria, Skill
+from app.services.llm_service import LLMUnavailable, get_llm_service
+
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -62,35 +64,14 @@ def _build_prompt(message: str, context: Dict[str, Any], intent: str) -> str:
 
 
 def _call_anthropic(prompt: str) -> Optional[str]:
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
+    """Delegate to the centralized LLM service so model + key stay consistent."""
+    service = get_llm_service()
+    if not service.is_ready:
         return None
-
-    model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-    payload = json.dumps({
-        "model": model,
-        "max_tokens": 700,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
-
-    req = request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "content-type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
-
     try:
-        with request.urlopen(req, timeout=20) as response:
-            data = json.loads(response.read().decode("utf-8"))
-        parts = data.get("content", [])
-        texts = [part.get("text", "") for part in parts if isinstance(part, dict)]
-        return "\n".join(part for part in texts if part).strip() or None
-    except Exception:
+        return service.complete_text(prompt) or None
+    except LLMUnavailable as exc:
+        logger.warning("LLM call failed in chat endpoint: %s", exc)
         return None
 
 

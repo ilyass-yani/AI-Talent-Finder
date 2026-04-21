@@ -23,21 +23,39 @@ export interface User {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
+  refresh_token?: string;
   user: User;
+}
+
+function persistTokens(payload: AuthResponse) {
+  if (payload.access_token) {
+    localStorage.setItem('access_token', payload.access_token);
+  }
+  if (payload.refresh_token) {
+    localStorage.setItem('refresh_token', payload.refresh_token);
+  }
 }
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
     const response = await apiClient.post('/api/auth/login', data);
-    if (response.data.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-    }
+    persistTokens(response.data);
     return response.data;
   },
 
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response = await apiClient.post('/api/auth/register', data);
-    if (response.data.access_token) {
+    persistTokens(response.data);
+    return response.data;
+  },
+
+  refresh: async (): Promise<{ access_token: string } | null> => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) return null;
+    const response = await apiClient.post('/api/auth/refresh', {
+      refresh_token: refreshToken,
+    });
+    if (response.data?.access_token) {
       localStorage.setItem('access_token', response.data.access_token);
     }
     return response.data;
@@ -50,6 +68,7 @@ export const authApi = {
 
   logout: async (): Promise<void> => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   },
 };

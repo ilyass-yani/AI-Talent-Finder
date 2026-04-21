@@ -1,33 +1,42 @@
-import os
-from pathlib import Path
-from dotenv import load_dotenv
+"""
+SQLAlchemy engine, session factory, and FastAPI DB dependency.
+"""
+
+from __future__ import annotations
+
+from typing import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# Load environment variables from .env file in the root directory
-env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+from app.core.config import settings
 
-# Get database URL from environment variables
-DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
-
-# Create SQLAlchemy engine
+# `pool_pre_ping=True` recycles dead connections (e.g. after DB restart).
 engine = create_engine(
-    DATABASE_URL,
-    echo=False,  # Set to True for SQL query logging
+    settings.database_url,
+    pool_pre_ping=True,
+    echo=False,
+    future=True,
 )
 
-# Create session factory
 SessionLocal = sessionmaker(
     bind=engine,
     autoflush=False,
     autocommit=False,
-    expire_on_commit=True,
+    expire_on_commit=False,
+    class_=Session,
 )
 
-# Create declarative base for models
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Declarative base for all ORM models."""
+
+
+def get_db() -> Generator[Session, None, None]:
+    """FastAPI dependency that yields a scoped DB session and closes it."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

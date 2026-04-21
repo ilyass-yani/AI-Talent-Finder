@@ -1,210 +1,139 @@
 """
-Chatbot Module - AI-powered conversation and profile generation
-Étape 8 - Chatbot & Génération de profil idéal
+Chatbot service — recruiter assistant powered by Anthropic Claude.
+
+All API calls go through `app.services.llm_service.LLMService`, which reads
+credentials and the model name from `settings`. This keeps the model in sync
+across the application and avoids the older hardcoded `claude-3-5-sonnet`.
 """
 
-from typing import List, Dict, Optional
-from anthropic import Anthropic
+from __future__ import annotations
+
+import logging
+from typing import Dict, List, Optional
+
+from app.services.llm_service import ChatMessage, LLMService, LLMUnavailable
+
+
+logger = logging.getLogger(__name__)
 
 
 class ChatbotService:
     """
-    Chatbot service using Anthropic Claude
-    Handles 4 types of questions:
-    1. Explanation - "Why does this candidate have score X?"
-    2. Comparison - "Compare these candidates"
-    3. Exploration - "Find candidates with skill X"
-    4. Adjustment - "Change weight of skill X"
+    Conversational layer with built-in recruiter prompts.
+
+    Handles four intents:
+    1. Explanation — "Why does this candidate have score X?"
+    2. Comparison — "Compare these candidates"
+    3. Exploration — "Find candidates with skill X"
+    4. Adjustment  — "Change weight of skill X"
     """
-    
-    SYSTEM_PROMPT = """You are an expert recruitment consultant chatbot for AI Talent Finder.
-Your role is to help recruiters make informed hiring decisions by:
-1. Explaining candidate scores and matching results
-2. Comparing candidates profiles
-3. Helping explore candidate databases
-4. Suggesting criteria adjustments
 
-Always be professional, concise, and data-driven.
-Provide specific numbers and examples when available.
-Format your responses clearly with bullet points or tables when needed."""
-    
-    def __init__(self, api_key: str):
-        """
-        Initialize chatbot with Anthropic API key
-        
-        Args:
-            api_key: Anthropic Claude API key
-        """
-        self.client = Anthropic()
-        self.api_key = api_key
-        self.conversation_history = []
-    
+    SYSTEM_PROMPT = (
+        "Tu es un consultant expert en recrutement pour AI Talent Finder. "
+        "Aide les recruteurs à prendre des décisions éclairées en :"
+        "\n1. Expliquant les scores et les résultats de matching"
+        "\n2. Comparant les profils des candidats"
+        "\n3. Aidant à explorer la base de candidats"
+        "\n4. Suggérant des ajustements de critères"
+        "\n\nReste professionnel, concis et factuel. Cite des chiffres et des "
+        "exemples concrets. Utilise des listes à puces ou des tableaux quand utile."
+    )
+
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None) -> None:
+        # `api_key` and `model` remain for backwards compatibility with callers
+        # that still pass them; otherwise we fall back to settings.
+        self.llm = LLMService(api_key=api_key, model=model)
+        self.conversation_history: List[ChatMessage] = []
+
+    # ------------------------------------------------------------------ Helpers
+
     def add_context(self, context: Dict) -> str:
-        """
-        Add context about current recruiter state
-        Context includes: current criteria, top candidates, filters
-        
-        Args:
-            context: {
-                "criteria": {"title": "...", "skills": {...}},
-                "top_candidates": [{"name": "...", "score": ...}, ...],
-                "filters": {...}
-            }
-        Returns:
-            Formatted context string
-        """
-        context_str = "CURRENT CONTEXT:\n"
-        
-        if "criteria" in context:
-            context_str += f"\nJob Criteria: {context['criteria'].get('title', 'Unnamed')}\n"
-            if "skills" in context["criteria"]:
-                context_str += "Required Skills:\n"
-                for skill, weight in context["criteria"]["skills"].items():
-                    context_str += f"  - {skill}: {weight}%\n"
-        
-        if "top_candidates" in context:
-            context_str += "\nTop Candidates:\n"
-            for cand in context["top_candidates"][:5]:
-                context_str += f"  - {cand.get('name', 'Unknown')} (Score: {cand.get('score', 0):.1f}%)\n"
-        
-        return context_str
-    
+        """Format current recruiter state as a readable preamble."""
+        lines = ["CONTEXTE ACTUEL :"]
+
+        criteria = context.get("criteria") or {}
+        if criteria:
+            lines.append(f"\nCritère : {criteria.get('title', 'Sans titre')}")
+            skills = criteria.get("skills") or {}
+            if skills:
+                lines.append("Compétences requises :")
+                for skill, weight in skills.items():
+                    lines.append(f"  - {skill}: {weight}%")
+
+        top_candidates = context.get("top_candidates") or []
+        if top_candidates:
+            lines.append("\nMeilleurs candidats :")
+            for cand in top_candidates[:5]:
+                lines.append(
+                    f"  - {cand.get('name', 'Inconnu')} (score {float(cand.get('score', 0)):.1f}%)"
+                )
+
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------ Intents
+
     def explain_score(self, candidate_name: str, score: float, breakdown: Dict) -> str:
-        """
-        Explain why a candidate has a specific score
-        
-        Args:
-            candidate_name: Candidate name
-            score: Match score (0-100)
-            breakdown: Skill breakdown {skill: points}
-        
-        Returns:
-            AI-generated explanation
-        """
-        message = f"""Please explain why {candidate_name} has a match score of {score:.1f}%.
-
-Score Breakdown:
-"""
+        message = [f"Explique pourquoi {candidate_name} a un score de matching de {score:.1f}%.", "", "Détail du score :"]
         for skill, points in breakdown.items():
-            message += f"- {skill}: {points}\n"
-        
-        return self._send_message(message)
-    
+            message.append(f"- {skill}: {points}")
+        return self._send_message("\n".join(message))
+
     def compare_candidates(self, candidates: List[Dict]) -> str:
-        """
-        Compare multiple candidates
-        
-        Args:
-            candidates: List of {name, score, skills}
-        
-        Returns:
-            AI-generated comparison
-        """
-        message = "Please compare these candidates for the position:\n\n"
+        message = ["Compare ces candidats pour le poste :", ""]
         for cand in candidates:
-            message += f"- {cand.get('name', 'Candidate')}: Score {cand.get('score', 0):.1f}%\n"
-            if "skills" in cand:
-                message += f"  Skills: {', '.join(cand['skills'][:5])}\n"
-        
-        message += "\nHighlight strengths, weaknesses, and your recommendation."
-        
-        return self._send_message(message)
-    
+            message.append(f"- {cand.get('name', 'Candidat')} : score {float(cand.get('score', 0)):.1f}%")
+            if cand.get("skills"):
+                message.append(f"  Compétences : {', '.join(cand['skills'][:5])}")
+        message.append("\nMets en avant les forces, les faiblesses et ta recommandation.")
+        return self._send_message("\n".join(message))
+
     def generate_ideal_profile(self, job_description: str) -> Dict:
-        """
-        Generate ideal candidate profile from job description
-        
-        Étape 8 - Génération de profil idéal
-        
-        Args:
-            job_description: Text description of job needs
-        
-        Returns:
-            {
-                "skills": {skill: weight (0-100)},
-                "experience": "years",
-                "education": "level",
-                "explanation": "why these choices"
-            }
-        """
-        prompt = f"""Based on this job description, generate an ideal candidate profile:
-
-{job_description}
-
-Please extract:
-1. Key technical skills (with importance weight 0-100)
-2. Soft skills required
-3. Years of experience
-4. Education requirements
-5. Languages
-
-Return as structured data."""
-        
-        response = self._send_message(prompt)
-        
-        # Parse response into structure (simplified - enhance with actual parsing)
-        return {
-            "skills": {},  # Would parse from response
-            "experience": "3+",
-            "education": "Bachelor's",
-            "explanation": response
-        }
-    
-    def _send_message(self, user_message: str) -> str:
-        """
-        Send message to Claude and get response
-        
-        Args:
-            user_message: User input
-        
-        Returns:
-            AI response
-        """
-        # Add user message to history
-        self.conversation_history.append({
-            "role": "user",
-            "content": user_message
-        })
-        
-        # Call Claude API
-        response = self.client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
-            system=self.SYSTEM_PROMPT,
-            messages=self.conversation_history
+        """Ask Claude to extract a structured ideal-candidate profile (JSON)."""
+        prompt = (
+            "À partir de cette description de poste, génère un profil de candidat idéal.\n\n"
+            f"Description :\n{job_description}\n\n"
+            "Réponds uniquement avec un JSON ayant cette forme :\n"
+            "{\n"
+            '  "skills": {"<nom>": <poids 0-100>, ...},\n'
+            '  "soft_skills": ["..."],\n'
+            '  "experience_years": <int>,\n'
+            '  "education": "...",\n'
+            '  "languages": ["..."],\n'
+            '  "explanation": "..."\n'
+            "}"
         )
-        
-        # Extract response
-        assistant_message = response.content[0].text
-        
-        # Add to history
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": assistant_message
-        })
-        
-        return assistant_message
-    
+        try:
+            return self.llm.complete_json(prompt, system=self.SYSTEM_PROMPT)
+        except LLMUnavailable as exc:
+            logger.warning("Profile generation skipped: %s", exc)
+            return {
+                "skills": {},
+                "soft_skills": [],
+                "experience_years": 0,
+                "education": "",
+                "languages": [],
+                "explanation": "LLM indisponible — profil par défaut.",
+            }
+
     def chat(self, user_input: str, context: Optional[Dict] = None) -> str:
-        """
-        Main chat endpoint
-        Handles all 4 types of questions automatically
-        
-        Args:
-            user_input: User question/input
-            context: Optional context about current state
-        
-        Returns:
-            Chatbot response
-        """
-        # Prepare message with context
+        """Main conversational entry point."""
+        full_message = user_input
         if context:
-            full_message = self.add_context(context) + "\n\n" + user_input
-        else:
-            full_message = user_input
-        
+            full_message = f"{self.add_context(context)}\n\n{user_input}"
         return self._send_message(full_message)
-    
-    def reset_conversation(self):
-        """Clear conversation history"""
+
+    def reset_conversation(self) -> None:
         self.conversation_history = []
+
+    # ------------------------------------------------------------------ Internals
+
+    def _send_message(self, user_message: str) -> str:
+        self.conversation_history.append(ChatMessage(role="user", content=user_message))
+        try:
+            reply = self.llm.complete(self.conversation_history, system=self.SYSTEM_PROMPT)
+        except LLMUnavailable as exc:
+            self.conversation_history.pop()
+            logger.warning("Chatbot fallback (LLM unavailable): %s", exc)
+            return "Je ne peux pas contacter le moteur LLM pour le moment. Vérifiez la configuration LLM_API_KEY."
+        self.conversation_history.append(ChatMessage(role="assistant", content=reply))
+        return reply

@@ -30,7 +30,8 @@ export default function CandidateProfile() {
       setCandidate(response.data);
       setError(null);
     } catch (err: unknown) {
-      if (err?.response?.status === 404) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
         router.replace('/candidate/upload');
         return;
       }
@@ -98,7 +99,7 @@ export default function CandidateProfile() {
 
   // Parse les champs JSON si nécessaire - avec gestion d'erreur
   const safeJsonParse = (
-    jsonString: string | null,
+    jsonString: string | null | undefined,
     fallback: unknown[] = [],
     useFallbackIfEmpty = false
   ) => {
@@ -122,7 +123,7 @@ export default function CandidateProfile() {
     }
   };
 
-  const safeJsonObjectParse = (jsonString: string | null, fallback: Record<string, unknown> = {}) => {
+  const safeJsonObjectParse = (jsonString: string | null | undefined, fallback: Record<string, unknown> = {}) => {
     try {
       if (!jsonString) return fallback;
       const parsed = JSON.parse(jsonString);
@@ -152,18 +153,18 @@ export default function CandidateProfile() {
 
   const toExperienceArray = (value: unknown): ExtractedExperience[] => {
     if (!Array.isArray(value)) return [];
-    return value
-      .map((item) => {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-        const data = item as Record<string, unknown>;
-        const title = typeof data.title === 'string' ? data.title.trim() : '';
-        const company = typeof data.company === 'string' ? data.company.trim() : '';
-        const period = typeof data.period === 'string' ? data.period.trim() : null;
-        const responsibilities = toStringArray(data.responsibilities).filter((line) => line.length > 0);
-        if (!title && !company && responsibilities.length === 0) return null;
-        return { title, company, period, responsibilities };
-      })
-      .filter((item): item is ExtractedExperience => item !== null);
+    const out: ExtractedExperience[] = [];
+    for (const item of value) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const data = item as Record<string, unknown>;
+      const title = typeof data.title === 'string' ? data.title.trim() : '';
+      const company = typeof data.company === 'string' ? data.company.trim() : '';
+      const period = typeof data.period === 'string' ? data.period.trim() : null;
+      const responsibilities = toStringArray(data.responsibilities).filter((line) => line.length > 0);
+      if (!title && !company && responsibilities.length === 0) continue;
+      out.push({ title, company, period, responsibilities });
+    }
+    return out;
   };
 
   const jobTitles = safeJsonParse(candidate.extracted_job_titles, []);

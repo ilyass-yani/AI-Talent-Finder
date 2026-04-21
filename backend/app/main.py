@@ -1,41 +1,112 @@
-import os
-from pathlib import Path
-from fastapi import FastAPI
+"""
+FastAPI application entry point.
+
+Schema lifecycle is managed by Alembic — never call `Base.metadata.create_all`
+in production. To apply pending migrations on startup, run:
+
+    docker compose exec backend alembic upgrade head
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+import uuid
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
 
-# Load environment variables from root .env file
-env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+from app.core.config import settings
 
-from app.core.database import Base, engine
-from app.models.models import User, Candidate, Skill, CandidateSkill, Experience, Education, JobCriteria, CriteriaSkill, MatchResult, Favorite
-from app.api import auth, candidates, skills, jobs, matching, favorites, experiences, educations, match_results
-from app.api.chat import router as chat_router
-from app.api.export import router as export_router
-from app.api.criteria import criteria_router, matching_router
 
-# Create database tables on startup
-Base.metadata.create_all(bind=engine)
+# ----- Logging configured before importing routes so their loggers inherit it.
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug else logging.INFO,
+    format="%(asctime)s %(levelname)-7s [%(name)s] %(message)s",
+)
+logger = logging.getLogger("ai_talent_finder")
 
-# Initialize FastAPI app
+# Routes (imported after logging setup).
+from app.api import (  # noqa: E402
+    auth,
+    candidates,
+    educations,
+    experiences,
+    favorites,
+    jobs,
+    match_results,
+    matching,
+    skills,
+)
+from app.api.chat import router as chat_router  # noqa: E402
+from app.api.criteria import criteria_router, matching_router  # noqa: E402
+from app.api.export import router as export_router  # noqa: E402
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run startup checks; warn loudly when running with insecure defaults."""
+    logger.info("Starting AI Talent Finder | env=%s debug=%s", settings.environment, settings.debug)
+
+    if settings.is_production and settings.secret_key.startswith("dev-secret"):
+        logger.error("SECRET_KEY is the development default while ENVIRONMENT=production. Set SECRET_KEY!")
+    if not settings.effective_llm_api_key:
+        logger.warning("No LLM_API_KEY set — chatbot and profile generation will fail at request time.")
+
+    yield
+    logger.info("Shutting down AI Talent Finder")
+
+
 app = FastAPI(
-    title="AI Talent Finder", 
+    title="AI Talent Finder",
     version="1.0.0",
-    redirect_slashes=False
+    description="Plateforme de recrutement IA — analyse CV, matching pondéré, chatbot.",
+    redirect_slashes=False,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-# Configure CORS
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
+# ---------- Middleware ----------
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
-# Include routers (Auth must be first)
+
+@app.middleware("http")
+async def request_log_middleware(request: Request, call_next):
+    """Tag every request with an id and log method/path/status/duration."""
+    request_id = request.headers.get("x-request-id", uuid.uuid4().hex[:12])
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = int((time.perf_counter() - start) * 1000)
+        logger.exception("[%s] %s %s -> 500 (%dms)", request_id, request.method, request.url.path, duration_ms)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error", "request_id": request_id},
+        )
+    duration_ms = int((time.perf_counter() - start) * 1000)
+    logger.info(
+        "[%s] %s %s -> %d (%dms)",
+        request_id, request.method, request.url.path, response.status_code, duration_ms,
+    )
+    response.headers["x-request-id"] = request_id
+    return response
+
+
+# ---------- Routes ----------
+
+# Order matters: auth first so OpenAPI docs read top-down naturally.
 app.include_router(auth.router)
 app.include_router(candidates.router)
 app.include_router(skills.router)
@@ -50,8 +121,22 @@ app.include_router(match_results.router)
 app.include_router(chat_router)
 app.include_router(export_router)
 
-# Health check endpoint
-@app.get("/health")
-def health():
-    """Health check endpoint"""
-    return {"status": "ok", "version": "1.0.0"}
+
+@app.get("/health", tags=["meta"])
+def health() -> dict:
+    """Liveness probe — used by Docker healthcheck and CI."""
+    return {
+        "status": "ok",
+        "version": app.version,
+        "environment": settings.environment,
+    }
+
+
+@app.get("/", tags=["meta"])
+def root() -> dict:
+    return {
+        "name": app.title,
+        "version": app.version,
+        "docs": "/docs",
+        "health": "/health",
+    }

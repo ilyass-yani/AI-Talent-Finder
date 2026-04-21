@@ -1,14 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Build a self-contained `.next/standalone` server for the Docker image.
+  output: 'standalone',
+
   // Environment variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
 
-  // Turbopack configuration (Next.js 16 default)
-  // Keep empty to use Turbopack defaults
-  turbopack: {},
+  // Pin the workspace root so Next.js doesn't pick up the parent-directory lockfile.
+  turbopack: {
+    root: __dirname,
+  },
 
   // Rewrites to handle API proxying (optional)
   async rewrites() {

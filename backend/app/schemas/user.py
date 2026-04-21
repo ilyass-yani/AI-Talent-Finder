@@ -30,9 +30,10 @@ class TokenData(BaseModel):
 
 
 class Token(BaseModel):
-    """Response for login/register endpoints"""
+    """Response for login/register/refresh endpoints"""
     access_token: str
     token_type: str = "bearer"
+    refresh_token: Optional[str] = None
     user: "UserResponse"
 
 

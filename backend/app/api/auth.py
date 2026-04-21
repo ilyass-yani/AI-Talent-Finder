@@ -8,10 +8,14 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
 
+from jose import JWTError
+from pydantic import BaseModel
+
 from app.core.security import (
     get_password_hash,
     verify_password,
     create_access_token,
+    create_refresh_token,
     decode_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
@@ -67,14 +71,18 @@ async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> To
             detail=f"Registration failed: {str(e)}"
         )
     
-    # 4. Generate access token
+    # 4. Generate access + refresh tokens
     access_token = create_access_token(
         data={"sub": db_user.email, "user_id": db_user.id}
     )
-    
-    # 5. Return token + user
+    refresh_token = create_refresh_token(
+        data={"sub": db_user.email, "user_id": db_user.id}
+    )
+
+    # 5. Return tokens + user
     return Token(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=UserResponse(
             id=db_user.id,
@@ -111,14 +119,18 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
             detail="Invalid email or password"
         )
     
-    # 3. Generate access token
+    # 3. Generate access + refresh tokens
     access_token = create_access_token(
         data={"sub": db_user.email, "user_id": db_user.id}
     )
-    
-    # 4. Return token + user
+    refresh_token = create_refresh_token(
+        data={"sub": db_user.email, "user_id": db_user.id}
+    )
+
+    # 4. Return tokens + user
     return Token(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=UserResponse(
             id=db_user.id,
@@ -136,7 +148,7 @@ async def get_me(
 ) -> UserResponse:
     """
     Get current authenticated user information (ÉTAPE 3)
-    
+
     Requires: Valid JWT token in Authorization header
     """
     return UserResponse(
@@ -145,4 +157,41 @@ async def get_me(
         full_name=current_user.full_name,
         role=current_user.role,
         created_at=current_user.created_at.isoformat()
+    )
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_access_token(payload: RefreshRequest, db: Session = Depends(get_db)) -> Token:
+    """Exchange a valid refresh token for a fresh access + refresh token pair."""
+    try:
+        token_data = decode_token(payload.refresh_token, expected_type="refresh")
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = db.query(User).filter(User.id == token_data.user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            created_at=user.created_at.isoformat(),
+        ),
     )

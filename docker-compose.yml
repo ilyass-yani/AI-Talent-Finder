@@ -1,60 +1,77 @@
-version: "3.8"
-
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
+    container_name: atf_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_talent_finder
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_talent_finder}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_talent_finder}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: atf_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-ai_talent_finder}
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ai_talent_finder
-      BACKEND_URL: http://localhost:8000
-      FRONTEND_URL: http://localhost:3000
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-sk-ant-YOUR_API_KEY_HERE}
-      SPACY_MODEL: en_core_web_sm
-      CV_UPLOAD_DIR: ./uploads/cvs
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production-minimum-32-characters}
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      ENVIRONMENT: development
-      DEBUG: "true"
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: deps
+    container_name: atf_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000
-      NODE_ENV: development
-    depends_on:
-      - backend
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     command: npm run dev
 
 volumes:
   postgres_data:
+    name: atf_postgres_data
+  backend_uploads:
+    name: atf_backend_uploads

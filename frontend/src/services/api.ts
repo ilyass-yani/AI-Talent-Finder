@@ -31,18 +31,45 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor — try a single transparent refresh on 401, then bail to login.
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+  if (!refreshToken) return null;
+  try {
+    const response = await axios.post(`${apiUrl}/api/auth/refresh`, { refresh_token: refreshToken });
+    const newToken: string | undefined = response.data?.access_token;
+    if (newToken) {
+      localStorage.setItem('access_token', newToken);
+      return newToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        window.location.href = '/auth/login';
+  (response) => response,
+  async (error) => {
+    const original = error.config || {};
+    const status = error.response?.status;
+    const isAuthEndpoint = typeof original.url === 'string' && original.url.includes('/api/auth/');
+
+    if (status === 401 && !original._retry && !isAuthEndpoint && typeof window !== 'undefined') {
+      original._retry = true;
+      refreshInFlight = refreshInFlight ?? refreshAccessToken();
+      const newToken = await refreshInFlight;
+      refreshInFlight = null;
+      if (newToken) {
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient(original);
       }
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/auth/login';
     }
     return Promise.reject(error);
   }

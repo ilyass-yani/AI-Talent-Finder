@@ -7,7 +7,7 @@ MODES:
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Tuple, cast
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
@@ -506,18 +506,7 @@ async def get_candidate_match_analysis(
             {"name": cs.skill.name, "weight": cs.weight}
             for cs in criteria_skills
         ]
-        
-        # Now returns tuple (score, details)
-        score, details = calculate_match_score(candidate, criteria_skills_dict)
-        
-        matches.append(CandidateMatchResponse(
-            candidate_id=cast(int, candidate.id),
-            full_name=cast(str, candidate.full_name),
-            email=cast(str, candidate.email),
-            match_score=score,
-            explanation=details.get("details", "")
-        ))
-    
+
     # Calculate match score with enhanced metrics
     score, details = calculate_match_score(
         candidate,
@@ -624,9 +613,9 @@ async def calculate_match(
         for cs in criteria_skills
     ]
 
-    score = calculate_match_score(candidate, criteria_skills_dict)
+    score, details = calculate_match_score(candidate, criteria_skills_dict)
     explanation = (
-        f"Matched {len([s for s in criteria_skills_dict if s['name'] in [cs.skill.name for cs in candidate.candidate_skills]])} required skills"
+        f"Matched {details.get('matched_skills', 0)}/{details.get('total_skills', 0)} required skills"
         if criteria_skills_dict else "No skills defined for criteria"
     )
 
