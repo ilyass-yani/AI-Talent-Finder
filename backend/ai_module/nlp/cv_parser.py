@@ -99,6 +99,10 @@ class HFResumeNERParser:
 
         return profile, min(100.0, quality)
 
+    def close(self) -> None:
+        """Release the underlying Hugging Face pipeline."""
+        self.ner = None
+
     def _extract_entities(self, text: str) -> Dict[str, List[str]]:
         groups: Dict[str, List[str]] = {"PER": [], "ORG": [], "LOC": [], "MISC": []}
         if not self.ner:

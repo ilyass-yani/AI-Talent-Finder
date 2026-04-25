@@ -165,6 +165,11 @@ class EnhancedSkillExtractor:
         except Exception as e:
             print(f"⚠️ NER extraction error: {e}")
             return []
+
+    def close(self) -> None:
+        """Release the lazy NER pipeline when the extractor is no longer needed."""
+        self.ner_pipeline = None
+        self.ner_available = False
     
     def _classify_skill(self, skill_name: str) -> str:
         """Classify skill into category"""

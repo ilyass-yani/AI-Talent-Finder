@@ -94,6 +94,25 @@ class CVExtractionService:
 
         self._email_re = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
         self._phone_digits_re = re.compile(r"\D")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()
+
+    def close(self) -> None:
+        """Release heavy NLP components explicitly."""
+        if getattr(self, "skill_extractor", None) is not None:
+            close = getattr(self.skill_extractor, "close", None)
+            if callable(close):
+                close()
+        if getattr(self, "hf_parser", None) is not None:
+            close = getattr(self.hf_parser, "close", None)
+            if callable(close):
+                close()
+        self.hf_parser = None
+        self.skill_extractor = None
     
     def extract_from_pdf(self, file_path: str) -> CVExtractionResult:
         """

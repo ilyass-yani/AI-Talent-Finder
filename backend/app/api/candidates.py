@@ -99,41 +99,41 @@ def get_my_candidate_profile(
 
     if needs_refresh:
         try:
-            extraction_service = CVExtractionService()
-            refreshed = extraction_service.extract_from_text(candidate.raw_text)
-            refreshed_candidate = extraction_service.to_candidate_dict(refreshed)
+            with CVExtractionService() as extraction_service:
+                refreshed = extraction_service.extract_from_text(candidate.raw_text)
+                refreshed_candidate = extraction_service.to_candidate_dict(refreshed)
 
-            should_update = (
-                refreshed.quality_score > (candidate.extraction_quality_score or 0)
-                or candidate.full_name == "Unknown"
-                or not candidate.linkedin_url
-                or not candidate.extracted_job_titles
-                or not candidate.extracted_companies
-                or not candidate.extracted_education
-                or not candidate.ner_extraction_data
-                or '"languages"' not in candidate.ner_extraction_data
-                or '"experiences"' not in candidate.ner_extraction_data
-                or '"projects"' not in candidate.ner_extraction_data
-                or '"certifications"' not in candidate.ner_extraction_data
-                or '"github_urls"' not in candidate.ner_extraction_data
-                or '"portfolio_urls"' not in candidate.ner_extraction_data
-            )
-
-            if should_update:
-                refreshed_candidate["user_id"] = candidate.user_id
-                refreshed_candidate["cv_path"] = candidate.cv_path
-                refreshed_candidate["raw_text"] = candidate.raw_text
-                refreshed_candidate["email"] = candidate.email or refreshed_candidate.get("email")
-                refreshed_candidate["full_name"] = (
-                    candidate.full_name
-                    if candidate.full_name and candidate.full_name != "Unknown"
-                    else refreshed_candidate.get("full_name")
+                should_update = (
+                    refreshed.quality_score > (candidate.extraction_quality_score or 0)
+                    or candidate.full_name == "Unknown"
+                    or not candidate.linkedin_url
+                    or not candidate.extracted_job_titles
+                    or not candidate.extracted_companies
+                    or not candidate.extracted_education
+                    or not candidate.ner_extraction_data
+                    or '"languages"' not in candidate.ner_extraction_data
+                    or '"experiences"' not in candidate.ner_extraction_data
+                    or '"projects"' not in candidate.ner_extraction_data
+                    or '"certifications"' not in candidate.ner_extraction_data
+                    or '"github_urls"' not in candidate.ner_extraction_data
+                    or '"portfolio_urls"' not in candidate.ner_extraction_data
                 )
 
-                for key, value in refreshed_candidate.items():
-                    setattr(candidate, key, value)
-                db.commit()
-                db.refresh(candidate)
+                if should_update:
+                    refreshed_candidate["user_id"] = candidate.user_id
+                    refreshed_candidate["cv_path"] = candidate.cv_path
+                    refreshed_candidate["raw_text"] = candidate.raw_text
+                    refreshed_candidate["email"] = candidate.email or refreshed_candidate.get("email")
+                    refreshed_candidate["full_name"] = (
+                        candidate.full_name
+                        if candidate.full_name and candidate.full_name != "Unknown"
+                        else refreshed_candidate.get("full_name")
+                    )
+
+                    for key, value in refreshed_candidate.items():
+                        setattr(candidate, key, value)
+                    db.commit()
+                    db.refresh(candidate)
         except Exception:
             db.rollback()
     
@@ -241,11 +241,11 @@ async def upload_candidate_cv(
             extracted_text = contents.decode('utf-8')
 
         # ===== NER EXTRACTION PIPELINE (NEW) =====
-        extraction_service = CVExtractionService()
-        extraction_result = extraction_service.extract_from_text(extracted_text)
-        
-        # Get candidate data from extraction
-        candidate_dict = extraction_service.to_candidate_dict(extraction_result)
+        with CVExtractionService() as extraction_service:
+            extraction_result = extraction_service.extract_from_text(extracted_text)
+
+            # Get candidate data from extraction
+            candidate_dict = extraction_service.to_candidate_dict(extraction_result)
         candidate_dict["cv_path"] = str(pdf_path.relative_to(Path(__file__).resolve().parents[2]))
 
         # Prioritize user-provided data, then extraction, then authenticated user defaults.

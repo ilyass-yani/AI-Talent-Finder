@@ -7,7 +7,7 @@ MODES:
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Tuple, cast
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from enum import Enum
 
@@ -85,9 +85,7 @@ class MatchResultResponse(BaseModel):
     score: float  # 0-100
     explanation: Optional[str] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobCriteriaResponse(BaseModel):
@@ -98,9 +96,7 @@ class JobCriteriaResponse(BaseModel):
     description: str
     created_at: datetime
     required_skills: List[dict] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CandidateMatchResponse(BaseModel):

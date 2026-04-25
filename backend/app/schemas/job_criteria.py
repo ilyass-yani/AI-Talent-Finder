@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 
@@ -14,9 +14,7 @@ class CriteriaSkillCreate(CriteriaSkillBase):
 
 class CriteriaSkillResponse(CriteriaSkillBase):
     id: int
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobCriteriaBase(BaseModel):
@@ -38,6 +36,4 @@ class JobCriteriaResponse(JobCriteriaBase):
     recruiter_id: int
     created_at: datetime
     criteria_skills: List[CriteriaSkillResponse] = []
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -227,6 +227,12 @@ class SemanticSkillMatcher:
     def clear_cache(cls):
         """Clear embedding cache."""
         cls._embedding_cache.clear()
+
+    @classmethod
+    def release_resources(cls) -> None:
+        """Release the cached embedding model and embeddings."""
+        cls._embedding_cache.clear()
+        cls._model = None
     
     @classmethod
     def get_cache_size(cls) -> int:

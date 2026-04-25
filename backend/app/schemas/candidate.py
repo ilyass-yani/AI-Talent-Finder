@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List, Dict
 
@@ -38,6 +38,4 @@ class CandidateResponse(CandidateBase):
     extraction_quality_score: Optional[float] = 0.0
     ner_extraction_data: Optional[str] = None
     is_fully_extracted: Optional[bool] = False
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

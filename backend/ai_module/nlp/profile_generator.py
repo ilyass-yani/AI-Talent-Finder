@@ -73,6 +73,11 @@ class ProfileGenerator:
             return None
 
     @classmethod
+    def clear_cache(cls) -> None:
+        """Release cached generation models."""
+        cls._model_cache.clear()
+
+    @classmethod
     def _build_prompt(cls, text: str) -> str:
         return (
             "Generate an ideal candidate profile in valid JSON with keys: "

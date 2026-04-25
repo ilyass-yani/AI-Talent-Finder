@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from enum import Enum
 
@@ -43,6 +43,4 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     created_at: str
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

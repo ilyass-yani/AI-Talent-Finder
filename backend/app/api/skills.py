@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.core.dependencies import get_db
 from app.models.models import Skill
@@ -19,9 +19,7 @@ class SkillResponse(BaseModel):
     id: int
     name: str
     category: str
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 @router.get("/", response_model=List[SkillResponse])
