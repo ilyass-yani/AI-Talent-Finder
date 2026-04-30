@@ -204,7 +204,7 @@ def _compute_candidate_matches(criteria: JobCriteria, db: Session) -> List[Candi
     return results
 
 
-def calculate_match_score(candidate: Candidate, criteria_skills: List[dict] | Dict[str, int], criteria_job_title: str = "") -> Tuple[float, Dict]:
+def calculate_match_score(candidate: Candidate, criteria_skills: List[dict] | Dict[str, int], criteria_job_title: str = "", criteria_companies: Optional[List[str]] = None) -> Tuple[float, Dict]:
     """Wrapper that adapts candidate/criteria structures to the internal scorer."""
     from ai_module.matching import CosineScorer
 
