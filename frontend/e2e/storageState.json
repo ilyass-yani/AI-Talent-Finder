@@ -1,0 +1,30 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "https://ai-talent-finder-production-ed09.up.railway.app",
+      "localStorage": [
+        {
+          "name": "access_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhdXRvY2FuZGlkYXRlKzAwMUBleGFtcGxlLmNvbSIsInVzZXJfaWQiOjEsImV4cCI6MTc4MDEwOTg5Nn0.KodlBLJPd8-S6_ALIU8uO9HqgnVv-AXxlsP7htpRUPI"
+        },
+        {
+          "name": "user_role",
+          "value": "candidate"
+        },
+        {
+          "name": "user_name",
+          "value": "Auto Candidate"
+        },
+        {
+          "name": "user_id",
+          "value": "1"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\": 1, \"email\": \"autocandidate+001@example.com\", \"full_name\": \"Auto Candidate\", \"role\": \"candidate\", \"created_at\": \"2026-04-30T02:56:41.784699\"}"
+        }
+      ]
+    }
+  ]
+}
