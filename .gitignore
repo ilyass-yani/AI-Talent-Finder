@@ -147,3 +147,4 @@ vite.config.ts.timestamp-*
 uploads/
 test.db
 nohup.out
+data.db
