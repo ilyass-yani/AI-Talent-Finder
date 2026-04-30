@@ -181,8 +181,8 @@ DELETE /api/criteria/{id}  # Supprimer
 ```
 POST /api/matching/criteria               # Créer critères via matching
 POST /api/matching/search/{criteria_id}   # Recherche candidats
-POST /api/matching/{criteria_id}/results  # Lancer le matching
-GET  /api/matching/{criteria_id}/results  # Résultats classés
+POST /api/matching/criteria/{criteria_id}/results  # Lancer le matching
+GET  /api/matching/criteria/{criteria_id}/results  # Résultats classés
 POST /api/matching/generate-and-match     # Mode IA: profil idéal → matching
 POST /api/matching/calculate/{cand}/{crit} # Calcul individuel
 ```

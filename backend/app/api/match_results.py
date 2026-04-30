@@ -7,7 +7,7 @@ from app.core.dependencies import get_db, get_current_user
 from app.models.models import MatchResult, JobCriteria, User, UserRole
 from app.schemas.match_result import MatchResultResponse, MatchResultCreate, MatchResultUpdate
 
-router = APIRouter(prefix="/api/matching/{criteria_id}/results", tags=["match-results"])
+router = APIRouter(prefix="/api/matching/criteria/{criteria_id}/results", tags=["match-results"])
 
 
 @router.get("/", response_model=List[MatchResultResponse])
