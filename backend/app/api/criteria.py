@@ -22,7 +22,7 @@ from app.services.matching_engine import (
 
 
 criteria_router = APIRouter(prefix="/api/criteria", tags=["criteria"])
-matching_router = APIRouter(prefix="/api/matching", tags=["matching"])
+matching_router = APIRouter(prefix="/api/criteria-legacy-matching", tags=["matching"])
 
 
 class CriteriaSkillInput(BaseModel):
