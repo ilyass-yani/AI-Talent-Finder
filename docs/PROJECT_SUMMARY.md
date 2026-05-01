@@ -1,0 +1,97 @@
+# AI Talent Finder — Project Summary
+
+Purpose
+-------
+This file summarizes the work performed during the recent cleanup and fixes so students and reviewers can quickly understand what changed, why, and how to run the project locally or deploy it.
+
+High-level summary
+------------------
+- Backend: FastAPI API serving candidate and matching endpoints. ML models (PyTorch / sentence-transformers) power Mode‑2 generate-and-match and must run in a Linux container (Windows may fail on import).
+- Frontend: Next.js (app router) providing candidate/recruiter UI and routes under `/auth`, `/candidate`, `/recruiter`, `/matching`.
+- Devops / Deploy: Railway deployments using Dockerfile builds; CI generated deployment artifacts were archived.
+- Testing: Playwright E2E suite under `frontend/e2e/` using a captured `storageState.json` for authenticated tests.
+
+What I changed (overview)
+-------------------------
+- Fixed a backend route collision by reordering router inclusion so `POST /api/matching/generate-and-match` is handled correctly.
+- Reworked match scoring wrapper so `calculate_match_score()` now delegates to the shared scorer implementation safely.
+- Patched `frontend/Dockerfile` to avoid BuildKit `COPY || true` copy errors and to create a default `next.config.js` in the builder stage when missing.
+- Added a small Playwright helper script at `frontend/e2e/check_prod_storage.js` to open production with `frontend/e2e/storageState.json`, capture status and a screenshot.
+- Added this project summary at `docs/PROJECT_SUMMARY.md`.
+- Archived deployment artifacts matching `.deployments*` into `archive/deployments/` to declutter the repository.
+
+Files changed / added
+---------------------
+- Backend (high level): `backend/app/main.py` (router ordering)
+- Backend (matching): `backend/app/api/matching.py` (scoring wrapper)
+- Frontend Dockerfile: `frontend/Dockerfile` (create default `next.config.js`, remove `|| true` copy short-circuit)
+- Playwright helper: `frontend/e2e/check_prod_storage.js` (script to validate production using `storageState.json`)
+- Project summary: `docs/PROJECT_SUMMARY.md` (this file)
+- Archive location for artifacts: `archive/deployments/` (moved `.deployments*` files here)
+
+How to run locally (short)
+--------------------------
+1. Backend
+
+   - Create and activate a Python virtual environment and install deps (example):
+
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   pip install -r backend/requirements.txt
+   cd backend
+   uvicorn app.main:app --reload --port 8080
+   ```
+
+   - Note: If you are on Windows the ML routes that import `torch` may fail at import-time. To exercise ML features, run inside Linux (Docker or Railway) where PyTorch binaries are available.
+
+2. Frontend
+
+   - From the `frontend` folder:
+
+   ```bash
+   npm ci
+   npm run dev    # or: npm run build && npm run start
+   ```
+
+3. Playwright E2E (local)
+
+   - Install Playwright browsers before running tests:
+
+   ```bash
+   npm ci
+   npx playwright install
+   npx playwright test    # (if using @playwright/test)
+   # or run the helper script:
+   node frontend/e2e/check_prod_storage.js
+   ```
+
+Environment variables & secrets
+-------------------------------
+- This project uses an `.env` file for tokens and service URLs (HuggingFace, GITHUB_TOKEN, RAILWAY_TOKEN, SUPABASE keys). Do NOT commit secrets to the repo. Keep them in `.env` locally or configure them in Railway/hosting.
+- The repository contains an example `.env` in the workspace; ensure you rotate any tokens you do not want shared.
+
+Deployment notes
+----------------
+- Railway builds use the `Dockerfile` in each service. The frontend Dockerfile has been patched to avoid BuildKit copy errors by ensuring `next.config.js` exists in the builder stage.
+- ML endpoints must be deployed in Linux containers (Railway or Docker). On Windows, the backend may skip ML routers when `torch` import fails.
+
+Why artifacts were archived
+--------------------------
+- During iterative Railway uploads the CLI created many `.deployments*` JSON artifacts in the repo root. These are not source files and clutter the repo; they were moved to `archive/deployments/` for traceability and to keep the repository clean.
+
+Next recommended steps for students
+----------------------------------
+1. Inspect `docs/PROJECT_SUMMARY.md` and run the local instructions above.
+2. Rotate any tokens you are not comfortable keeping in `.env`.
+3. If you want the archived deployment files removed permanently, they are in `archive/deployments/` and can be deleted; otherwise keep them for troubleshooting.
+4. To run the Mode‑2 generate-and-match flow end-to-end, deploy both backend and frontend to Railway (or Docker Compose) so PyTorch loads correctly.
+
+Contact / notes
+----------------
+If you want, I can:
+- open a pull request with the `cleanup-docs` branch, or
+- remove archived artifacts permanently after your confirmation.
+
+---
+Generated by the project maintainer assistant — secrets omitted.
