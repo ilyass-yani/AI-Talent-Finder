@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_user
 from app.models.models import (
     JobCriteria, 
     MatchResult, 
@@ -45,7 +45,11 @@ except Exception as e:
     SKILL_EXTRACTOR_AVAILABLE = False
 
 
-router = APIRouter(prefix="/api/matching", tags=["matching"])
+router = APIRouter(
+    prefix="/api/matching",
+    tags=["matching"],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 # ============================================================================
@@ -243,7 +247,7 @@ def calculate_match_score(candidate: Candidate, criteria_skills: List[dict] | Di
 @router.post("/criteria", response_model=JobCriteriaResponse)
 async def create_job_criteria(
     criteria: JobCriteriaCreate,
-    authorization: Optional[str] = Header(None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -284,6 +288,7 @@ async def create_job_criteria(
 @router.post("/search/{criteria_id}")
 async def search_candidates(
     criteria_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> List[CandidateMatchResponse]:
     """
@@ -484,6 +489,7 @@ async def calculate_match(
 @router.post("/generate-profile")
 async def generate_ideal_profile(
     request: GenerateProfileRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
     """
@@ -536,6 +542,7 @@ class GenerateAndMatchRequest(BaseModel):
 @router.post("/generate-and-match")
 async def generate_and_match(
     request: GenerateAndMatchRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
     """

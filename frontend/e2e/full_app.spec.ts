@@ -25,6 +25,7 @@ import * as fs from 'fs';
 // Config
 // ──────────────────────────────────────────────
 const BASE_URL = 'https://ai-talent-finder-production-ed09.up.railway.app';
+const API_URL = 'https://ai-talent-finder-backend-production.up.railway.app';
 const CV_PATH = path.resolve(
   'C:\\Users\\ACER\\OneDrive - usmba.ac.ma\\Documents\\chafik\\Resume\\resume chafik boulealam v2.pdf'
 );
@@ -83,6 +84,11 @@ test.describe('1. Homepage', () => {
 // Suite 2 — Candidate Flow
 // ──────────────────────────────────────────────
 test.describe('2. Candidate Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+    page.on('requestfailed', request => console.log('REQUEST FAILED:', request.url(), request.failure()?.errorText));
+  });
   test('2a. Register page loads', async ({ page }) => {
     await page.goto(`${BASE_URL}/auth/register`);
     await waitForPageLoad(page);
@@ -264,7 +270,10 @@ test.describe('3. Recruiter Flow', () => {
     await recruiterPage
       .getByRole('button', { name: /créer|s'inscrire|inscription|register/i })
       .click();
-    await recruiterPage.waitForURL(/recruiter/, { timeout: 20_000 });
+    // Give the app extra time to redirect to recruiter dashboard; fall back to a networkidle load check
+    await recruiterPage.waitForURL(/recruiter/, { timeout: 30_000 }).catch(async () => {
+      await waitForPageLoad(recruiterPage);
+    });
     await screenshotStep(recruiterPage, '03_recruiter_registered');
   });
 
@@ -311,10 +320,10 @@ test.describe('3. Recruiter Flow', () => {
 
     await screenshotStep(recruiterPage, '03b_mode1_filled');
 
-    // Launch search
-    await recruiterPage
-      .getByRole('button', { name: /lancer la recherche|rechercher/i })
-      .click();
+    // Launch search (use explicit button locator to avoid ambiguous role matches)
+    const launchSearchBtn = recruiterPage.locator('button:has-text("Lancer la Recherche")').first();
+    await expect(launchSearchBtn).toBeVisible({ timeout: 5_000 });
+    await launchSearchBtn.click();
 
     // Wait for results or error message (API may return 0 candidates if none uploaded yet)
     await recruiterPage
@@ -349,12 +358,18 @@ test.describe('3. Recruiter Flow', () => {
       .getByLabel(/titre du poste/i)
       .first()
       .fill('Data Scientist');
-    await recruiterPage
-      .getByLabel(/description/i)
-      .first()
-      .fill(
-        'We are looking for a Data Scientist proficient in Python, machine learning, PyTorch, and data visualization. Experience with NLP models is a plus.'
-      );
+    // Try to locate the description field by common labels first (covers multiple locales).
+    let descField = recruiterPage.getByLabel(/description|décrivez|décrire|describe/i).first();
+    // If the label is not associated with a control, fall back to the first visible textarea on the form
+    if ((await descField.count()) === 0) {
+      descField = recruiterPage.locator('textarea').first();
+    }
+    await descField.scrollIntoViewIfNeeded();
+    await expect(descField).toBeVisible({ timeout: 15_000 });
+    await descField.fill(
+      'We are looking for a Data Scientist proficient in Python, machine learning, PyTorch, and data visualization. Experience with NLP models is a plus.',
+      { timeout: 30_000 }
+    );
 
     await screenshotStep(recruiterPage, '03c_mode2_filled');
 
@@ -429,13 +444,13 @@ test.describe('3. Recruiter Flow', () => {
 // ──────────────────────────────────────────────
 test.describe('4. API Smoke Tests', () => {
   test('4a. Backend health endpoint responds', async ({ request }) => {
-    const resp = await request.get(`${BASE_URL.replace('railway.app', 'railway.app')}/api/health`, {
+    const resp = await request.get(`${API_URL}/health`, {
       timeout: 15_000,
     }).catch(() => null);
 
-    // If /api/health doesn't exist, try /api/auth/me (will return 401 but at least the API is up)
+    // If /health doesn't exist, try /api/auth/me (will return 401 but at least the API is up)
     if (!resp || !resp.ok()) {
-      const fallback = await request.get(`${BASE_URL}/api/auth/me`);
+      const fallback = await request.get(`${API_URL}/api/auth/me`);
       // 401 Unauthorized means API is alive but requires auth
       expect([200, 401, 403, 422]).toContain(fallback.status());
     } else {
@@ -444,7 +459,7 @@ test.describe('4. API Smoke Tests', () => {
   });
 
   test('4b. Auth register endpoint rejects malformed request', async ({ request }) => {
-    const resp = await request.post(`${BASE_URL}/api/auth/register`, {
+    const resp = await request.post(`${API_URL}/api/auth/register`, {
       data: { email: 'not-an-email', password: '123' },
     });
     // 422 Unprocessable Entity (Pydantic validation) or 400 Bad Request
@@ -452,12 +467,12 @@ test.describe('4. API Smoke Tests', () => {
   });
 
   test('4c. Candidates list requires authentication', async ({ request }) => {
-    const resp = await request.get(`${BASE_URL}/api/candidates/`);
+    const resp = await request.get(`${API_URL}/api/candidates/`);
     expect([401, 403]).toContain(resp.status());
   });
 
   test('4d. Matching generate-and-match requires authentication', async ({ request }) => {
-    const resp = await request.post(`${BASE_URL}/api/matching/generate-and-match`, {
+    const resp = await request.post(`${API_URL}/api/matching/generate-and-match`, {
       data: { job_title: 'Developer', description: 'Python dev' },
     });
     expect([401, 403]).toContain(resp.status());

@@ -7,6 +7,10 @@ FROM node:20-bullseye-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+RUN [ -f next.config.js ] || echo "module.exports = {}" > next.config.js
 RUN npm run build
 
 FROM node:20-bullseye-slim AS runner
@@ -16,6 +20,8 @@ COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./ || true
+COPY --from=builder /app/next.config.js ./
+COPY docker-entrypoint.sh ./
+RUN chmod +x ./docker-entrypoint.sh
 EXPOSE 3000
-CMD ["sh", "-c", "npm start -- -H 0.0.0.0 -p ${PORT:-3000}"]
+CMD ["sh", "-c", "./docker-entrypoint.sh"]

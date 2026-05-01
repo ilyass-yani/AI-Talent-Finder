@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 
   // Turbopack configuration (Next.js 16 default)
@@ -14,11 +14,11 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       beforeFiles: [
-        // Allow direct access to API without CORS issues if needed
-        // {
-        //   source: '/api/:path*',
-        //   destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/:path*`,
-        // },
+        // Proxy all /api requests server-side to the backend service to avoid CORS
+        {
+          source: '/api/:path*',
+          destination: `https://${process.env.RAILWAY_SERVICE_AI_TALENT_FINDER_BACKEND_URL}/:path*`,
+        },
       ],
     };
   },

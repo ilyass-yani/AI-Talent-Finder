@@ -15,7 +15,13 @@ from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateU
 from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf, save_text_as_txt
 from ai_module.nlp.cv_cleaner import CVCleaner
 
-router = APIRouter(prefix="/api/candidates", tags=["candidates"])
+from fastapi import Depends
+
+router = APIRouter(
+    prefix="/api/candidates",
+    tags=["candidates"],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 # ===== GENERAL ROUTES (un-authenticated) =====
@@ -24,6 +30,7 @@ router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 def get_candidates(
     skip: int = 0,
     limit: int = 100,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all candidates"""
@@ -34,6 +41,7 @@ def get_candidates(
 @router.post("/", response_model=CandidateResponse)
 def create_candidate(
     candidate: CandidateCreate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new candidate"""

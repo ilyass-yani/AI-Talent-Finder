@@ -1,6 +1,28 @@
 import axios from 'axios';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const runtimeApiUrl = typeof window !== 'undefined' ? (window as any).__NEXT_PUBLIC_API_URL : undefined;
+let apiUrl: string | undefined;
+
+if (typeof window !== 'undefined') {
+  // Prefer runtime-injected value when available
+  if (runtimeApiUrl && runtimeApiUrl !== 'undefined') {
+    // If runtime config points at the backend public domain, prefer the
+    // same-origin proxy to avoid CORS regardless of hostname checks. This
+    // avoids edge-cache or hostname mismatches causing cross-origin calls.
+    if (runtimeApiUrl.includes('ai-talent-finder-backend-production.up.railway.app')) {
+      apiUrl = '/api';
+    } else {
+      apiUrl = runtimeApiUrl;
+    }
+  } else if (window.location.hostname.includes('ai-talent-finder-production-ed09.up.railway.app')) {
+    // In production, prefer same-origin proxy to avoid CORS while DNS/edge caches update
+    apiUrl = '/api';
+  } else {
+    apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  }
+} else {
+  apiUrl = process.env.NEXT_PUBLIC_API_URL;
+}
 const defaultTimeoutMs = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 30000);
 
 export const apiClient = axios.create({
