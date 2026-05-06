@@ -15,6 +15,21 @@ Requirements (exemples)
 
 Exemples de commandes
 
+0. Pipeline complet recommandé:
+
+```bash
+cd backend
+source ../.venv/bin/activate
+python scripts/build_final_matching_artifacts.py --db ./ai_talent_finder.db
+```
+
+Sorties:
+
+- `../data/final_training_pairs.csv` : dataset mixte réel + synthétique
+- `../data/final_training_review_sample.csv` : échantillon pour revue humaine
+- `../models/final_match_model.joblib` : bundle final chargé par l'API
+- `../reports/advanced_matching_report.json` : métriques + seuils recommandés
+
 1. Export depuis la BDD (si vous avez accès):
 
 ```bash
@@ -48,3 +63,4 @@ Note:
 - Si `torch` ou `sentence-transformers` manque, le script affiche un message d'installation clair.
 - Dans ce workspace, `torch` n'est pas disponible pour Python 3.13; pour réellement lancer la phase 2, utilise un environnement Python compatible avec une wheel CPU PyTorch (par exemple Python 3.12) puis relance la commande ci-dessus.
 - Les features baseline et API partagent la même implémentation dans `backend/app/services/feature_engineering.py`.
+- Le bundle final utilisé en production est `../models/final_match_model.joblib` (avec seuils calibrés dans le bundle).

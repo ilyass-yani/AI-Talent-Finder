@@ -47,9 +47,13 @@ def score_candidate(model, meta, candidate_text: str, job_text: str):
 
 
 def main():
-    model_path = repo_root / "models" / "baseline_model.joblib"
-    if not model_path.exists():
-        raise SystemExit(f"Model not found: {model_path}")
+    model_candidates = [
+        repo_root / "models" / "final_match_model.joblib",
+        repo_root / "models" / "baseline_model.joblib",
+    ]
+    model_path = next((path for path in model_candidates if path.exists()), None)
+    if model_path is None:
+        raise SystemExit(f"Model not found: {model_candidates[0]}")
 
     bundle = joblib.load(model_path)
     model = bundle["model"]

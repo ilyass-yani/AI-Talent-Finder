@@ -65,6 +65,7 @@ import numpy as np
 _BASELINE_MODEL: dict | None = None
 _SIAMESE_MODEL = None
 _SIAMESE_MODEL_PATH: str | None = None
+_MATCH_THRESHOLDS: dict[str, float] | None = None
 
 
 def _load_baseline_model() -> dict | None:
@@ -72,13 +73,24 @@ def _load_baseline_model() -> dict | None:
     if _BASELINE_MODEL is not None:
         return _BASELINE_MODEL
 
-    # locate the model at repository root/models/baseline_model.joblib
-    model_path = Path(__file__).resolve().parents[3] / "models" / "baseline_model.joblib"
-    if not model_path.exists():
+    model_root = Path(__file__).resolve().parents[3] / "models"
+    candidates = [
+        model_root / "final_match_model.joblib",
+        model_root / "baseline_model.joblib",
+    ]
+    model_path = next((path for path in candidates if path.exists()), None)
+    if model_path is None:
         return None
 
     try:
         _BASELINE_MODEL = joblib.load(model_path)
+        thresholds = _BASELINE_MODEL.get("thresholds") if isinstance(_BASELINE_MODEL, dict) else None
+        if isinstance(thresholds, dict):
+            global _MATCH_THRESHOLDS
+            _MATCH_THRESHOLDS = {
+                "accept_pct": float(thresholds.get("accept_pct", 94.78)),
+                "review_pct": float(thresholds.get("review_pct", 89.78)),
+            }
         return _BASELINE_MODEL
     except Exception:
         return None
@@ -129,8 +141,22 @@ def _score_with_siamese(model: object, candidate_text: str, job_text: str) -> fl
 
 
 def _decision_from_score(score_pct: float) -> str:
-    accept_threshold = float(os.getenv("MATCH_ACCEPT_THRESHOLD", "94.78"))
-    review_threshold = float(os.getenv("MATCH_REVIEW_THRESHOLD", "89.78"))
+    global _MATCH_THRESHOLDS
+    if _MATCH_THRESHOLDS is None:
+        _load_baseline_model()
+
+    accept_threshold = float(
+        os.getenv(
+            "MATCH_ACCEPT_THRESHOLD",
+            str((_MATCH_THRESHOLDS or {}).get("accept_pct", 94.78)),
+        )
+    )
+    review_threshold = float(
+        os.getenv(
+            "MATCH_REVIEW_THRESHOLD",
+            str((_MATCH_THRESHOLDS or {}).get("review_pct", 89.78)),
+        )
+    )
 
     # Keep ordering sane even if env vars are misconfigured.
     if review_threshold > accept_threshold:

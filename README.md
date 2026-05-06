@@ -57,6 +57,26 @@ NODE_ENV=production
 
 Les fichiers `backend/railway.json` et `frontend/railway.json` sont inclus pour forcer le mode Dockerfile et définir les healthchecks.
 
+### Pipeline modèle final
+
+Pour générer le dataset mixte, entraîner le modèle final et produire le rapport de validation:
+
+```bash
+cd backend
+source ../.venv/bin/activate
+python scripts/build_final_matching_artifacts.py --db ./ai_talent_finder.db
+```
+
+Cette commande produit:
+
+- `data/final_training_pairs.csv`
+- `data/final_training_review_sample.csv`
+- `models/final_match_model.joblib`
+- `reports/advanced_matching_report.json`
+- `reports/rapport_encadrante.md`
+
+L'API de matching charge d'abord `models/final_match_model.joblib`, puis bascule automatiquement sur l'ancien bundle si besoin.
+
 ### Comptes de test
 
 | Rôle      | Email          | Mot de passe |

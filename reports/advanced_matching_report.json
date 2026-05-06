@@ -1,0 +1,60 @@
+{
+  "dataset": {
+    "rows_total": 42,
+    "rows_train": 33,
+    "rows_test": 9,
+    "source_counts": {
+      "synthetic": 40,
+      "real_db": 2
+    },
+    "positive_rate": 0.5238095238095238,
+    "seed": 42
+  },
+  "model": {
+    "name": "logistic_regression",
+    "path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/final_match_model.joblib",
+    "fallback_path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/baseline_model.joblib"
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "threshold": 0.5
+    },
+    "test": {
+      "accuracy": 0.7777777777777778,
+      "precision": 1.0,
+      "recall": 0.6,
+      "f1": 0.75,
+      "roc_auc": 0.6,
+      "threshold": 0.5
+    },
+    "test_best_f1": {
+      "accuracy": 0.7777777777777778,
+      "precision": 1.0,
+      "recall": 0.6,
+      "f1": 0.75,
+      "roc_auc": 0.6,
+      "threshold": 0.07
+    },
+    "lightweight_semantic": {
+      "accuracy": 0.4444444444444444,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.75,
+      "threshold": 0.5
+    }
+  },
+  "production_recommendation": {
+    "accept_threshold_score_pct": 80.0,
+    "review_threshold_score_pct": 50.0,
+    "env": {
+      "MATCH_ACCEPT_THRESHOLD": "80.0",
+      "MATCH_REVIEW_THRESHOLD": "50.0"
+    }
+  }
+}
