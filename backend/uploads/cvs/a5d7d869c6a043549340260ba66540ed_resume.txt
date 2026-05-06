@@ -1,0 +1,23 @@
+
+JOHN SMITH
+john.smith@email.com
++1 555 123 4567
+
+EXPERIENCE
+Senior Software Engineer at Google (2020-2024)
+- Led team of 5 engineers
+- Architected microservices platform
+
+Software Engineer at Microsoft (2018-2020)
+- Developed cloud solutions using Azure
+- Full-stack development with C# and React
+
+EDUCATION  
+BS Computer Science - MIT
+GPA: 3.8/4.0
+
+SKILLS
+Python, Java, C#, JavaScript, React, Node.js
+AWS, Azure, GCP, Kubernetes, Docker
+PostgreSQL, MongoDB, Redis
+Machine Learning, Deep Learning

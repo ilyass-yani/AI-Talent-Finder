@@ -1,0 +1,23 @@
+{
+  "ml": "Machine Learning",
+  "machine learning": "Machine Learning",
+  "ai": "Artificial Intelligence",
+  "artificial intelligence": "Artificial Intelligence",
+  "js": "JavaScript",
+  "javascript": "JavaScript",
+  "node": "Node.js",
+  "nodejs": "Node.js",
+  "reactjs": "React",
+  "react.js": "React",
+  "tf": "TensorFlow",
+  "pytorch": "PyTorch",
+  "nlp": "NLP",
+  "aws": "AWS",
+  "azure": "Azure",
+  "gcp": "GCP",
+  "sql": "SQL",
+  "db": "Database",
+  "k8s": "Kubernetes",
+  "docker-compose": "Docker",
+  "ci/cd": "CI/CD"
+}

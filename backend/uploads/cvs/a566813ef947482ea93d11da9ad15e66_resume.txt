@@ -1,0 +1,18 @@
+
+ALEX DEVELOPER
+alex@email.com
++1-555-0123
+
+EXPERIENCE
+Senior Software Engineer - TechCorp (2021-2026)
+- Led Python microservices 
+- 5 direct reports
+
+Software Engineer - StartupXYZ (2019-2021)
+- Full-stack React/Python
+
+SKILLS
+Python, JavaScript, React, FastAPI, Docker, AWS
+
+EDUCATION
+B.S. Computer Science - MIT
