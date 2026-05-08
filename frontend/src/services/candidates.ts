@@ -61,10 +61,6 @@ export function isDisplayableCandidate(candidate: CandidateVisibilityLike): bool
     return false;
   }
 
-  if ((candidate.extraction_quality_score ?? 0) < 0.8) {
-    return false;
-  }
-
   return isDisplayableIdentity(candidate.full_name, candidate.email);
 }
 

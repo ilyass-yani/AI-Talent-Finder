@@ -25,11 +25,9 @@ router = APIRouter(
 
 
 def _is_displayable_candidate(candidate: Candidate) -> bool:
-    quality_score = float(candidate.extraction_quality_score or 0)
     return bool(
         candidate.raw_text
         and candidate.raw_text.strip()
-        and quality_score >= 80
         and candidate.full_name
         and candidate.full_name != "Unknown"
     )
@@ -44,9 +42,8 @@ def get_candidates(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all fully extracted candidates (quality score >= 80 or is_fully_extracted=true) with valid name"""
+    """Get all uploaded candidates with valid text and a usable name."""
     candidates = db.query(Candidate).filter(
-        (Candidate.extraction_quality_score >= 80),
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",
