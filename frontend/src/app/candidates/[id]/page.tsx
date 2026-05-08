@@ -19,6 +19,11 @@ export default function CandidateDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [addingFavorite, setAddingFavorite] = useState(false);
 
+  const formatPercent = (value?: number | null) => {
+    const numericValue = Number(value ?? 0);
+    return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
+  };
+
   const parseJsonList = (value?: string | null): string[] => {
     if (!value) {
       return [];
@@ -167,11 +172,11 @@ export default function CandidateDetail() {
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div
                       className="bg-green-600 h-2 rounded-full"
-                      style={{ width: `${Math.round(candidate.extraction_quality_score * 100)}%` }}
+                      style={{ width: `${formatPercent(candidate.extraction_quality_score)}%` }}
                     />
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {Math.round(candidate.extraction_quality_score * 100)}%
+                    {formatPercent(candidate.extraction_quality_score)}%
                   </p>
                 </div>
               )}

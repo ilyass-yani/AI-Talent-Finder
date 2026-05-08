@@ -14,6 +14,10 @@ export default function CandidateProfile() {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const formatPercent = (value?: number | null) => {
+    const numericValue = Number(value ?? 0);
+    return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
+  };
 
   useEffect(() => {
     const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
@@ -224,11 +228,11 @@ export default function CandidateProfile() {
                   <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-green-500"
-                      style={{ width: `${candidate.extraction_quality_score}%` }}
+                      style={{ width: `${formatPercent(candidate.extraction_quality_score)}%` }}
                     />
                   </div>
                   <span className="font-bold text-green-700">
-                    {candidate.extraction_quality_score.toFixed(1)}%
+                    {formatPercent(candidate.extraction_quality_score)}%
                   </span>
                 </div>
               </div>

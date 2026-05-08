@@ -27,6 +27,16 @@ export default function CandidateDashboard() {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatPercent = (value?: number | null) => {
+    const numericValue = Number(value ?? 0);
+    return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
+  };
+
+  const isVisibleToRecruiters = Boolean(
+    candidate?.raw_text?.trim() &&
+    (candidate?.is_fully_extracted || (candidate?.extraction_quality_score ?? 0) >= 80)
+  );
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -86,7 +96,7 @@ export default function CandidateDashboard() {
             {candidate && candidate.extraction_quality_score && (
               <div className="text-right">
                 <div className="text-3xl font-bold text-green-600">
-                  {Math.round(candidate.extraction_quality_score * 100)}%
+                  {formatPercent(candidate.extraction_quality_score)}%
                 </div>
                 <div className="text-sm text-gray-600">Profil complet</div>
               </div>
@@ -140,20 +150,32 @@ export default function CandidateDashboard() {
               </div>
             </Link>
 
-            {/* Step 3: Wait for Opportunities */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-md p-6 cursor-default h-full border-2 border-dashed border-purple-200">
+            {/* Step 3: Recruiter visibility */}
+            <div className={`rounded-xl shadow-md p-6 cursor-default h-full border-2 border-dashed ${
+              isVisibleToRecruiters
+                ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200'
+                : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
+            }`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="text-4xl opacity-60">💼</div>
-                <div className="text-sm font-semibold px-3 py-1 rounded-full bg-purple-100 text-purple-700">
-                  Bientôt
+                <div className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                  isVisibleToRecruiters
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-purple-100 text-purple-700'
+                }`}>
+                  {isVisibleToRecruiters ? 'Visible' : 'En attente'}
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Opportunités</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Visibilité recruteur</h3>
               <p className="text-gray-600 mb-4 opacity-75">
-                Les recruteurs te découvriront basé sur tes compétences! Reste à l'affût.
+                {isVisibleToRecruiters
+                  ? 'Ton CV est déjà visible dans les recherches recruteurs et les matchs automatiques.'
+                  : 'Ton CV sera visible dès que l’extraction sera suffisamment complète. Termine l’upload pour augmenter ta visibilité.'}
               </p>
-              <div className="text-purple-600 font-semibold opacity-75">
-                En construction...
+              <div className={`font-semibold opacity-75 ${
+                isVisibleToRecruiters ? 'text-emerald-600' : 'text-purple-600'
+              }`}>
+                {isVisibleToRecruiters ? 'Dispo maintenant' : 'Visible après extraction'}
               </div>
             </div>
           </div>
@@ -175,7 +197,7 @@ export default function CandidateDashboard() {
               </div>
               {candidate && (
                 <div className="text-xs text-gray-500 mt-3 pt-3 border-t">
-                  Qualité: {Math.round(candidate.extraction_quality_score || 0)}%
+                  Qualité: {formatPercent(candidate.extraction_quality_score)}%
                 </div>
               )}
             </div>

@@ -13,6 +13,11 @@ export default function RecruiterShortlist() {
   const [error, setError] = useState('');
   const [removing, setRemoving] = useState<number | null>(null);
 
+  const formatPercent = (value?: number | null) => {
+    const numericValue = Number(value ?? 0);
+    return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
+  };
+
   const parseJsonList = (value?: string | null): string[] => {
     if (!value) {
       return [];
@@ -148,7 +153,7 @@ export default function RecruiterShortlist() {
                   key={item.favorite_id}
                   className="p-6 border border-gray-200 rounded-xl hover:shadow-lg hover:border-purple-300 transition-all duration-300 bg-white"
                   role="listitem"
-                  aria-label={`${item.candidate.full_name}, ${item.candidate.email}, score: ${Math.round((item.candidate.extraction_quality_score || 0) * 100)}%`}
+                  aria-label={`${item.candidate.full_name}, ${item.candidate.email}, score: ${formatPercent(item.candidate.extraction_quality_score)}%`}
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <Link href={`/candidates/${item.candidate.id}`}>
@@ -173,8 +178,8 @@ export default function RecruiterShortlist() {
                       <div className="text-right ml-6 flex-shrink-0">
                         {item.candidate.extraction_quality_score && (
                           <>
-                            <div className="text-3xl font-bold text-green-600">
-                              {Math.round(item.candidate.extraction_quality_score * 100)}%
+                                        <div className="text-3xl font-bold text-green-600">
+                                          {formatPercent(item.candidate.extraction_quality_score)}%
                             </div>
                             <p className="text-xs text-gray-600">Extraction Quality</p>
                           </>
