@@ -3,7 +3,7 @@
  * Displays human-readable match justification for recruiter decision-making
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ExplainabilityResponse } from '@/services/explainability';
 
 interface MatchExplanationCardProps {

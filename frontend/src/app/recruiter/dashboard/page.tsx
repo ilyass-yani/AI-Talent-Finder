@@ -1,16 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jobsApi } from '@/services/jobs';
 import { matchingApi } from '@/services/matching';
-import { filterDisplayableIdentities } from '@/services/candidates';
 import { getErrorMessage } from '@/utils/errorHandler';
 import Layout from '@/components/Layout';
+import MatchResultCard from '@/components/MatchResultCard';
 
 export default function RecruiterDashboard() {
-  const router = useRouter();
   const [selectedMode, setSelectedMode] = useState<'search' | 'generate' | null>(null);
 
   return (
@@ -161,6 +159,7 @@ function SearchMode() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSearch = async () => {
     if (!jobTitle || !description) {
@@ -177,12 +176,14 @@ function SearchMode() {
         description: description,
       });
 
-      // Step 2: Search candidates
-      const matchedCandidates = await matchingApi.searchCandidates(criteria.data.id);
-      const visibleCandidates = filterDisplayableIdentities(matchedCandidates.data);
-      setResults(visibleCandidates);
+      // Step 2: Run matching with explainability
+      await matchingApi.runCriteriaMatching(criteria.data.id);
 
-      if (visibleCandidates.length === 0) {
+      // Step 3: Get detailed results with explanations
+      const matchResults = await matchingApi.getCriteriaMatchingResults(criteria.data.id);
+      setResults(matchResults.data);
+
+      if (matchResults.data.length === 0) {
         setError('Aucun candidat trouvé correspondant à vos critères.');
       }
     } catch (error) {
@@ -190,6 +191,15 @@ function SearchMode() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExplain = (result: any) => {
+    // Navigate to chatbot with context
+    router.push(`/recruiter/chatbot?candidate_id=${result.candidate_id}&criteria_id=${result.criteria_id}`);
+  };
+
+  const handleViewProfile = (candidateId: number) => {
+    router.push(`/candidates/${candidateId}`);
   };
 
   return (
@@ -276,38 +286,27 @@ function SearchMode() {
           <h4 className="text-xl font-bold text-gray-900 mb-4">
             🎯 Résultats ({results.length})
           </h4>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {results.map((result, idx) => (
-              <Link key={result.candidate_id} href={`/candidates/${result.candidate_id}`}>
-                <div
-                  className="p-5 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer transform hover:scale-102"
-                  role="article"
-                  aria-label={`Candidat: ${result.full_name}, score: ${Math.round(result.match_score * 100)}%`}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h5 className="font-bold text-gray-900 hover:text-blue-600 text-lg">
-                        {result.full_name}
-                      </h5>
-                      <p className="text-gray-600 text-sm">{result.email}</p>
-                      {result.explanation && (
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed">{result.explanation}</p>
-                      )}
-                    </div>
-                    <div className="text-right ml-6 flex-shrink-0">
-                      <div className={`text-3xl font-bold ${
-                        result.match_score >= 0.7 ? 'text-green-600' :
-                        result.match_score >= 0.5 ? 'text-yellow-600' :
-                        'text-orange-600'
-                      }`}>
-                        {Math.round(result.match_score * 100)}%
-                      </div>
-                      <p className="text-xs text-gray-600">Match Score</p>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <div key={result.match_result_id} style={{ animationDelay: `${idx * 50}ms` }}>
+                <MatchResultCard
+                  result={{
+                    match_result_id: result.match_result_id,
+                    criteria_id: result.criteria_id,
+                    candidate_id: result.candidate_id,
+                    candidate_name: result.candidate_name,
+                    candidate_email: result.candidate_email,
+                    score: result.score,
+                    coverage: result.coverage,
+                    matched_skills: result.matched_skills,
+                    missing_skills: result.missing_skills,
+                    skill_breakdown: result.skill_breakdown,
+                    summary: result.summary,
+                  }}
+                  onExplainClick={handleExplain}
+                  onSelect={handleViewProfile}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -339,6 +338,7 @@ function GenerateMode() {
   const [idealProfile, setIdealProfile] = useState<any>(null);
   const [results, setResults] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleGenerate = async () => {
     if (!jobTitle || !description) {
@@ -349,12 +349,24 @@ function GenerateMode() {
     setLoading(true);
     setError('');
     try {
-      const response = await matchingApi.generateAndMatch(jobTitle, description);
-      setIdealProfile(response.data.ideal_profile);
-      const visibleMatches = filterDisplayableIdentities(response.data.matches);
-      setResults(visibleMatches);
+      // Step 1: Generate ideal profile
+      const profileResponse = await matchingApi.generateAndMatch(jobTitle, description);
+      setIdealProfile(profileResponse.data.ideal_profile);
 
-      if (visibleMatches.length === 0) {
+      // Step 2: Create job criteria from generated profile
+      const criteria = await jobsApi.createJob({
+        title: jobTitle,
+        description: description,
+      });
+
+      // Step 3: Run matching with explainability
+      await matchingApi.runCriteriaMatching(criteria.data.id);
+
+      // Step 4: Get detailed results with explanations
+      const matchResults = await matchingApi.getCriteriaMatchingResults(criteria.data.id);
+      setResults(matchResults.data);
+
+      if (matchResults.data.length === 0) {
         setError('Aucun candidat ne correspond au profil généré.');
       }
     } catch (error) {
@@ -362,6 +374,14 @@ function GenerateMode() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExplain = (result: any) => {
+    router.push(`/recruiter/chatbot?candidate_id=${result.candidate_id}&criteria_id=${result.criteria_id}`);
+  };
+
+  const handleViewProfile = (candidateId: number) => {
+    router.push(`/candidates/${candidateId}`);
   };
 
   return (
@@ -456,41 +476,30 @@ function GenerateMode() {
           </h4>
           {results.length > 0 ? (
             <div
-              className="space-y-3"
+              className="space-y-4"
               role="region"
               aria-labelledby="matched-candidates-section"
             >
               {results.map((result, idx) => (
-                <Link key={result.candidate_id} href={`/candidates/${result.candidate_id}`}>
-                  <div
-                    className="p-5 border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-all cursor-pointer transform hover:scale-102"
-                    role="article"
-                    aria-label={`Candidat: ${result.full_name}, score: ${Math.round(result.match_score * 100)}%`}
-                    style={{ animationDelay: `${idx * 50}ms` }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h5 className="font-bold text-gray-900 hover:text-purple-600 text-lg">
-                          {result.full_name}
-                        </h5>
-                        <p className="text-gray-600 text-sm">{result.email}</p>
-                        {result.explanation && (
-                          <p className="text-xs text-gray-500 mt-2 leading-relaxed">{result.explanation}</p>
-                        )}
-                      </div>
-                      <div className="text-right ml-6 flex-shrink-0">
-                        <div className={`text-3xl font-bold ${
-                          result.match_score >= 0.7 ? 'text-green-600' :
-                          result.match_score >= 0.5 ? 'text-yellow-600' :
-                          'text-orange-600'
-                        }`}>
-                          {Math.round(result.match_score * 100)}%
-                        </div>
-                        <p className="text-xs text-gray-600">Match Score</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                <div key={result.match_result_id} style={{ animationDelay: `${idx * 50}ms` }}>
+                  <MatchResultCard
+                    result={{
+                      match_result_id: result.match_result_id,
+                      criteria_id: result.criteria_id,
+                      candidate_id: result.candidate_id,
+                      candidate_name: result.candidate_name,
+                      candidate_email: result.candidate_email,
+                      score: result.score,
+                      coverage: result.coverage,
+                      matched_skills: result.matched_skills,
+                      missing_skills: result.missing_skills,
+                      skill_breakdown: result.skill_breakdown,
+                      summary: result.summary,
+                    }}
+                    onExplainClick={handleExplain}
+                    onSelect={handleViewProfile}
+                  />
+                </div>
               ))}
             </div>
           ) : (
