@@ -12,7 +12,9 @@ load_dotenv(dotenv_path=env_path)
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    # Fall back to a local SQLite database for development and local testing.
+    fallback_db = Path(__file__).parent.parent.parent / "ai_talent_finder.db"
+    DATABASE_URL = f"sqlite:///{fallback_db}"
 
 
 def normalize_database_url(database_url: str) -> str:
@@ -25,12 +27,16 @@ def normalize_database_url(database_url: str) -> str:
 DATABASE_URL = normalize_database_url(DATABASE_URL)
 
 # Create SQLAlchemy engine
-engine = create_engine(
-    DATABASE_URL,
-    echo=False,  # Set to True for SQL query logging
-    pool_pre_ping=True,
-    pool_recycle=300,
-)
+engine_kwargs = {
+    "echo": False,  # Set to True for SQL query logging
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
+
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 # Create session factory
 SessionLocal = sessionmaker(
