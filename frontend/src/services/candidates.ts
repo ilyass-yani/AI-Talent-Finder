@@ -83,6 +83,10 @@ export const candidatesApi = {
   getMyProfile: () =>
     apiClient.get<Candidate>('/candidates/me/profile'),
 
+  // POST /api/candidates/me/profile — Créer ou mettre à jour mon profil candidat
+  createOrUpdateMyProfile: (data: Partial<Candidate>) =>
+    apiClient.post<Candidate>('/candidates/me/profile', data),
+
   // GET /api/candidates/ — Liste tous les candidats
   getCandidates: (skip = 0, limit = 100) =>
     apiClient.get<Candidate[]>('/candidates/', { params: { skip, limit } }),

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { candidatesApi, Candidate } from '@/services/candidates';
@@ -19,26 +19,7 @@ export default function CandidateProfile() {
     return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
   };
 
-  useEffect(() => {
-    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-    if (role && role !== 'candidate') {
-      if (role === 'recruiter') {
-        router.replace('/recruiter/dashboard');
-      } else if (role === 'admin') {
-        router.replace('/');
-      } else {
-        router.replace('/auth/login');
-      }
-      return;
-    }
-
-    // Prevent duplicate calls in React StrictMode during development.
-    if (didLoadRef.current) return;
-    didLoadRef.current = true;
-    loadProfile();
-  }, [router]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await candidatesApi.getMyProfile();
@@ -60,7 +41,9 @@ export default function CandidateProfile() {
         return;
       }
       if (axiosErr?.response?.status === 404) {
-        router.replace('/candidate/upload');
+        setCandidate(null);
+        setError(null);
+        setLoading(false);
         return;
       }
       console.error('❌ Profile fetch error:', err);
@@ -68,7 +51,26 @@ export default function CandidateProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    if (role && role !== 'candidate') {
+      if (role === 'recruiter') {
+        router.replace('/recruiter/dashboard');
+      } else if (role === 'admin') {
+        router.replace('/');
+      } else {
+        router.replace('/auth/login');
+      }
+      return;
+    }
+
+    // Prevent duplicate calls in React StrictMode during development.
+    if (didLoadRef.current) return;
+    didLoadRef.current = true;
+    loadProfile();
+  }, [router, loadProfile]);
 
   if (loading) {
     return (
@@ -103,11 +105,19 @@ export default function CandidateProfile() {
     return (
       <Layout>
         <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">Aucun profil trouvé</p>
-            <Link href="/candidate/upload" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              Uploader un CV
-            </Link>
+          <div className="max-w-lg text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Aucun profil trouvé</h2>
+            <p className="text-gray-600 mb-6">
+              Tu peux créer ton profil manuellement ou uploader un CV pour lancer l’extraction automatique.
+            </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link href="/candidate/profile/edit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Créer mon profil
+              </Link>
+              <Link href="/candidate/upload" className="bg-gray-200 text-gray-900 px-4 py-2 rounded hover:bg-gray-300">
+                Uploader un CV
+              </Link>
+            </div>
           </div>
         </div>
       </Layout>

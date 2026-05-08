@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { authApi } from '@/services/auth';
 import { candidatesApi, Candidate } from '@/services/candidates';
 import { getErrorMessage } from '@/utils/errorHandler';
 import { SkeletonProfile } from '@/components/SkeletonLoader';
@@ -15,6 +16,7 @@ export default function CandidateProfileEdit() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
   // Form fields
   const [fullName, setFullName] = useState('');
@@ -30,15 +32,29 @@ export default function CandidateProfileEdit() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const response = await candidatesApi.getMyProfile();
-      setCandidate(response.data);
-      
-      // Populate form fields
-      setFullName(response.data.full_name || '');
-      setEmail(response.data.email || '');
-      setPhone(response.data.phone || '');
-      setLinkedinUrl(response.data.linkedin_url || '');
-      setGithubUrl(response.data.github_url || '');
+      const me = await authApi.me();
+      setRole(me.role);
+
+      try {
+        const response = await candidatesApi.getMyProfile();
+        setCandidate(response.data);
+
+        // Populate form fields from existing candidate profile
+        setFullName(response.data.full_name || me.full_name || '');
+        setEmail(response.data.email || me.email || '');
+        setPhone(response.data.phone || '');
+        setLinkedinUrl(response.data.linkedin_url || '');
+        setGithubUrl(response.data.github_url || '');
+      } catch {
+        // No candidate profile yet: allow manual creation.
+        setCandidate(null);
+        setFullName(me.full_name || '');
+        setEmail(me.email || '');
+        setPhone('');
+        setLinkedinUrl('');
+        setGithubUrl('');
+      }
+
       setError(null);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
@@ -51,11 +67,12 @@ export default function CandidateProfileEdit() {
     e.preventDefault();
     
     if (!candidate) {
-      setError('Profil non chargé');
-      return;
-    }
-
-    if (!fullName.trim() || !email.trim()) {
+      // Manual creation uses the same form when extraction failed.
+      if (!fullName.trim() || !email.trim()) {
+        setError('Le nom et l\'email sont requis');
+        return;
+      }
+    } else if (!fullName.trim() || !email.trim()) {
       setError('Le nom et l\'email sont requis');
       return;
     }
@@ -65,7 +82,7 @@ export default function CandidateProfileEdit() {
     setSuccess(false);
 
     try {
-      await candidatesApi.updateCandidate(candidate.id, {
+      await candidatesApi.createOrUpdateMyProfile({
         full_name: fullName,
         email: email,
         phone: phone || undefined,
@@ -97,26 +114,20 @@ export default function CandidateProfileEdit() {
     );
   }
 
-  if (!candidate) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">Aucun profil trouvé</p>
-            <Link href="/candidate/upload" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              Uploader un CV
-            </Link>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
 {/* Main Content */}
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-8">
+          {role === 'candidate' && !candidate && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+              <p className="font-semibold">Profil à créer manuellement</p>
+              <p className="text-sm mt-1">
+                Si l’extraction du CV a échoué ou si tu veux compléter tes informations, ce formulaire crée directement ton profil candidat.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div
               role="alert"
@@ -135,7 +146,7 @@ export default function CandidateProfileEdit() {
               aria-atomic="true"
               className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg"
             >
-              ✓ Profil mis à jour avec succès! Redirection en cours...
+              ✓ Profil enregistré avec succès! Redirection en cours...
             </div>
           )}
 
@@ -224,7 +235,7 @@ export default function CandidateProfileEdit() {
             {/* Note about NER fields */}
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-700">
-                <strong>📌 Note:</strong> Les informations extraites de votre CV (titres de poste, compagnies, éducation, etc.) sont générées automatiquement. Pour les modifier, vous pouvez uploader un nouveau CV.
+                <strong>📌 Note:</strong> Les informations extraites de votre CV (titres de poste, compagnies, éducation, etc.) sont générées automatiquement. Si l’extraction est incomplète, tu peux compléter manuellement les informations ci-dessus sans re-uploader.
               </p>
             </div>
 
@@ -233,10 +244,10 @@ export default function CandidateProfileEdit() {
               <button
                 type="submit"
                 disabled={saving}
-                aria-label="Enregistrer les modifications du profil"
+                aria-label={candidate ? 'Enregistrer les modifications du profil' : 'Créer mon profil'}
                 className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {saving ? '💾 Enregistrement...' : '💾 Enregistrer'}
+                {saving ? '💾 Enregistrement...' : candidate ? '💾 Enregistrer' : '💾 Créer mon profil'}
               </button>
               <Link
                 href="/candidate/profile"
@@ -250,14 +261,25 @@ export default function CandidateProfileEdit() {
 
           {/* Danger Zone */}
           <div className="mt-8 pt-8 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Zone Dangereuse</h3>
-            <Link
-              href="/candidate/upload"
-              aria-label="Uploader un nouveau CV"
-              className="inline-block px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              📤 Uploader un nouveau CV
-            </Link>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Compléter le CV</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Tu peux enrichir ton profil manuellement ou uploader un nouveau CV si tu veux relancer l’extraction.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/candidate/upload"
+                aria-label="Uploader un nouveau CV"
+                className="inline-block px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                📤 Uploader un nouveau CV
+              </Link>
+              <Link
+                href="/candidate/profile"
+                className="inline-block px-6 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+              >
+                👁️ Voir mon profil
+              </Link>
+            </div>
           </div>
         </div>
       </div>
