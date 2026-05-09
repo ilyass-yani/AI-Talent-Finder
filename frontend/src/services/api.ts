@@ -46,6 +46,14 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
+    // Ensure URL paths end with a slash when pointing to API root to avoid 404 vs 401 mismatch
+    if (config.url && typeof config.url === 'string') {
+      const u = config.url;
+      // Only adjust relative api paths (not full URLs)
+      if (!u.startsWith('http') && !u.endsWith('/')) {
+        config.url = u + '/';
+      }
+    }
     return config;
   },
   (error) => {
