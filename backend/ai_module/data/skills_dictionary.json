@@ -54,7 +54,6 @@
     "Nginx",
     "Terraform",
     "Ansible",
-    "Jenkins",
     "Tableau",
     "Power BI",
     "Looker",
@@ -78,7 +77,6 @@
     "Ionic",
     "Firebase",
     "Supabase",
-    "GraphQL",
     "Apollo",
     "Jest",
     "Pytest",
@@ -88,7 +86,12 @@
     "Confluence",
     "Figma",
     "Sketch",
-    "Adobe XD"
+    "Adobe XD",
+    "Agile",
+    "Scrum",
+    "Machine Learning",
+    "Fastapi - Aws",
+    "Data Analysis"
   ],
   "soft": [
     "Communication",
