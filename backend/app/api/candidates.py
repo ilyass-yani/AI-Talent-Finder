@@ -25,9 +25,15 @@ router = APIRouter(
 
 
 def _is_displayable_candidate(candidate: Candidate) -> bool:
-    return bool(
+    has_profile_data = bool(
         candidate.raw_text
-        and candidate.raw_text.strip()
+        or candidate.cv_path
+        or candidate.extracted_job_titles
+        or candidate.extracted_companies
+        or candidate.extracted_education
+    )
+    return bool(
+        has_profile_data
         and candidate.full_name
         and candidate.full_name != "Unknown"
     )
@@ -47,8 +53,10 @@ def get_candidates(
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",
-        Candidate.raw_text.isnot(None)  # Must have uploaded CV text
     ).offset(skip).limit(limit).all()
+
+    # Keep only candidates that carry at least one profile signal.
+    candidates = [candidate for candidate in candidates if _is_displayable_candidate(candidate)]
     return candidates
 
 
