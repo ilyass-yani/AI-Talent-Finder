@@ -262,12 +262,19 @@ async def upload_candidate_cv(
         else:
             extracted_text = contents.decode('utf-8')
 
+        # Guarantee a non-empty raw_text fallback so recruiter visibility logic can still work
+        # even when extraction yields poor content.
+        if not extracted_text or not extracted_text.strip():
+            extracted_text = f"Uploaded CV file: {Path(file_name).name}"
+
         # ===== NER EXTRACTION PIPELINE (NEW) =====
         extraction_service = CVExtractionService()
         extraction_result = extraction_service.extract_from_text(extracted_text)
         
         # Get candidate data from extraction
         candidate_dict = extraction_service.to_candidate_dict(extraction_result)
+        if not candidate_dict.get("raw_text") or not str(candidate_dict.get("raw_text")).strip():
+            candidate_dict["raw_text"] = extracted_text
         candidate_dict["cv_path"] = str(pdf_path.relative_to(Path(__file__).resolve().parents[2]))
 
         # Prioritize user-provided data, then extraction, then authenticated user defaults.

@@ -7,11 +7,39 @@ import { favoritesApi } from '@/services/favorites';
 import { candidatesApi, Candidate, filterDisplayableCandidates } from '@/services/candidates';
 import { getErrorMessage } from '@/utils/errorHandler';
 
+type CandidateDebugRecord = {
+  id: number;
+  full_name: string;
+  email: string;
+  raw_text?: string | null;
+  extraction_quality_score?: number | null;
+};
+
 export default function RecruiterShortlist() {
   const [shortlist, setShortlist] = useState<Array<{ favorite_id: number; candidate: Candidate }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [removing, setRemoving] = useState<number | null>(null);
+
+  // Dev debug state: fetch raw /api/candidates response to inspect visibility issues
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugData, setDebugData] = useState<CandidateDebugRecord[] | null>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
+  const [debugError, setDebugError] = useState<string | null>(null);
+
+  const fetchDebugCandidates = async () => {
+    setDebugLoading(true);
+    setDebugError(null);
+    try {
+      const resp = await candidatesApi.getCandidates();
+      setDebugData(resp.data);
+    } catch (err) {
+      setDebugError(getErrorMessage(err));
+      setDebugData(null);
+    } finally {
+      setDebugLoading(false);
+    }
+  };
 
   const formatPercent = (value?: number | null) => {
     const numericValue = Number(value ?? 0);
@@ -109,6 +137,30 @@ export default function RecruiterShortlist() {
           <p className="text-gray-600 text-lg">
             {loading ? '⏳ Chargement...' : `Total: ${shortlist.length} candidats sélectionnés`}
           </p>
+          {/* Dev-only debug: show raw /api/candidates response to help troubleshooting */}
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="mt-4 p-3 border rounded bg-gray-50">
+              <button
+                onClick={async () => {
+                  const next = !debugOpen;
+                  setDebugOpen(next);
+                  if (next) await fetchDebugCandidates();
+                }}
+                className="px-3 py-1 bg-indigo-600 text-white rounded mr-3 text-sm"
+              >
+                {debugOpen ? 'Masquer debug API' : 'Afficher debug API /api/candidates'}
+              </button>
+              {debugOpen && (
+                <div className="mt-3">
+                  {debugLoading && <div className="text-sm text-gray-500">Chargement des candidats...</div>}
+                  {debugError && <div className="text-sm text-red-600">Erreur: {debugError}</div>}
+                  {debugData && (
+                    <pre className="max-h-64 overflow-auto text-xs bg-white p-2 border rounded mt-2">{JSON.stringify(debugData, null, 2)}</pre>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {error && (
