@@ -17,7 +17,10 @@ import logging
 app = FastAPI(
     title="AI Talent Finder",
     version="1.0.0",
-    redirect_slashes=False,
+    # Allow automatic redirect from paths without trailing slash to their
+    # canonical route with trailing slash. This prevents 404s for clients
+    # that omit the trailing slash while endpoints require it.
+    redirect_slashes=True,
 )
 
 # Configure CORS
