@@ -17,6 +17,7 @@ type CandidateDebugRecord = {
 
 export default function RecruiterShortlist() {
   const [shortlist, setShortlist] = useState<Array<{ favorite_id: number; candidate: Candidate }>>([]);
+  const [showingFallbackCandidates, setShowingFallbackCandidates] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [removing, setRemoving] = useState<number | null>(null);
@@ -62,6 +63,7 @@ export default function RecruiterShortlist() {
   const fetchFavorites = async () => {
     setLoading(true);
     setError('');
+    setShowingFallbackCandidates(false);
     try {
       const response = await favoritesApi.getFavorites(0, 100);
 
@@ -78,7 +80,16 @@ export default function RecruiterShortlist() {
         }
       }
 
-      setShortlist(itemsWithCandidates.filter((item) => filterDisplayableCandidates([item.candidate]).length > 0));
+      const visibleFavorites = itemsWithCandidates.filter((item) => filterDisplayableCandidates([item.candidate]).length > 0);
+
+      if (visibleFavorites.length > 0) {
+        setShortlist(visibleFavorites);
+      } else {
+        const candidatesResponse = await candidatesApi.getCandidates(0, 100);
+        const visibleCandidates = filterDisplayableCandidates(candidatesResponse.data);
+        setShortlist(visibleCandidates.map((candidate) => ({ favorite_id: 0, candidate })));
+        setShowingFallbackCandidates(true);
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -135,7 +146,11 @@ export default function RecruiterShortlist() {
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 border-l-4 border-purple-500">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Tes Candidats en Shortlist 📋</h2>
           <p className="text-gray-600 text-lg">
-            {loading ? '⏳ Chargement...' : `Total: ${shortlist.length} candidats sélectionnés`}
+            {loading
+              ? '⏳ Chargement...'
+              : showingFallbackCandidates
+                ? `Aucun favori trouvé. Affichage de ${shortlist.length} candidats disponibles.`
+                : `Total: ${shortlist.length} candidats sélectionnés`}
           </p>
           {/* Dev-only debug: show raw /api/candidates response to help troubleshooting */}
           {process.env.NODE_ENV !== 'production' && (
@@ -239,16 +254,18 @@ export default function RecruiterShortlist() {
                       </div>
                     </div>
                   </Link>
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <button
-                      onClick={() => void handleRemove(item.favorite_id, item.candidate.id)}
-                      disabled={removing === item.favorite_id}
-                      aria-label={`Retirer ${item.candidate.full_name} de la shortlist`}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      {removing === item.favorite_id ? '⏳ Suppression...' : '✕ Retirer de la shortlist'}
-                    </button>
-                  </div>
+                  {item.favorite_id > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                      <button
+                        onClick={() => void handleRemove(item.favorite_id, item.candidate.id)}
+                        disabled={removing === item.favorite_id}
+                        aria-label={`Retirer ${item.candidate.full_name} de la shortlist`}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                      >
+                        {removing === item.favorite_id ? '⏳ Suppression...' : '✕ Retirer de la shortlist'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

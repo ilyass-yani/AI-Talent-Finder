@@ -26,42 +26,27 @@ export interface Candidate {
 export interface CandidateVisibilityLike {
   full_name?: string | null;
   email?: string | null;
+  cv_path?: string | null;
   raw_text?: string | null;
   extraction_quality_score?: number | null;
   is_fully_extracted?: boolean | null;
 }
 
-const placeholderPatterns = [
-  /^unknown$/,
-  /^target test$/,
-  /^test$/,
-  /^demo$/,
-  /^sample$/,
-  /^mock$/,
-  /\bunknown\b/,
-  /\btarget\s+test\b/,
-  /\btest\b/,
-  /\bdemo\b/,
-  /\bsample\b/,
-  /\bmock\b/,
-];
-
 export function isDisplayableIdentity(fullName?: string | null, email?: string | null): boolean {
   const name = (fullName || '').trim().toLowerCase();
   const normalizedEmail = (email || '').trim().toLowerCase();
   const combined = `${name} ${normalizedEmail}`.trim();
-  if (!combined) {
-    return false;
-  }
-  return !placeholderPatterns.some((pattern) => pattern.test(combined));
+  if (!combined) return false;
+  return name !== 'unknown';
 }
 
 export function isDisplayableCandidate(candidate: CandidateVisibilityLike): boolean {
+  const hasCvPath = Boolean(candidate.cv_path && candidate.cv_path.trim());
   const hasRawText = Boolean(candidate.raw_text && candidate.raw_text.trim());
   const hasExtractionScore = typeof candidate.extraction_quality_score === 'number' && candidate.extraction_quality_score > 0;
   const hasExtractedProfile = candidate.is_fully_extracted === true;
 
-  if (!(hasRawText || hasExtractionScore || hasExtractedProfile)) {
+  if (!(hasCvPath || hasRawText || hasExtractionScore || hasExtractedProfile)) {
     return false;
   }
 
