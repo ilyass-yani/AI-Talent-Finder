@@ -5,12 +5,19 @@ const nextConfig: NextConfig = {
   // Keep empty to use Turbopack defaults
   turbopack: {},
 
-  // Rewrites to proxy /api/* to the FastAPI backend server-side (only in development).
-  // In production, relative paths are used and will automatically respect the page's HTTPS protocol.
+  // Rewrites to proxy /api/* to the FastAPI backend server-side.
+  // In both development and production, we need to rewrite to the backend.
   async rewrites() {
-    // In production, don't rewrite - let relative paths work with HTTPS (same-origin)
+    // In production, use Railway backend service URL
     if (process.env.NODE_ENV === 'production') {
-      return { beforeFiles: [] };
+      return {
+        beforeFiles: [
+          {
+            source: '/api/:path*',
+            destination: 'https://ai-talent-finder-backend-production.up.railway.app/api/:path*',
+          },
+        ],
+      };
     }
 
     // In development, proxy to local backend
