@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from dotenv import load_dotenv
 
 # Load environment variables from root .env file
@@ -11,6 +13,27 @@ load_dotenv(dotenv_path=env_path)
 from app.core.database import Base, engine
 import importlib
 import logging
+
+
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to ensure redirects use HTTPS in production.
+    When deployed behind a reverse proxy (e.g., Railway), the request arrives as HTTP
+    but should redirect to HTTPS. Starlette's redirect_slashes uses the request scheme,
+    so we wrap the scope to force HTTPS redirects in production.
+    """
+    async def dispatch(self, request: Request, call_next):
+        # In production, ensure the scheme seen by Starlette is HTTPS
+        # by checking X-Forwarded-Proto header (set by reverse proxies)
+        if (os.getenv("NODE_ENV") == "production" or 
+            os.getenv("RAILWAY_ENVIRONMENT_NAME") == "production"):
+            forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+            if forwarded_proto == "https":
+                # Force the scope to use https so redirects are generated correctly
+                request.scope["scheme"] = "https"
+        
+        return await call_next(request)
+
 
 # Initialize FastAPI app early so lightweight endpoints work even if heavy
 # ML-related dependencies fail to import. Routers are added conditionally.
@@ -22,6 +45,9 @@ app = FastAPI(
     # that omit the trailing slash while endpoints require it.
     redirect_slashes=True,
 )
+
+# Add HTTPS redirect middleware BEFORE CORS to catch all requests
+app.add_middleware(HTTPSRedirectMiddleware)
 
 # Configure CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
