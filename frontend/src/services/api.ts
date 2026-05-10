@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 function resolveApiUrl(): string {
-  // In production, always use relative paths to avoid mixed content (HTTP vs HTTPS) issues
-  // Relative paths automatically use the same protocol as the page
+  // In production, talk directly to the HTTPS backend to avoid frontend proxy redirects.
   if (process.env.NODE_ENV === 'production') {
-    return '/api';
+    return 'https://ai-talent-finder-backend-production.up.railway.app/api';
   }
 
   // In development, check for explicit API URL override
