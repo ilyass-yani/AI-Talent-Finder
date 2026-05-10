@@ -66,17 +66,28 @@ def create_candidate(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new candidate"""
-    db_candidate = Candidate(
-        full_name=candidate.full_name,
-        email=candidate.email,
-        phone=candidate.phone,
-        linkedin_url=candidate.linkedin_url,
-        github_url=candidate.github_url,
-        cv_path=candidate.cv_path,
-        raw_text=candidate.raw_text
-    )
-    db.add(db_candidate)
+    """Create or update a candidate (upsert by email)"""
+    # First, check if candidate with this email exists
+    existing = db.query(Candidate).filter(Candidate.email == candidate.email).first()
+    
+    if existing:
+        # Update existing candidate
+        for field, value in candidate.dict(exclude_unset=True).items():
+            setattr(existing, field, value)
+        db_candidate = existing
+    else:
+        # Create new candidate
+        db_candidate = Candidate(
+            full_name=candidate.full_name,
+            email=candidate.email,
+            phone=candidate.phone,
+            linkedin_url=candidate.linkedin_url,
+            github_url=candidate.github_url,
+            cv_path=candidate.cv_path,
+            raw_text=candidate.raw_text
+        )
+        db.add(db_candidate)
+    
     db.commit()
     db.refresh(db_candidate)
     return db_candidate
@@ -184,11 +195,15 @@ def create_or_update_my_profile(
             detail="Only candidates can access this endpoint"
         )
     
-    # Check if candidate already exists for this user
-    candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+    # Determine the email (use provided or fall back to user's email)
+    email = candidate_data.email or current_user.email
+    
+    # Check if candidate exists by email (UNIQUE constraint)
+    candidate = db.query(Candidate).filter(Candidate.email == email).first()
     
     if candidate:
         # Update existing profile
+        candidate.user_id = current_user.id  # Ensure association with current user
         update_data = candidate_data.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(candidate, key, value)
@@ -197,7 +212,7 @@ def create_or_update_my_profile(
         candidate = Candidate(
             user_id=current_user.id,
             full_name=candidate_data.full_name or current_user.full_name,
-            email=candidate_data.email or current_user.email,
+            email=email,
             phone=candidate_data.phone,
             linkedin_url=candidate_data.linkedin_url,
             github_url=candidate_data.github_url,
@@ -302,14 +317,16 @@ async def upload_candidate_cv(
         # Link candidate to authenticated user
         candidate_dict["user_id"] = current_user.id
 
-        # Check if user already has a candidate profile
-        existing_candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+        # Check if candidate exists by email (UNIQUE constraint takes precedence over user_id)
+        existing_candidate = db.query(Candidate).filter(
+            Candidate.email == candidate_dict['email']
+        ).first()
         
         if existing_candidate:
-            # Update existing profile
+            # Update existing profile (handles duplicate email from uploads)
             for key, value in candidate_dict.items():
                 setattr(existing_candidate, key, value)
-            existing_candidate.user_id = current_user.id  # Ensure user_id is set
+            existing_candidate.user_id = current_user.id  # Reassign to current user
             db_candidate = existing_candidate
         else:
             # Create new candidate in database
@@ -508,14 +525,32 @@ async def upload_cv_with_ner(
         extractor = ResumeNERExtractor()
         profile = extractor.extract_structured_profile(text)
         
-        # Get or create candidate
-        candidate = db.query(Candidate).filter(Candidate.user_id == current_user.id).first()
+        # Determine email for upsert
+        candidate_email = profile.get('email') or current_user.email
         
-        if not candidate:
+        # Get or create candidate (upsert by email, which is UNIQUE)
+        candidate = db.query(Candidate).filter(Candidate.email == candidate_email).first()
+        
+        if candidate:
+            # Update existing candidate with extracted data
+            candidate.user_id = current_user.id
+            candidate.full_name = profile.get('full_name') or current_user.full_name
+            candidate.phone = profile.get('phone')
+            candidate.raw_text = text[:5000]  # Store first 5000 chars
+            candidate.extracted_name = profile.get('full_name')
+            candidate.extracted_emails = json.dumps([profile.get('email')] if profile.get('email') else [])
+            candidate.extracted_phones = json.dumps([profile.get('phone')] if profile.get('phone') else [])
+            candidate.extracted_job_titles = json.dumps(profile.get('job_titles', []))
+            candidate.extracted_companies = json.dumps(profile.get('companies', []))
+            candidate.extracted_education = json.dumps(profile.get('education', []))
+            candidate.ner_extraction_data = json.dumps(profile)
+            candidate.is_fully_extracted = True
+        else:
+            # Create new candidate
             candidate = Candidate(
                 user_id=current_user.id,
                 full_name=profile.get('full_name') or current_user.full_name,
-                email=profile.get('email') or current_user.email,
+                email=candidate_email,
                 phone=profile.get('phone'),
                 raw_text=text[:5000],  # Store first 5000 chars
                 # Save extracted data - convert to JSON strings
@@ -529,7 +564,8 @@ async def upload_cv_with_ner(
                 is_fully_extracted=True
             )
             db.add(candidate)
-            db.flush()
+        
+        db.flush()
         else:
             candidate.full_name = profile.get('full_name') or candidate.full_name
             candidate.email = profile.get('email') or candidate.email
