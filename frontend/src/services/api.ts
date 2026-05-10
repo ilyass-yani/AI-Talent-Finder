@@ -1,24 +1,23 @@
 import axios from 'axios';
 
 function resolveApiUrl(): string {
+  // In production, always use relative paths to avoid mixed content (HTTP vs HTTPS) issues
+  // Relative paths automatically use the same protocol as the page
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+
+  // In development, check for explicit API URL override
   const runtimeUrl = typeof window !== 'undefined'
     ? (window as typeof window & { __NEXT_PUBLIC_API_URL?: string }).__NEXT_PUBLIC_API_URL
     : process.env.NEXT_PUBLIC_API_URL;
 
-  if (runtimeUrl) {
-    if (runtimeUrl.startsWith('http')) {
-      return `${runtimeUrl.replace(/\/$/, '')}/api`;
-    }
-
-    if (runtimeUrl.startsWith('/') && process.env.NODE_ENV === 'production') {
-      return runtimeUrl;
-    }
+  if (runtimeUrl && runtimeUrl.startsWith('http')) {
+    return `${runtimeUrl.replace(/\/$/, '')}/api`;
   }
 
-  // Local development should talk directly to the FastAPI backend.
-  return process.env.NODE_ENV === 'production'
-    ? '/api'
-    : 'http://127.0.0.1:8000/api';
+  // Default: local development backend
+  return 'http://127.0.0.1:8000/api';
 }
 
 const apiUrl = resolveApiUrl();
