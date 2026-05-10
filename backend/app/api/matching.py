@@ -1131,27 +1131,49 @@ def get_match_explanation(
     if not criteria:
         raise HTTPException(status_code=404, detail="Job criteria not found")
     
-    # Score the match
-    explainability = build_explanation_payload(candidate, criteria, db)
-    match_score = {
-        "match_score": explainability.get("score", 0.0) / 100.0,
-        "text_similarity": explainability.get("text_similarity", 0.0),
-        "skills_match": explainability.get("skills_match_score", 0.0),
-    }
-    
-    matching_skills = explainability.get("matched_skills", [])
-    missing_skills = explainability.get("missing_skills", [])
-    
-    # Generate explanation
-    explanation = generate_explanation(
-        candidate_name=candidate.full_name,
-        job_title=criteria.title,
-        match_score=match_score,
-        matching_skills=matching_skills,
-        missing_skills=missing_skills,
-        candidate_years_exp=float(candidate.years_of_experience or 0),
-        required_years_exp=float(criteria.years_of_experience_required or 0),
-    )
+    try:
+        criteria_skills = _load_criteria_skills(criteria.id, db)
+        skill_universe = build_skill_universe(db)
+        score, details = score_candidate_against_criteria(candidate, criteria_skills, skill_universe)
+
+        match_score = {
+            "match_score": float(score) / 100.0,
+            "text_similarity": float(details.get("similarity", 0.0)),
+            "skills_match": float(details.get("coverage", 0.0)) / 100.0,
+        }
+
+        matching_skills = [str(item) for item in details.get("matched_skills", [])]
+        missing_skills = [str(item) for item in details.get("missing_skills", [])]
+
+        # Generate explanation from deterministic data; if that ever fails,
+        # fall back to a safe response below instead of returning 500.
+        explanation = generate_explanation(
+            candidate_name=candidate.full_name,
+            job_title=criteria.title,
+            match_score=match_score,
+            matching_skills=matching_skills,
+            missing_skills=missing_skills,
+            candidate_years_exp=float(getattr(candidate, "years_of_experience", 0) or 0),
+            required_years_exp=float(getattr(criteria, "years_of_experience_required", 0) or 0),
+        )
+    except Exception as exc:
+        # Deterministic fallback, so the recruiter still gets a useful answer.
+        skill_names = []
+        for candidate_skill in getattr(candidate, "candidate_skills", []) or []:
+            skill = getattr(candidate_skill, "skill", None)
+            skill_name = getattr(skill, "name", None)
+            if skill_name:
+                skill_names.append(str(skill_name))
+
+        explanation = generate_explanation(
+            candidate_name=candidate.full_name,
+            job_title=criteria.title,
+            match_score={"match_score": 0.0, "text_similarity": 0.0, "skills_match": 0.0},
+            matching_skills=skill_names[:5],
+            missing_skills=[skill.get("name", "") for skill in _load_criteria_skills(criteria.id, db)[:5]],
+            candidate_years_exp=float(getattr(candidate, "years_of_experience", 0) or 0),
+            required_years_exp=float(getattr(criteria, "years_of_experience_required", 0) or 0),
+        )
     
     return ExplainabilityResponse(
         candidate_name=explanation.candidate_name,
