@@ -1,31 +1,24 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Environment variables
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  },
-
   // Turbopack configuration (Next.js 16 default)
   // Keep empty to use Turbopack defaults
   turbopack: {},
 
-  // Rewrites to proxy /api/* to the FastAPI backend server-side (avoids CORS).
-  // NEXT_PUBLIC_API_URL must be a full http(s) URL; if it is a path like "/api"
-  // we fall back to the known production backend URL.
+  // Rewrites to proxy /api/* to the FastAPI backend server-side (only in development).
+  // In production, relative paths are used and will automatically respect the page's HTTPS protocol.
   async rewrites() {
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    const defaultBackendUrl = process.env.NODE_ENV === 'production'
-      ? 'https://ai-talent-finder-backend-production.up.railway.app'
-      : 'http://127.0.0.1:8000';
-    const backendUrl = rawUrl.startsWith('http')
-      ? rawUrl.replace(/\/$/, '')
-      : defaultBackendUrl;
+    // In production, don't rewrite - let relative paths work with HTTPS (same-origin)
+    if (process.env.NODE_ENV === 'production') {
+      return { beforeFiles: [] };
+    }
+
+    // In development, proxy to local backend
     return {
       beforeFiles: [
         {
           source: '/api/:path*',
-          destination: `${backendUrl}/api/:path*`,
+          destination: 'http://127.0.0.1:8000/api/:path*',
         },
       ],
     };
