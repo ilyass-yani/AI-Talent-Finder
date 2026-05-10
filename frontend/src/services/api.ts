@@ -45,12 +45,26 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
-    // Ensure URL paths end with a slash when pointing to API root to avoid 404 vs 401 mismatch
+    // Ensure URL paths end with a slash to match backend routing.
+    // This handles both: /api/path and /api/path?query=value
     if (config.url && typeof config.url === 'string') {
       const u = config.url;
-      // Only adjust relative api paths (not full URLs)
-      if (!u.startsWith('http') && !u.endsWith('/')) {
-        config.url = u + '/';
+      // Only adjust relative api paths (not full URLs with http/https)
+      if (!u.startsWith('http')) {
+        // Check if path has a query string
+        const hasQuery = u.includes('?');
+        if (hasQuery) {
+          // URL like "/api/candidates?skip=0" -> "/api/candidates/?skip=0"
+          const [path, query] = u.split('?');
+          if (!path.endsWith('/')) {
+            config.url = path + '/?' + query;
+          }
+        } else {
+          // URL like "/api/candidates" -> "/api/candidates/"
+          if (!u.endsWith('/')) {
+            config.url = u + '/';
+          }
+        }
       }
     }
     return config;
