@@ -175,3 +175,6 @@ uploads/
 test.db
 nohup.out
 data.db
+backend/.venv*/
+backend/__pycache__/
+.venv*/

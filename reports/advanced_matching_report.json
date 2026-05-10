@@ -1,17 +1,17 @@
 {
   "dataset": {
-    "rows_total": 42,
-    "rows_train": 33,
-    "rows_test": 9,
+    "rows_total": 82,
+    "rows_train": 65,
+    "rows_test": 17,
     "source_counts": {
-      "synthetic": 40,
+      "synthetic": 80,
       "real_db": 2
     },
-    "positive_rate": 0.5238095238095238,
+    "positive_rate": 0.5121951219512195,
     "seed": 42
   },
   "model": {
-    "name": "logistic_regression",
+    "name": "xgboost",
     "path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/final_match_model.joblib",
     "fallback_path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/baseline_model.joblib"
   },
@@ -25,27 +25,27 @@
       "threshold": 0.5
     },
     "test": {
-      "accuracy": 0.7777777777777778,
-      "precision": 1.0,
-      "recall": 0.6,
-      "f1": 0.75,
-      "roc_auc": 0.6,
+      "accuracy": 0.9411764705882353,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9473684210526315,
+      "roc_auc": 0.9305555555555556,
       "threshold": 0.5
     },
     "test_best_f1": {
-      "accuracy": 0.7777777777777778,
-      "precision": 1.0,
-      "recall": 0.6,
-      "f1": 0.75,
-      "roc_auc": 0.6,
-      "threshold": 0.07
+      "accuracy": 0.9411764705882353,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9473684210526315,
+      "roc_auc": 0.9305555555555556,
+      "threshold": 0.09
     },
     "lightweight_semantic": {
-      "accuracy": 0.4444444444444444,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0,
-      "roc_auc": 0.75,
+      "accuracy": 0.7647058823529411,
+      "precision": 1.0,
+      "recall": 0.5555555555555556,
+      "f1": 0.7142857142857143,
+      "roc_auc": 0.9583333333333333,
       "threshold": 0.5
     }
   },
