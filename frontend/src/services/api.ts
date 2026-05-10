@@ -46,23 +46,23 @@ apiClient.interceptors.request.use(
       }
     }
     // Ensure URL paths end with a slash to match backend routing.
-    // This handles both: /api/path and /api/path?query=value
+    // This handles both: /api/path and /api/path?query=value.
+    // Auth routes are excluded because the backend defines them without a trailing slash.
     if (config.url && typeof config.url === 'string') {
       const u = config.url;
-      // Only adjust relative api paths (not full URLs with http/https)
       if (!u.startsWith('http')) {
-        // Check if path has a query string
-        const hasQuery = u.includes('?');
-        if (hasQuery) {
-          // URL like "/api/candidates?skip=0" -> "/api/candidates/?skip=0"
-          const [path, query] = u.split('?');
-          if (!path.endsWith('/')) {
-            config.url = path + '/?' + query;
-          }
-        } else {
-          // URL like "/api/candidates" -> "/api/candidates/"
-          if (!u.endsWith('/')) {
-            config.url = u + '/';
+        const authRoutes = ['/auth/login', '/auth/register', '/auth/me', '/auth/logout'];
+        const isAuthRoute = authRoutes.some((route) => u.startsWith(route));
+
+        if (!isAuthRoute) {
+          const hasQuery = u.includes('?');
+          if (hasQuery) {
+            const [path, query] = u.split('?');
+            if (!path.endsWith('/')) {
+              config.url = `${path}/?${query}`;
+            }
+          } else if (!u.endsWith('/')) {
+            config.url = `${u}/`;
           }
         }
       }
