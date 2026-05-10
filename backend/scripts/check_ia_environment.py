@@ -1,82 +1,88 @@
 #!/usr/bin/env python3
 """
-Check IA environment: optional deps and API keys.
-Run: PYTHONPATH=. python3 scripts/check_ia_environment.py
+Check AI environment: optional deps, API keys, and fallback modes.
+Run: PYTHONPATH=. python3 backend/scripts/check_ia_environment.py
 """
-import os
-import importlib
+
+from __future__ import annotations
+
+from typing import Dict
+from pathlib import Path
 import sys
 
-checks = []
+ROOT = Path(__file__).resolve().parents[2]
+BACKEND_ROOT = ROOT / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
-def check_import(name):
-    try:
-        importlib.import_module(name)
-        return True, None
-    except Exception as e:
-        return False, str(e)
+from app.core.capabilities import get_capabilities
 
-# Packages to check
-packages = [
-    ('transformers', 'transformers'),
-    ('tika', 'tika'),
-    ('pytesseract', 'pytesseract'),
-    ('PIL', 'PIL'),
-    ('torch', 'torch'),
-    ('sentence_transformers', 'sentence_transformers'),
-    ('faiss', 'faiss'),
-]
 
-print('\nIA environment quick-check')
-print('================================')
+def _section(title: str) -> None:
+    print("\n" + title)
+    print("=" * len(title))
 
-for label, pkg in packages:
-    ok, err = check_import(pkg)
-    print(f"Package {pkg}: {'OK' if ok else 'MISSING'}")
-    if not ok:
-        print(f"  -> {err}")
 
-# Environment variables of interest
-env_vars = [
-    'OPENAI_API_KEY',
-    'HUGGINGFACE_API_KEY',
-    'TESSERACT_CMD',
-    'ELASTICSEARCH_URL',
-    'DATABASE_URL',
-]
+def _print_feature(name: str, detail: Dict[str, object]) -> None:
+    status = str(detail.get("status", "missing")).upper()
+    print(f"{name}: {status}")
+    required_missing = detail.get("required_missing") or []
+    optional_missing = detail.get("optional_missing") or []
+    notes = str(detail.get("notes") or "").strip()
+    if required_missing:
+        print(f"  missing required: {', '.join(required_missing)}")
+    if optional_missing:
+        print(f"  missing optional: {', '.join(optional_missing)}")
+    if notes:
+        print(f"  notes: {notes}")
 
-print('\nEnvironment variables')
-for var in env_vars:
-    val = os.getenv(var)
-    print(f"{var}: {'SET' if val else 'NOT SET'}")
 
-# Check tesseract availability if pytesseract exists
-ok, _ = check_import('pytesseract')
-if ok:
-    try:
-        import pytesseract
-        tcmd = os.getenv('TESSERACT_CMD')
-        try:
-            from shutil import which
-            found = which(tcmd) if tcmd else None
-            if found:
-                print('\nTesseract binary: FOUND at ' + found)
-            else:
-                print('\nTesseract binary: NOT FOUND (set TESSERACT_CMD if installed)')
-        except Exception:
-            print('\nTesseract binary: check path manually')
-    except Exception:
-        pass
+def main() -> None:
+    cap = get_capabilities(force_refresh=True)
 
-# High-level fallback guidance
-print('\nFallback modes detected in code:')
-print('- LLM/Embeddings: when API keys missing, code should fallback to local models or disable features')
-print('- NER/OCR: when native libraries missing, extraction will be partial or rely on heuristics')
-print('- Provide environment variable flags to force fallback in production')
+    _section("AI environment quick-check")
+    print(f"timestamp: {cap.get('timestamp')}")
 
-print('\nQuick recommendations:')
-print('- Install optional packages with `pip install -r requirements-faiss-optional.txt`')
-print('- Set OpenAI/HuggingFace keys if using hosted LLMs')
-print('- Install Tesseract system binary for OCR on scanned PDFs')
+    _section("Features")
+    features = cap.get("features", {})
+    for name in sorted(features.keys()):
+        _print_feature(name, features[name])
 
-print('\nDone.')
+    _section("Dependencies")
+    dependencies = cap.get("dependencies", {})
+    for name in sorted(dependencies.keys()):
+        print(f"{name}: {'OK' if dependencies[name] else 'MISSING'}")
+
+    tesseract_path = cap.get("tesseract_path")
+    if tesseract_path:
+        print(f"tesseract_path: {tesseract_path}")
+    else:
+        tcmd = cap.get("tesseract_cmd")
+        if tcmd:
+            print("tesseract_path: NOT FOUND (check TESSERACT_CMD)")
+        else:
+            print("tesseract_path: NOT FOUND")
+
+    _section("API keys")
+    api_keys = cap.get("api_keys", {})
+    for name in sorted(api_keys.keys()):
+        print(f"{name}: {'SET' if api_keys[name] else 'NOT SET'}")
+
+    _section("Strict mode")
+    required_features = cap.get("required_features") or []
+    print(f"AI_FEATURES_STRICT: {'ON' if cap.get('strict') else 'OFF'}")
+    print(
+        "AI_FEATURES_REQUIRED: "
+        + (", ".join(required_features) if required_features else "(not set)")
+    )
+
+    _section("Quick recommendations")
+    print("- Install optional packages with `pip install -r backend/requirements-faiss-optional.txt`")
+    print("- Set ANTHROPIC_API_KEY to enable LLM responses")
+    print("- Install Tesseract system binary for OCR on scanned PDFs")
+
+    print("\nDone.")
+
+
+if __name__ == "__main__":
+    main()
