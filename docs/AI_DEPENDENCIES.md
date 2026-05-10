@@ -17,10 +17,22 @@ Install optional groups:
 
 ## Important environment variables
 
+- `ANTHROPIC_API_KEY` - recruiter chatbot LLM (if set, chat uses Anthropic API)
 - `OPENAI_API_KEY` - OpenAI LLM/embeddings
 - `HUGGINGFACE_API_KEY` - HF model access
 - `TESSERACT_CMD` - path to Tesseract binary (if installed)
 - `DATABASE_URL` - production DB connection string
+- `AI_FEATURES_STRICT` - fail startup if required AI features are missing
+- `AI_FEATURES_REQUIRED` - comma-separated list of required AI features (used with strict mode)
+
+Known feature keys for `AI_FEATURES_REQUIRED`:
+
+- `cv_text_extraction`
+- `cv_ocr`
+- `ner_hf`
+- `semantic_matching`
+- `export`
+- `chat_llm`
 
 ## Fallback behaviors
 
@@ -37,6 +49,11 @@ PYTHONPATH=. python3 backend/scripts/check_ia_environment.py
 ```
 
 This prints which optional packages and environment variables are present and gives quick recommendations.
+
+## Health endpoints
+
+- `GET /health` basic liveness endpoint
+- `GET /health/deps` AI capability summary (features, missing deps, keys)
 
 ## Regenerating artifacts
 

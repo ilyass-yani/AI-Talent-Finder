@@ -11,6 +11,7 @@ env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 from app.core.database import Base, engine
+from app.core.capabilities import assert_required_features, get_capabilities, log_capabilities_summary
 import importlib
 import logging
 
@@ -78,6 +79,9 @@ def on_startup():
     except Exception as e:
         logging.exception("Failed to create database tables: %s", e)
 
+    capabilities = log_capabilities_summary()
+    assert_required_features(capabilities)
+
     # Conditionally include API routers. If a router import fails (e.g. heavy
     # ML dependencies missing), the app still starts and exposes /health.
     include_optional_router("app.api.auth")
@@ -103,3 +107,8 @@ def on_startup():
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/health/deps")
+def health_deps():
+    return get_capabilities()
