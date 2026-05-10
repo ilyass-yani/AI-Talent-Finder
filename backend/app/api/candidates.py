@@ -566,21 +566,6 @@ async def upload_cv_with_ner(
             db.add(candidate)
         
         db.flush()
-        else:
-            candidate.full_name = profile.get('full_name') or candidate.full_name
-            candidate.email = profile.get('email') or candidate.email
-            candidate.phone = profile.get('phone') or candidate.phone
-            candidate.raw_text = text[:5000]
-            # Update extracted data - convert to JSON strings
-            candidate.extracted_name = profile.get('full_name')
-            candidate.extracted_emails = json.dumps([profile.get('email')] if profile.get('email') else [])
-            candidate.extracted_phones = json.dumps([profile.get('phone')] if profile.get('phone') else [])
-            candidate.extracted_job_titles = json.dumps(profile.get('job_titles', []))
-            candidate.extracted_companies = json.dumps(profile.get('companies', []))
-            candidate.extracted_education = json.dumps(profile.get('education', []))
-            candidate.ner_extraction_data = json.dumps(profile)
-            candidate.is_fully_extracted = True
-        
         db.commit()
         
         return {
