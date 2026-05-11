@@ -71,7 +71,7 @@ export default function ExportPage() {
     setMessage(null);
 
     try {
-      const response = await apiClient.post(`/api/export/${selectedFormat}`, settings, {
+      const response = await apiClient.post(`/export/${selectedFormat}`, settings, {
         responseType: 'blob',
       });
 

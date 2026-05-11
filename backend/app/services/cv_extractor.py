@@ -45,10 +45,21 @@ except ImportError:
     NER_AVAILABLE = False
 
 from ai_module.nlp.cv_cleaner import CVCleaner
-from ai_module.nlp.enhanced_skill_extractor import EnhancedSkillExtractor
+
+try:
+    from ai_module.nlp.enhanced_skill_extractor import EnhancedSkillExtractor
+    ENHANCED_SKILL_EXTRACTOR_AVAILABLE = True
+except Exception:
+    EnhancedSkillExtractor = None
+    ENHANCED_SKILL_EXTRACTOR_AVAILABLE = False
 
 
 logger = logging.getLogger(__name__)
+
+
+class _FallbackSkillExtractor:
+    def extract_skills_hybrid(self, text: str, threshold: int = 80) -> List[Dict]:
+        return []
 
 
 @dataclass
@@ -73,7 +84,14 @@ class CVExtractionService:
     def __init__(self):
         """Initialize extraction components"""
         self.cv_cleaner = CVCleaner()
-        self.skill_extractor = EnhancedSkillExtractor(load_ner=False)  # Separate NER
+        if ENHANCED_SKILL_EXTRACTOR_AVAILABLE and EnhancedSkillExtractor is not None:
+            try:
+                self.skill_extractor = EnhancedSkillExtractor(load_ner=False)  # Separate NER
+            except Exception as e:
+                print(f"⚠️ Skill extractor not available: {e}")
+                self.skill_extractor = _FallbackSkillExtractor()
+        else:
+            self.skill_extractor = _FallbackSkillExtractor()
         self.debug_enabled = os.getenv("CV_EXTRACTION_DEBUG", "0") == "1"
         self.hf_ner_model_name = os.getenv("HF_CV_NER_MODEL", "dslim/bert-base-NER")
         self.hf_parser = None
