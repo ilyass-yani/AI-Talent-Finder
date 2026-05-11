@@ -259,8 +259,28 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ALLOWED_ORIGINS=http://localhost:3000
 ANTHROPIC_API_KEY=sk-ant-...    # Optionnel (chatbot fonctionne en fallback)
+LOCAL_LLM_BASE_URL=http://127.0.0.1:8001
+LOCAL_LLM_MODEL=local-llm
+LOCAL_LLM_MAX_TOKENS=512
+LOCAL_LLM_TIMEOUT=60
+USE_AI_PROFILE_GENERATOR=true
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
+
+---
+
+## 🤖 LLM local (optionnel)
+
+Le chatbot peut utiliser un LLM local via `llama.cpp` (API compatible OpenAI) si aucune API payante n'est disponible.
+
+### Démarrer le serveur (Windows, CPU)
+
+```bash
+cd tools/llama.cpp
+./llama-server.exe -m ../models/llm/mistral-7b-instruct.Q4_K_M.gguf --host 127.0.0.1 --port 8001 --n-gpu-layers 0 --ctx-size 4096
+```
+
+**Ordre de fallback :** Anthropic → LLM local → mode déterministe.
 
 ---
 
@@ -271,7 +291,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 | Backend   | FastAPI, SQLAlchemy, PostgreSQL, Alembic        |
 | Auth      | JWT (python-jose), bcrypt/argon2 (passlib)      |
 | IA / NLP  | spaCy, scikit-learn, transformers, fuzzywuzzy   |
-| Chatbot   | Anthropic Claude API (avec fallback rule-based) |
+| Chatbot   | Anthropic Claude API + LLM local (llama.cpp) + fallback rule-based |
 | Export    | ReportLab (PDF), openpyxl (Excel), csv          |
 | Frontend  | Next.js 16, React 19, TypeScript, Tailwind CSS  |
 | Tests     | Jest (frontend), pytest (backend)               |

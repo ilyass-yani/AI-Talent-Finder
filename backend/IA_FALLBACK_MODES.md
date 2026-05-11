@@ -39,28 +39,30 @@ except ImportError:
 
 ## 2️⃣ Extraction NER (Named Entity Recognition)
 
-### Mode Normal (avec `spacy` + modèle NER)
+### Mode Normal (avec HF NER + regex)
 
-- **Composant** : `ai_module/nlp/enhanced_skill_extractor.py` — `EnhancedSkillExtractor`
-- **Dépendance** : `spacy`, spacy model (`en_core_web_md` ou `en_core_web_lg`)
-- **Comportement** : Extrait entités nommées (personnes, dates, localisations, organisations) et compétences
-- **Performance** : ~50-100ms par CV
+- **Composants** : `ai_module/nlp/cv_parser.py` — `HFResumeNERParser` + `ai_module/nlp/resume_ner_extractor.py`
+- **Dépendances** : `transformers`, `torch`, modèle HF (`HF_CV_NER_MODEL`)
+- **Comportement** :
+  - Extraction d'identité (nom, email, org, lieux) via HF NER
+  - Enrichissement avec l'extracteur regex (jobs, skills, education)
+- **Performance** : ~80-200ms par CV (variable selon modèle)
 
-### Mode Fallback (sans `spacy` ou modèle NER)
+### Mode Fallback (HF indisponible)
 
-- **Activation flag** : `load_ner=False` (utilisé en prod par défaut)
-- **Implémentation** : Regex + pattern matching, fuzzy skill matching
+- **Activation** : HF parser indisponible ou modèle non chargé
+- **Implémentation** : `ResumeNERExtractor` regex only
 - **Comportement** :
   - Extraction basée sur **regex et dictionnaire** de compétences
-  - Pas d'extraction de dates/durées/localisations
-  - Récupère skills uniquement si trouvés dans le dictionnaire de compétences
+  - Pas d'extraction de dates/durées/localisations complexes
+  - Récupère skills uniquement si trouvés dans le dictionnaire
 - **Qualité** : ⚠️ **Basique mais stable** — couverture limitée aux skills connus
 - **Impact** : CV avec skills inconnus en ortho alternative (ex: "ML" vs "Machine Learning") peuvent ne pas être reconnus
 
 **Activation** :
 
 ```python
-# load_ner=False → fallback à hybride (regex + fuzzy)
+# load_ner=False → fallback à hybride (regex + fuzzy) pour les skills
 ex = EnhancedSkillExtractor(load_ner=False)
 skills = ex.extract_skills_hybrid(cv_text)
 ```
@@ -116,6 +118,14 @@ brew install tesseract tesseract-lang
 - **Performance** : ~2-5s par requête (API latency)
 - **Qualité** : ⭐⭐⭐⭐⭐ Très naturelles et contextuelles
 
+### Mode Local (LLM open-source)
+
+- **Activation** : si `LOCAL_LLM_BASE_URL` est défini et Anthropic indisponible
+- **Implémentation** : serveur local OpenAI-compatible (ex: `llama.cpp`)
+- **Comportement** : répond via `/v1/chat/completions` avec un modèle local (Mistral/Qwen)
+- **Qualité** : ⭐⭐⭐ Variable selon quantization/modèle
+- **Impact** : dépend de la machine (CPU/VRAM)
+
 ### Mode Fallback (clé API absente ou API erreur)
 
 - **Activation** : Si `ANTHROPIC_API_KEY` vide ou appel API échoue
@@ -126,6 +136,15 @@ brew install tesseract tesseract-lang
   - Réponses génériques / limitées
 - **Qualité** : ⚠️ **Basique et répétitif**
 - **Impact** : UX recruteur dégradée, réponses peu flexibles
+
+**Configuration local LLM** :
+
+```env
+LOCAL_LLM_BASE_URL=http://127.0.0.1:8001
+LOCAL_LLM_MODEL=local-llm
+LOCAL_LLM_MAX_TOKENS=700
+LOCAL_LLM_TIMEOUT=30
+```
 
 **Activation** :
 
@@ -144,22 +163,23 @@ ANTHROPIC_API_KEY=sk-ant-...  # Optionnel
 
 ---
 
-## 5️⃣ Profile Generator (LLM pour synthèse profil)
+## 5️⃣ Profile Generator (HF + fallback rules)
 
-### Mode Normal (avec `ANTHROPIC_API_KEY` + `USE_AI_PROFILE_GENERATOR=true`)
+### Mode Normal (avec `transformers` + `USE_AI_PROFILE_GENERATOR=true`)
 
 - **Composant** : `ai_module/nlp/profile_generator.py` — `ProfileGenerator.generate_from_text()`
-- **Comportement** : Synthétise CV en profil structuré (expérience, skills, diplômes) via Claude
-- **Performance** : ~3-5s par CV
+- **Dépendances** : `transformers`, `torch` + modèle HF (`HF_PROFILE_MODEL`)
+- **Comportement** : Synthétise une description de poste en profil structuré (expérience, skills, diplômes)
+- **Performance** : ~1-3s par génération (variable selon modèle)
 - **Qualité** : ⭐⭐⭐⭐ Précis et contextualisé
 
-### Mode Fallback (flag `USE_AI_PROFILE_GENERATOR=false` ou API erreur)
+### Mode Fallback (flag `USE_AI_PROFILE_GENERATOR=false` ou deps manquantes)
 
-- **Activation** : Par défaut en production (`USE_AI_PROFILE_GENERATOR=false`)
-- **Implémentation** : Extraction **rule-based** + regex + NER fallback
+- **Activation** : Si `USE_AI_PROFILE_GENERATOR=false` ou modèle HF indisponible
+- **Implémentation** : Extraction **rule-based** + regex + fallback NER
 - **Comportement** :
   - Parsing structuré basé sur patterns (années, mots-clés, sections)
-  - Qualité dépend du format du CV
+  - Qualité dépend du format du texte
   - Peut manquer les infos implicites
 - **Qualité** : ⚠️ **Plus rigide et sensible au format**
 - **Impact** : Certains CVs mal formatés peuvent ne pas être correctement analysés

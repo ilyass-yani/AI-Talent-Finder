@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-import requests, json
-BASE='https://ai-talent-finder-backend-production.up.railway.app'
+import os
+import json
+import requests
+
+BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+EMAIL = os.getenv("RECRUITER_EMAIL", "recruiter@test.com")
+PASSWORD = os.getenv("RECRUITER_PASSWORD", "password123")
 
 # Login recruiter
-r=requests.post(BASE+'/api/auth/login', json={'email':'recruiter@test.com','password':'password123'}, timeout=15)
+r=requests.post(BASE+'/api/auth/login', json={'email': EMAIL, 'password': PASSWORD}, timeout=15)
 if r.status_code!=200:
     print('Login failed', r.status_code, r.text)
     raise SystemExit(1)

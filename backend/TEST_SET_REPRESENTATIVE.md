@@ -2,6 +2,14 @@
 
 # Contains real-world CVs and edge cases for quality validation
 
+## Automation
+
+Case definitions live in `backend/tests/fixtures/cv_cases.json` and can be run with:
+
+```bash
+PYTHONPATH=. python backend/scripts/run_cv_case_suite.py
+```
+
 ## Testing Framework
 
 ### 1. CV Extraction Tests (NER + OCR)
