@@ -12,8 +12,6 @@ from typing import List, Optional, cast
 from app.core.dependencies import get_db, get_current_user
 from app.models.models import Candidate, User, UserRole, CandidateSkill, Skill
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
-from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf, save_text_as_txt
-from ai_module.nlp.cv_cleaner import CVCleaner
 
 from fastapi import Depends
 
@@ -281,6 +279,7 @@ async def upload_candidate_cv(
 
         # Extract text from PDF/TXT
         if file_content_type == "application/pdf" or file_name.lower().endswith('.pdf'):
+            from app.services.cv_extractor import extract_text_from_pdf
             extracted_text = extract_text_from_pdf(str(pdf_path))
         else:
             extracted_text = contents.decode('utf-8')
@@ -291,6 +290,7 @@ async def upload_candidate_cv(
             extracted_text = f"Uploaded CV file: {Path(file_name).name}"
 
         # ===== NER EXTRACTION PIPELINE (NEW) =====
+        from app.services.cv_extractor import CVExtractionService
         extraction_service = CVExtractionService()
         extraction_result = extraction_service.extract_from_text(extracted_text)
         
@@ -566,20 +566,6 @@ async def upload_cv_with_ner(
             db.add(candidate)
         
         db.flush()
-        else:
-            candidate.full_name = profile.get('full_name') or candidate.full_name
-            candidate.email = profile.get('email') or candidate.email
-            candidate.phone = profile.get('phone') or candidate.phone
-            candidate.raw_text = text[:5000]
-            # Update extracted data - convert to JSON strings
-            candidate.extracted_name = profile.get('full_name')
-            candidate.extracted_emails = json.dumps([profile.get('email')] if profile.get('email') else [])
-            candidate.extracted_phones = json.dumps([profile.get('phone')] if profile.get('phone') else [])
-            candidate.extracted_job_titles = json.dumps(profile.get('job_titles', []))
-            candidate.extracted_companies = json.dumps(profile.get('companies', []))
-            candidate.extracted_education = json.dumps(profile.get('education', []))
-            candidate.ner_extraction_data = json.dumps(profile)
-            candidate.is_fully_extracted = True
         
         db.commit()
         
