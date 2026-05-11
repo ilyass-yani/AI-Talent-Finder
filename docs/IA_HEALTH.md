@@ -15,8 +15,11 @@ What I added
 - Scripts:
   - `backend/scripts/check_ia_environment.py` — checks optional IA packages and env variables.
   - `backend/scripts/regenerate_ia_artifacts.sh` — wrapper to regenerate datasets/models.
+  - `backend/scripts/regenerate_ia_artifacts.py` — cross-platform regeneration wrapper.
   - `backend/scripts/chatbot_scenarios.py` — sample chatbot/matching scenarios against an API.
+  - `backend/scripts/run_cv_case_suite.py` — run representative CV text/PDF cases.
   - `backend/tests/ia_integration_tests.py` — basic smoke tests (docs + core endpoints).
+  - `backend/tests/test_ner_fallback.py` — validate safe fallback extraction paths.
   - `backend/scripts/analyze_and_enrich_skills.py` — analyze skills coverage and propose missing items.
   - `backend/scripts/prepare_skills_review.py` — generate `skills_enrichment_review.csv` for human review.
   - `backend/scripts/apply_skills_enrichment.py` — apply suggestions (creates a backup) and merge.
@@ -73,6 +76,12 @@ API_BASE_URL=https://... PYTHONPATH=. python3 backend/scripts/chatbot_scenarios.
 
 # Re-generate IA artifacts (if you want to retrain etc.)
 PYTHONPATH=. ./backend/scripts/regenerate_ia_artifacts.sh
+
+# Cross-platform regeneration (Windows-friendly)
+PYTHONPATH=. python backend/scripts/regenerate_ia_artifacts.py
+
+# Run representative CV case suite
+PYTHONPATH=. python backend/scripts/run_cv_case_suite.py
 ```
 
 Where we left off

@@ -128,7 +128,7 @@ skills = extractor.extract_skills_hybrid(text)
 
 - `extract_skills_hybrid()` — Uses dictionary + fuzzy matching + NER
 - `extract_skills_dict()` — Dictionary matching only (fastest)
-- `extract_skills_ner()` — NER model only (requires spacy model)
+- `extract_skills_ner()` — NER model only (requires HF model)
 
 **Dictionary:** `data/skills_dictionary.json`
 
@@ -139,7 +139,7 @@ skills = extractor.extract_skills_hybrid(text)
 
 **Fallback Mode:**
 
-- If `spacy` not available: Uses fuzzy matching only
+- If HF NER model not available: Uses fuzzy matching only
 - Quality: ~95% accuracy on common stacks
 
 ---

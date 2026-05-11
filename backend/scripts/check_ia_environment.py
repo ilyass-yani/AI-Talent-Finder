@@ -68,6 +68,14 @@ def main() -> None:
     for name in sorted(api_keys.keys()):
         print(f"{name}: {'SET' if api_keys[name] else 'NOT SET'}")
 
+    _section("Flags")
+    flags = cap.get("flags", {})
+    if flags:
+        for name in sorted(flags.keys()):
+            print(f"{name}: {'ON' if flags[name] else 'OFF'}")
+    else:
+        print("(no flags detected)")
+
     _section("Strict mode")
     required_features = cap.get("required_features") or []
     print(f"AI_FEATURES_STRICT: {'ON' if cap.get('strict') else 'OFF'}")
@@ -78,7 +86,9 @@ def main() -> None:
 
     _section("Quick recommendations")
     print("- Install optional packages with `pip install -r backend/requirements-faiss-optional.txt`")
+    print("- Enable AI profile generation with `USE_AI_PROFILE_GENERATOR=true` when transformers are installed")
     print("- Set ANTHROPIC_API_KEY to enable LLM responses")
+    print("- Set LOCAL_LLM_BASE_URL to use a local OpenAI-compatible LLM server")
     print("- Install Tesseract system binary for OCR on scanned PDFs")
 
     print("\nDone.")

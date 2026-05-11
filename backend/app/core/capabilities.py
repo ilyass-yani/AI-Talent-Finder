@@ -25,6 +25,13 @@ def _env_set(name: str) -> bool:
     return bool(os.getenv(name))
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _resolve_tesseract_path() -> Optional[str]:
     cmd = os.getenv("TESSERACT_CMD", "").strip()
     if cmd:
@@ -64,6 +71,8 @@ def _feature_status(
 
 
 def detect_capabilities() -> Dict[str, object]:
+    use_ai_profile = _env_bool("USE_AI_PROFILE_GENERATOR", default=True)
+    local_llm_enabled = bool(os.getenv("LOCAL_LLM_BASE_URL", "").strip())
     deps = {
         "fitz": _has_module("fitz"),
         "pdfplumber": _has_module("pdfplumber"),
@@ -124,6 +133,12 @@ def detect_capabilities() -> Dict[str, object]:
             required={"ANTHROPIC_API_KEY": api_keys["ANTHROPIC_API_KEY"]},
             notes="If missing, deterministic chatbot responses are used.",
         ),
+        "profile_generator": _feature_status(
+            required={"transformers": deps["transformers"], "torch": deps["torch"]}
+            if use_ai_profile
+            else {},
+            notes="If disabled or missing deps, rule-based profile generation is used.",
+        ),
     }
 
     return {
@@ -132,6 +147,10 @@ def detect_capabilities() -> Dict[str, object]:
         "required_features": _parse_required_features(),
         "dependencies": deps,
         "api_keys": api_keys,
+        "flags": {
+            "USE_AI_PROFILE_GENERATOR": use_ai_profile,
+            "LOCAL_LLM_ENABLED": local_llm_enabled,
+        },
         "features": features,
         "tesseract_path": tesseract_path,
         "tesseract_cmd": os.getenv("TESSERACT_CMD", "").strip() or None,

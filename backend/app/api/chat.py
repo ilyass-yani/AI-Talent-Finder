@@ -288,6 +288,60 @@ def _call_anthropic(prompt: str) -> Optional[str]:
         return None
 
 
+def _local_llm_endpoint() -> Optional[str]:
+    base = os.getenv("LOCAL_LLM_BASE_URL", "").strip()
+    if not base:
+        return None
+    base = base.rstrip("/")
+    if base.endswith("/v1"):
+        return f"{base}/chat/completions"
+    return f"{base}/v1/chat/completions"
+
+
+def _call_local_llm(prompt: str) -> Optional[str]:
+    endpoint = _local_llm_endpoint()
+    if not endpoint:
+        return None
+
+    model = os.getenv("LOCAL_LLM_MODEL", "local-llm")
+    try:
+        max_tokens = int(os.getenv("LOCAL_LLM_MAX_TOKENS", "700"))
+    except ValueError:
+        max_tokens = 700
+    try:
+        timeout = float(os.getenv("LOCAL_LLM_TIMEOUT", "30"))
+    except ValueError:
+        timeout = 30.0
+
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": max_tokens,
+        "temperature": 0.2,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode("utf-8")
+
+    req = request.Request(
+        endpoint,
+        data=payload,
+        headers={"content-type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        choices = data.get("choices", [])
+        if not choices:
+            return None
+        message = choices[0].get("message", {})
+        content = message.get("content")
+        if isinstance(content, str):
+            return content.strip() or None
+        return None
+    except Exception:
+        return None
+
+
 def _explain_score(context: Dict[str, Any]) -> str:
     top_candidates = context.get("top_candidates") or []
     if not top_candidates:
@@ -627,6 +681,9 @@ def chat(request_payload: ChatRequest, db: Session = Depends(get_db)):
         prompt = _build_prompt(request_payload.message, local_context, intent)
         llm_response = _call_anthropic(prompt)
 
+        if not llm_response:
+            llm_response = _call_local_llm(prompt)
+
         if llm_response:
             response_text = llm_response
         else:
@@ -657,6 +714,8 @@ def ideal_profile(request_payload: IdealProfileRequest, db: Session = Depends(ge
         "Be concise and realistic.",
     ])
     llm_response = _call_anthropic(llm_prompt)
+    if not llm_response:
+        llm_response = _call_local_llm(llm_prompt)
     if llm_response:
         try:
             data = json.loads(llm_response)

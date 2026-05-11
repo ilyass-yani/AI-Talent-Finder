@@ -37,6 +37,11 @@ class TestDataNormalization:
         assert normalize_skill("js") == "JavaScript"
         assert normalize_skill("nodejs") == "Node.js"
 
+    def test_normalize_skill_extra_mappings(self):
+        assert normalize_skill("fast api") == "FastAPI"
+        assert normalize_skill("postgres") == "PostgreSQL"
+        assert normalize_skill("csharp") == "C#"
+
     def test_normalize_skills_list(self):
         skills = ["React.js", "python", "ml", "AWS"]
         normalized = normalize_skills_list(skills)
