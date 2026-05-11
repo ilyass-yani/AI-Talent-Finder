@@ -66,6 +66,11 @@ apiClient.interceptors.request.use(
         }
       }
     }
+      // Defensive: strip any malformed path segments starting with ':'
+      // e.g. '/candidates/upload/:1' -> '/candidates/upload'
+      if (config.url && typeof config.url === 'string') {
+        config.url = config.url.replace(/\/:[^\/]+/g, '');
+      }
     return config;
   },
   (error) => {
