@@ -50,28 +50,6 @@ app = FastAPI(
 # Add HTTPS redirect middleware BEFORE CORS to catch all requests
 app.add_middleware(HTTPSRedirectMiddleware)
 
-
-# Normalize malformed upload URLs (e.g. /api/candidates/upload/:1)
-# This middleware strips any extra suffix after the canonical
-# `/api/candidates/upload` path so clients that accidentally
-# request `/api/candidates/upload/:1` get routed to the real
-# upload endpoint instead of returning 404.
-class PathNormalizeMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        path = request.scope.get("path", "")
-        # Only normalize the exact upload path and avoid colliding
-        # with similarly named endpoints like /api/candidates/upload-cv-with-ner
-        if path.startswith("/api/candidates/upload") and not path.startswith("/api/candidates/upload-cv-with-ner") and path != "/api/candidates/upload":
-            request.scope["path"] = "/api/candidates/upload"
-            # raw_path is bytes in ASGI, update if present
-            if "raw_path" in request.scope:
-                try:
-                    request.scope["raw_path"] = b"/api/candidates/upload"
-                except Exception:
-                    request.scope["raw_path"] = "/api/candidates/upload"
-
-app.add_middleware(PathNormalizeMiddleware)
-
 # Configure CORS
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
