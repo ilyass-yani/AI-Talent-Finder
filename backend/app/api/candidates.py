@@ -314,24 +314,29 @@ async def upload_candidate_cv(
             or f"candidate-{uuid.uuid4().hex}@example.com"
         )
 
-        # Link candidate to authenticated user
+        # Link candidate to authenticated user.
         candidate_dict["user_id"] = current_user.id
 
-        # Check if candidate exists by email (UNIQUE constraint takes precedence over user_id)
+        # Upsert by user_id first because each authenticated candidate must have
+        # at most one candidate profile. Fall back to email to preserve the
+        # UNIQUE email constraint when the same CV is uploaded from another flow.
         existing_candidate = db.query(Candidate).filter(
-            Candidate.email == candidate_dict['email']
+            Candidate.user_id == current_user.id
         ).first()
-        
+
+        if not existing_candidate and candidate_dict.get("email"):
+            existing_candidate = db.query(Candidate).filter(
+                Candidate.email == candidate_dict["email"]
+            ).first()
+
         if existing_candidate:
-            # Update existing profile (handles duplicate email from uploads)
             for key, value in candidate_dict.items():
                 setattr(existing_candidate, key, value)
-            existing_candidate.user_id = current_user.id  # Reassign to current user
+            existing_candidate.user_id = current_user.id
             db_candidate = existing_candidate
         else:
-            # Create new candidate in database
             db_candidate = Candidate(**candidate_dict)
-            db_candidate.user_id = current_user.id  # Explicitly set user_id
+            db_candidate.user_id = current_user.id
             db.add(db_candidate)
         
         db.flush()  # Get the ID
