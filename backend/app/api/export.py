@@ -10,11 +10,22 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import landscape, letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+
+# Optional dependencies: openpyxl and reportlab
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    OPENPYXL_AVAILABLE = True
+except Exception:
+    OPENPYXL_AVAILABLE = False
+
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+    REPORTLAB_AVAILABLE = True
+except Exception:
+    REPORTLAB_AVAILABLE = False
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -117,6 +128,9 @@ def _csv_response(rows: List[List[str]], filename: str) -> StreamingResponse:
 
 
 def _excel_response(rows: List[List[str]], filename: str) -> StreamingResponse:
+    if not OPENPYXL_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Missing dependency: openpyxl is required to generate Excel exports. Install with `pip install openpyxl`.")
+
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Candidates"
@@ -150,6 +164,9 @@ def _excel_response(rows: List[List[str]], filename: str) -> StreamingResponse:
 
 
 def _pdf_response(rows: List[List[str]], filename: str) -> StreamingResponse:
+    if not REPORTLAB_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Missing dependency: reportlab is required to generate PDF exports. Install with `pip install reportlab`.")
+
     buffer = io.BytesIO()
     document = SimpleDocTemplate(buffer, pagesize=landscape(letter))
     table = Table(rows, repeatRows=1)

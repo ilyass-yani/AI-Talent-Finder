@@ -1,3 +1,28 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Header
+from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Tuple, cast
+from datetime import datetime
+from enum import Enum
+import os
+
+from app.core.dependencies import get_db, get_current_user
+from app.models.models import (
+    JobCriteria,
+    MatchResult,
+    Candidate,
+    User,
+    CriteriaSkill,
+    Skill,
+    CandidateSkill,
+)
+
+
+router = APIRouter(
+    prefix="/api/matching",
+    tags=["matching"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 class EnrichedExplanationRequest(BaseModel):
