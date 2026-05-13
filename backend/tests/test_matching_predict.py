@@ -18,6 +18,22 @@ from app.api import matching as matching_module
 from app.models.models import JobCriteria, CriteriaSkill, Candidate
 
 
+class DictNamespace(dict):
+    """Helper class that allows both dict-style (.get) and attribute access."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__dict__.update(kwargs)
+    
+    def __getattr__(self, name):
+        return self.get(name)
+    
+    def __setattr__(self, name, value):
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            self[name] = value
+
+
 class FakeQuery:
     def __init__(self, rows):
         self.rows = list(rows)
@@ -45,8 +61,8 @@ class FakeSession:
             created_at=datetime.utcnow(),
         )
         self.criteria_skills = [
-            SimpleNamespace(id=1, criteria_id=1, weight=90, skill=SimpleNamespace(name="Python")),
-            SimpleNamespace(id=2, criteria_id=1, weight=80, skill=SimpleNamespace(name="SQL")),
+            DictNamespace(id=1, criteria_id=1, weight=90, skill=SimpleNamespace(name="Python"), name="Python"),
+            DictNamespace(id=2, criteria_id=1, weight=80, skill=SimpleNamespace(name="SQL"), name="SQL"),
         ]
 
         self.candidate = SimpleNamespace(

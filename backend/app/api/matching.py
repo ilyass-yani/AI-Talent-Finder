@@ -1052,7 +1052,7 @@ async def generate_and_match(
     }
 
 
-@router.post("/{criteria_id}/results", response_model=List[CriteriaMatchResultResponse])
+@router.post("/{criteria_id:int}/results", response_model=List[CriteriaMatchResultResponse])
 async def launch_matching_for_criteria(
     criteria_id: int,
     db: Session = Depends(get_db),
@@ -1075,7 +1075,7 @@ async def launch_matching_for_criteria_with_trailing_slash(
     return await launch_matching_for_criteria(criteria_id, db)
 
 
-@router.get("/{criteria_id}/results", response_model=List[CriteriaMatchResultResponse])
+@router.get("/{criteria_id:int}/results", response_model=List[CriteriaMatchResultResponse])
 async def get_matching_results_for_criteria(
     criteria_id: int,
     db: Session = Depends(get_db),
@@ -1142,7 +1142,7 @@ async def get_criteria(
     )
 
 
-@router.post("/{criteria_id}/predict", response_model=PredictCriteriaResponse)
+@router.post("/{criteria_id:int}/predict", response_model=PredictCriteriaResponse)
 async def predict_for_criteria(
     criteria_id: int,
     top_k: int = 20,

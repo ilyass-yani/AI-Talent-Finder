@@ -5,6 +5,7 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import { feedbackApi, type BiasReport, type FeedbackStats, type RetrainingReadiness, type SkillRecommendationItem } from "@/services/feedback";
 import { jobsApi, type JobCriteria } from "@/services/jobs";
+import { showToast } from "@/lib/toast";
 import { getErrorMessage } from "@/utils/errorHandler";
 import { Activity, ArrowUpRight, BadgeCheck, BarChart3, BrainCircuit, DatabaseZap, FileDown, Loader2, MessageSquareMore, ShieldAlert, Sparkles } from "lucide-react";
 
@@ -20,8 +21,6 @@ export default function RecruiterFeedbackPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [working, setWorking] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const [criteriaId, setCriteriaId] = useState('');
   const [candidateId, setCandidateId] = useState('');
@@ -80,7 +79,6 @@ export default function RecruiterFeedbackPage() {
 
   const loadOverview = async () => {
     setLoading(true);
-    setError(null);
 
     try {
       const [statsResponse, readinessResponse, biasResponse, jobsResponse] = await Promise.all([
@@ -95,7 +93,7 @@ export default function RecruiterFeedbackPage() {
       setBiasReport((biasResponse.data as unknown as BiasReport) ?? null);
       setLatestCriteria(jobsResponse.data?.[0] ?? null);
     } catch (fetchError) {
-      setError(getErrorMessage(fetchError));
+      showToast(getErrorMessage(fetchError), 'error');
     } finally {
       setLoading(false);
     }
@@ -113,11 +111,9 @@ export default function RecruiterFeedbackPage() {
 
   const handleManualFeedback = async (event: React.FormEvent) => {
     event.preventDefault();
-    setMessage(null);
-    setError(null);
 
     if (!criteriaId || !candidateId || !modelScore) {
-      setError('Veuillez compléter au minimum le critère, le candidat et le score modèle.');
+      showToast('Veuillez compléter au minimum le critère, le candidat et le score modèle.', 'error');
       return;
     }
 
@@ -133,11 +129,11 @@ export default function RecruiterFeedbackPage() {
         feedback_reason: feedbackReason || undefined,
       });
 
-      setMessage('Feedback enregistré avec succès.');
+      showToast('Feedback enregistré avec succès.', 'success');
       await loadOverview();
       await loadCriteriaSummary(Number(criteriaId));
     } catch (recordError) {
-      setError(getErrorMessage(recordError));
+      showToast(getErrorMessage(recordError), 'error');
     } finally {
       setWorking(false);
     }
@@ -145,15 +141,13 @@ export default function RecruiterFeedbackPage() {
 
   const handleSkillRecommendations = async () => {
     setWorking(true);
-    setMessage(null);
-    setError(null);
 
     try {
       const response = await feedbackApi.recommendSkills(jobTitle, currentSkills, missingSkills, 5);
       setTrendingSkills(response.data);
-      setMessage('Recommandations de skills actualisées.');
+      showToast('Recommandations de skills actualisées.', 'success');
     } catch (recommendationError) {
-      setError(getErrorMessage(recommendationError));
+      showToast(getErrorMessage(recommendationError), 'error');
     } finally {
       setWorking(false);
     }
@@ -161,8 +155,6 @@ export default function RecruiterFeedbackPage() {
 
   const handleGapAnalysis = async () => {
     setWorking(true);
-    setMessage(null);
-    setError(null);
 
     try {
       const response = await feedbackApi.analyzeGap(
@@ -170,9 +162,9 @@ export default function RecruiterFeedbackPage() {
         gapRequiredSkills.split(',').map((skill) => skill.trim()).filter(Boolean),
       );
       setCriteriaSummary(response.data);
-      setMessage('Analyse des écarts mise à jour.');
+      showToast('Analyse des écarts mise à jour.', 'success');
     } catch (gapError) {
-      setError(getErrorMessage(gapError));
+      showToast(getErrorMessage(gapError), 'error');
     } finally {
       setWorking(false);
     }
@@ -180,15 +172,13 @@ export default function RecruiterFeedbackPage() {
 
   const handleBiasAnalysis = async () => {
     setWorking(true);
-    setMessage(null);
-    setError(null);
 
     try {
       const response = await feedbackApi.analyzeBias(30);
       setBiasReport(response.data);
-      setMessage('Audit biais exécuté.');
+      showToast('Audit biais exécuté.', 'success');
     } catch (biasError) {
-      setError(getErrorMessage(biasError));
+      showToast(getErrorMessage(biasError), 'error');
     } finally {
       setWorking(false);
     }
@@ -196,15 +186,13 @@ export default function RecruiterFeedbackPage() {
 
   const handleExport = async () => {
     setExporting(true);
-    setMessage(null);
-    setError(null);
 
     try {
       const response = await feedbackApi.exportRetrainingData(undefined, 20);
-      setMessage(`Export prêt: ${(response.data as { output_path?: string }).output_path ?? 'généré côté backend'}`);
+      showToast(`Export prêt: ${(response.data as { output_path?: string }).output_path ?? 'généré côté backend'}`, 'success');
       await loadOverview();
     } catch (exportError) {
-      setError(getErrorMessage(exportError));
+      showToast(getErrorMessage(exportError), 'error');
     } finally {
       setExporting(false);
     }
@@ -212,15 +200,13 @@ export default function RecruiterFeedbackPage() {
 
   const handleRetraining = async () => {
     setWorking(true);
-    setMessage(null);
-    setError(null);
 
     try {
       const response = await feedbackApi.triggerRetraining(120);
-      setMessage(`Réentraînement déclenché: ${(response.data as { status?: string }).status ?? 'ok'}`);
+      showToast(`Réentraînement déclenché: ${(response.data as { status?: string }).status ?? 'ok'}`, 'success');
       await loadOverview();
     } catch (trainError) {
-      setError(getErrorMessage(trainError));
+      showToast(getErrorMessage(trainError), 'error');
     } finally {
       setWorking(false);
     }
@@ -254,12 +240,6 @@ export default function RecruiterFeedbackPage() {
             </div>
           </div>
         </section>
-
-        {(message || error) && (
-          <div className={`rounded-2xl border p-4 ${error ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
-            {error ?? message}
-          </div>
-        )}
 
         <details className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <summary className="cursor-pointer list-none px-6 py-4 text-sm font-semibold text-slate-700">
@@ -462,8 +442,6 @@ export default function RecruiterFeedbackPage() {
                 type="button"
                 onClick={async () => {
                   setWorking(true);
-                  setMessage(null);
-                  setError(null);
                   try {
                     const response = await feedbackApi.getComplementarySkills(currentSkills, jobDomain);
                     const items = (response.data as Array<{ primary_skill: string; complementary: string; reason: string }>).map((item) => ({
@@ -475,9 +453,9 @@ export default function RecruiterFeedbackPage() {
                       average_proficiency: 'intermediate',
                     }));
                     setTrendingSkills(items);
-                    setMessage('Compétences complémentaires mises à jour.');
+                    showToast('Compétences complémentaires mises à jour.', 'success');
                   } catch (complementaryError) {
-                    setError(getErrorMessage(complementaryError));
+                    showToast(getErrorMessage(complementaryError), 'error');
                   } finally {
                     setWorking(false);
                   }
@@ -533,43 +511,6 @@ export default function RecruiterFeedbackPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
-                <ShieldAlert className="h-5 w-5 text-rose-500" />
-                <h2 className="text-2xl font-bold text-slate-900">Audit biais</h2>
-              </div>
-              <p className="text-sm text-slate-500">Surveillez les disparités et déclenchez un audit rapide en un clic.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleBiasAnalysis();
-                }}
-                disabled={working}
-                className="mt-4 rounded-full bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Lancer l'audit biais
-              </button>
-
-              {biasReport?.alerts?.length ? (
-                <div className="mt-4 space-y-3">
-                  {biasReport.alerts.map((alert) => (
-                    <div key={`${alert.alert_type}-${alert.affected_group}`} className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
-                      <div className="flex items-center justify-between gap-2">
-                        <strong>{alert.alert_type}</strong>
-                        <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold uppercase tracking-wide text-rose-700">{alert.severity}</span>
-                      </div>
-                      <p className="mt-2">{alert.message}</p>
-                      <p className="mt-2 text-xs text-rose-700">{alert.recommendation}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-                  Aucun signal biais affiché ou audit non lancé.
-                </div>
-              )}
-            </div>
-
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-3">
                 <FileDown className="h-5 w-5 text-cyan-600" />
