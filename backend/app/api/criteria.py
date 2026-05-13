@@ -22,7 +22,7 @@ from app.services.matching_engine import (
 
 
 criteria_router = APIRouter(prefix="/api/criteria", tags=["criteria"])
-matching_router = APIRouter(prefix="/api/criteria-legacy-matching", tags=["matching"])
+matching_router = APIRouter(prefix="/api/matching", tags=["matching"])
 
 
 class CriteriaSkillInput(BaseModel):
@@ -378,6 +378,15 @@ def launch_matching(
     return formatted_results
 
 
+@matching_router.post("/{criteria_id}/results/", response_model=List[CandidateMatchResponse])
+def launch_matching_with_trailing_slash(
+    criteria_id: int,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    return launch_matching(criteria_id, authorization, db)
+
+
 @matching_router.get("/{criteria_id}/results", response_model=List[CandidateMatchResponse])
 def get_matching_results(
     criteria_id: int,
@@ -402,3 +411,12 @@ def get_matching_results(
         stored_results = _persist_match_results(db, criteria_id, computed_results)
 
     return [_format_stored_result(result) for result in stored_results]
+
+
+@matching_router.get("/{criteria_id}/results/", response_model=List[CandidateMatchResponse])
+def get_matching_results_with_trailing_slash(
+    criteria_id: int,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    return get_matching_results(criteria_id, authorization, db)

@@ -88,13 +88,9 @@ def on_startup():
     include_optional_router("app.api.candidates")
     include_optional_router("app.api.skills")
     include_optional_router("app.api.jobs")
-    # Ensure static matching endpoints in app.api.matching are registered
-    # before the dynamic routes in app.api.criteria.matching_router so
-    # paths like /api/matching/generate-and-match don't get captured by
-    # the generic /api/matching/{criteria_id} route.
-    include_optional_router("app.api.matching")
     include_optional_router("app.api.scoring")
     include_optional_router("app.api.criteria", "criteria_router")
+    include_optional_router("app.api.criteria", "matching_router")
     include_optional_router("app.api.favorites")
     include_optional_router("app.api.experiences")
     include_optional_router("app.api.educations")
