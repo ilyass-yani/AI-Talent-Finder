@@ -1042,6 +1042,14 @@ async def launch_matching_for_criteria(
     return [_format_stored_result(stored_result) for stored_result in sorted(stored_results, key=lambda item: item.score, reverse=True)]
 
 
+@router.post("/{criteria_id}/results/", response_model=List[CriteriaMatchResultResponse])
+async def launch_matching_for_criteria_with_trailing_slash(
+    criteria_id: int,
+    db: Session = Depends(get_db),
+):
+    return await launch_matching_for_criteria(criteria_id, db)
+
+
 @router.get("/{criteria_id}/results", response_model=List[CriteriaMatchResultResponse])
 async def get_matching_results_for_criteria(
     criteria_id: int,
@@ -1056,6 +1064,14 @@ async def get_matching_results_for_criteria(
         stored_results = _persist_match_results(db, criteria_id, _score_all_candidates(criteria, db))
 
     return [_format_stored_result(result) for result in stored_results]
+
+
+@router.get("/{criteria_id}/results/", response_model=List[CriteriaMatchResultResponse])
+async def get_matching_results_for_criteria_with_trailing_slash(
+    criteria_id: int,
+    db: Session = Depends(get_db),
+):
+    return await get_matching_results_for_criteria(criteria_id, db)
 
 
 # ============================================================================
