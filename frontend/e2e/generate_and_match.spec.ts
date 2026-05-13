@@ -1,15 +1,18 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
+import path from 'path';
+
+const storageStatePath = path.resolve(__dirname, 'storageState.json');
 
 // Reuse previously generated authenticated storage state
-test.use({ storageState: './storageState.json' });
+test.use({ storageState: storageStatePath });
 
 test('Mode-2 generate-and-match returns candidate matches (production)', async ({ request }) => {
   // Auth is stored as a JWT in localStorage (key: access_token).
   // Extract it and pass as Authorization: Bearer header.
   const headers: Record<string, string> = {};
   try {
-    const storage = JSON.parse(fs.readFileSync('./storageState.json', 'utf-8'));
+    const storage = JSON.parse(fs.readFileSync(storageStatePath, 'utf-8'));
     // Try localStorage first (JWT-based auth)
     for (const origin of (storage.origins ?? [])) {
       const item = (origin.localStorage ?? []).find((e: any) => e.name === 'access_token');

@@ -4,6 +4,7 @@ const PROD_URL = 'https://ai-talent-finder-production-ed09.up.railway.app';
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/auth.setup.ts',
   /* Run tests sequentially — the full-app spec has ordered steps */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source */

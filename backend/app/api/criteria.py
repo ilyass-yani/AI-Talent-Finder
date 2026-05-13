@@ -356,7 +356,7 @@ def delete_criteria(
     db.commit()
 
 
-@matching_router.post("/{criteria_id}", response_model=List[CandidateMatchResponse])
+@matching_router.post("/{criteria_id:int}", response_model=List[CandidateMatchResponse])
 def launch_matching(
     criteria_id: int,
     authorization: Optional[str] = Header(None),
@@ -378,7 +378,7 @@ def launch_matching(
     return formatted_results
 
 
-@matching_router.post("/{criteria_id}/results/", response_model=List[CandidateMatchResponse])
+@matching_router.post("/{criteria_id:int}/results/", response_model=List[CandidateMatchResponse])
 def launch_matching_with_trailing_slash(
     criteria_id: int,
     authorization: Optional[str] = Header(None),
@@ -387,7 +387,7 @@ def launch_matching_with_trailing_slash(
     return launch_matching(criteria_id, authorization, db)
 
 
-@matching_router.get("/{criteria_id}/results", response_model=List[CandidateMatchResponse])
+@matching_router.get("/{criteria_id:int}/results", response_model=List[CandidateMatchResponse])
 def get_matching_results(
     criteria_id: int,
     authorization: Optional[str] = Header(None),
