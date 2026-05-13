@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jobsApi } from '@/services/jobs';
 import { matchingApi } from '@/services/matching';
@@ -21,6 +22,17 @@ export default function RecruiterDashboard() {
           <p className="text-gray-600 text-lg">
             Utilisez le matching intelligent pour trouver vos futurs talents
           </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/recruiter/chatbot" className="inline-flex items-center rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+              Ouvrir le chatbot
+            </Link>
+            <Link href="/recruiter/feedback" className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Feedback IA
+            </Link>
+            <Link href="/recruiter/export" className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Export
+            </Link>
+          </div>
         </div>
 
         {/* Mode Selection */}

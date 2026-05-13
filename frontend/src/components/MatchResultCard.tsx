@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, TrendingUp } from 'lucide-react';
 import DecisionBadge from './DecisionBadge';
 import SkillsBreakdown from './SkillsBreakdown';
+import { feedbackApi } from '@/services/feedback';
 
 export interface MatchResult {
   match_result_id: number;
@@ -46,7 +47,41 @@ export default function MatchResultCard({
   onExplainClick 
 }: MatchResultCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [recruiterDecision, setRecruiterDecision] = useState<'accepted'|'rejected'|'no_action'>('accepted');
+  const [overrideScore, setOverrideScore] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+  const [toast, setToast] = useState<{type: 'success'|'error'; message: string}|null>(null);
   const decision = getDecisionType(result.score);
+
+  const submitFeedback = async () => {
+    setSubmitting(true);
+    try {
+      const payload = {
+        criteria_id: result.criteria_id,
+        candidate_id: result.candidate_id,
+        model_predicted_score: result.score,
+        model_predicted_decision: getDecisionType(result.score) as 'accepted'|'review'|'rejected',
+        recruiter_decision: recruiterDecision,
+        recruiter_score_override: overrideScore ? Number(overrideScore) : null,
+        feedback_reason: reason || null,
+      };
+
+      await feedbackApi.recordDecision(payload);
+      // optimistic UX: hide form and reset
+      setShowFeedback(false);
+      setReason('');
+      setOverrideScore('');
+      setToast({ type: 'success', message: 'Feedback enregistré' });
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      setToast({ type: 'error', message: "Erreur lors de l'enregistrement du feedback" });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 overflow-hidden">
@@ -127,6 +162,12 @@ export default function MatchResultCard({
                 <TrendingUp size={18} />
                 View Full Profile
               </button>
+              <button
+                onClick={() => setShowFeedback(s => !s)}
+                className="px-4 py-3 bg-amber-50 text-amber-800 font-semibold rounded-lg hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
+              >
+                Feedback
+              </button>
             </div>
 
             {/* Decision Recommendation */}
@@ -150,6 +191,70 @@ export default function MatchResultCard({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Inline Feedback Form */}
+      {expanded && showFeedback && (
+        <div className="p-6 border-t border-slate-100 bg-white">
+          <div className="space-y-3 max-w-xl">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium">Décision recruteur</label>
+              <select
+                value={recruiterDecision}
+                onChange={(e) => setRecruiterDecision(e.target.value as any)}
+                className="ml-2 p-2 border rounded"
+              >
+                <option value="accepted">accepted</option>
+                <option value="rejected">rejected</option>
+                <option value="no_action">no_action</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Score override (optionnel)</label>
+              <input
+                type="number"
+                value={overrideScore}
+                onChange={(e) => setOverrideScore(e.target.value)}
+                placeholder="85"
+                className="mt-1 w-40 p-2 border rounded"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Raison (optionnel)</label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Pourquoi la décision recruteur diffère du score modèle ?"
+                className="mt-1 w-full p-2 border rounded"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={submitFeedback}
+                disabled={submitting}
+                className="px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-700 disabled:opacity-50"
+              >
+                {submitting ? 'Enregistrement...' : 'Enregistrer le feedback'}
+              </button>
+              <button
+                onClick={() => setShowFeedback(false)}
+                className="px-4 py-2 bg-slate-200 rounded hover:bg-slate-300"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed right-6 bottom-6 z-50 max-w-xs p-3 rounded shadow-lg ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.message}
         </div>
       )}
     </div>

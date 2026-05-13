@@ -472,7 +472,7 @@ python scripts/build_final_matching_artifacts.py --db ./ai_talent_finder.db
 
 ## 📖 Additional Resources
 
-- **Main Docs:** [ENCADRANTE_DELIVERABLES_COMPLETE.md](../ENCADRANTE_DELIVERABLES_COMPLETE.md)
+- **Main Docs:** [PLAN_EXCELLENCE_IA.md](../reports/PLAN_EXCELLENCE_IA.md)
 - **IA Fallback Modes:** [IA_FALLBACK_MODES.md](IA_FALLBACK_MODES.md)
 - **Test Set Reference:** [TEST_SET_REPRESENTATIVE.md](TEST_SET_REPRESENTATIVE.md)
 - **API Docs:** `http://localhost:8000/docs` (when server running)

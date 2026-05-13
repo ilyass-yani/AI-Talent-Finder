@@ -183,3 +183,38 @@ class Favorite(Base):
     # Relationships
     recruiter = relationship("User", back_populates="favorites")
     candidate = relationship("Candidate", back_populates="favorites")
+
+
+class RecruiterFeedback(Base):
+    """Phase 3: Capture recruiter decisions vs model predictions for continuous learning."""
+    __tablename__ = "recruiter_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    criteria_id = Column(Integer, ForeignKey("job_criteria.id"), nullable=False)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False)
+    recruiter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Model prediction at time of decision
+    model_predicted_score = Column(Float, nullable=False)  # 0.0-100.0
+    model_predicted_decision = Column(String, nullable=False)  # "accepted" | "review" | "rejected"
+    
+    # Recruiter decision (can override model)
+    recruiter_decision = Column(String, nullable=False)  # "accepted" | "rejected" | "no_action"
+    recruiter_score_override = Column(Float, nullable=True)  # If recruiter gave explicit score
+    
+    # Context/reason for decision
+    feedback_reason = Column(Text, nullable=True)  # Why recruiter accepted/rejected
+    is_override = Column(Boolean, default=False)  # True if recruiter decision != model prediction
+    
+    # Outcome tracking
+    hire_outcome = Column(String, nullable=True)  # "hired" | "rejected_later" | "unknown"
+    hire_date = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    criteria = relationship("JobCriteria", foreign_keys=[criteria_id])
+    candidate = relationship("Candidate", foreign_keys=[candidate_id])
+    recruiter = relationship("User", foreign_keys=[recruiter_id])

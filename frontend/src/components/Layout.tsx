@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu, X, LogOut, LayoutDashboard, Users, Upload, SlidersHorizontal,
-  GitCompareArrows, MessageCircle, Heart, FileDown, BrainCircuit,
+  GitCompareArrows, MessageCircle, Heart, FileDown, BrainCircuit, BarChart3,
   UserCircle, Wrench, ChevronLeft, Moon, Sun,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
@@ -17,6 +17,7 @@ const recruiterNav = [
   { href: "/jobs", label: "Critères de poste", icon: SlidersHorizontal },
   { href: "/matching", label: "Matching", icon: GitCompareArrows },
   { href: "/recruiter/chatbot", label: "Chatbot IA", icon: MessageCircle },
+  { href: "/recruiter/feedback", label: "Feedback IA", icon: BarChart3 },
   { href: "/recruiter/shortlist", label: "Shortlist", icon: Heart },
   { href: "/recruiter/export", label: "Export", icon: FileDown },
 ];

@@ -1,28 +1,7 @@
 {
-  "missing_suggestions": [
-    {
-      "skill": "agile",
-      "count": 8
-    },
-    {
-      "skill": "scrum",
-      "count": 6
-    },
-    {
-      "skill": "machine learning",
-      "count": 4
-    },
-    {
-      "skill": "fastapi - aws",
-      "count": 2
-    },
-    {
-      "skill": "data analysis",
-      "count": 2
-    }
-  ],
+  "missing_suggestions": [],
   "summary": {
-    "dict_count": 134,
+    "dict_count": 284,
     "tokens_scanned": 31
   }
 }

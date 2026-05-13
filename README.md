@@ -73,7 +73,7 @@ Cette commande produit:
 - `data/final_training_review_sample.csv`
 - `models/final_match_model.joblib`
 - `reports/advanced_matching_report.json`
-- `reports/rapport_encadrante.md`
+- `reports/PLAN_EXCELLENCE_IA.md`
 
 L'API de matching charge d'abord `models/final_match_model.joblib`, puis bascule automatiquement sur l'ancien bundle si besoin.
 
@@ -286,13 +286,13 @@ cd tools/llama.cpp
 
 ## 📊 Stack technique
 
-| Composant | Technologie                                     |
-| --------- | ----------------------------------------------- |
-| Backend   | FastAPI, SQLAlchemy, PostgreSQL, Alembic        |
-| Auth      | JWT (python-jose), bcrypt/argon2 (passlib)      |
-| IA / NLP  | spaCy, scikit-learn, transformers, fuzzywuzzy   |
+| Composant | Technologie                                                        |
+| --------- | ------------------------------------------------------------------ |
+| Backend   | FastAPI, SQLAlchemy, PostgreSQL, Alembic                           |
+| Auth      | JWT (python-jose), bcrypt/argon2 (passlib)                         |
+| IA / NLP  | spaCy, scikit-learn, transformers, fuzzywuzzy                      |
 | Chatbot   | Anthropic Claude API + LLM local (llama.cpp) + fallback rule-based |
-| Export    | ReportLab (PDF), openpyxl (Excel), csv          |
-| Frontend  | Next.js 16, React 19, TypeScript, Tailwind CSS  |
-| Tests     | Jest (frontend), pytest (backend)               |
-| Deploy    | Docker Compose, Railway                         |
+| Export    | ReportLab (PDF), openpyxl (Excel), csv                             |
+| Frontend  | Next.js 16, React 19, TypeScript, Tailwind CSS                     |
+| Tests     | Jest (frontend), pytest (backend)                                  |
+| Deploy    | Docker Compose, Railway                                            |

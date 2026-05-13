@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import Providers from "@/components/Providers";
 import "./globals.css";
 
@@ -8,7 +9,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className="h-full antialiased">
       <head>
-        <script src="/runtime-config.js" />
+        <Script src="/runtime-config.js" strategy="beforeInteractive" />
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <Providers>{children}</Providers>

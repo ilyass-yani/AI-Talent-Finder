@@ -5,6 +5,7 @@ import { useApi } from "@/hooks/useApi";
 import { skillsApi } from "@/services/skills";
 import SkillBadge from "@/components/SkillBadge";
 import { Plus, Trash2, Loader2 } from "lucide-react";
+import { showToast } from '@/lib/toast';
 
 export default function SkillsPage() {
   const { data: skills, loading, refetch } = useApi(() => skillsApi.getSkills(), []);
@@ -23,7 +24,7 @@ export default function SkillsPage() {
 
   const deleteSkill = async (id: number) => {
     if (!confirm("Supprimer cette compétence ?")) return;
-    try { await skillsApi.deleteSkill(id); refetch(); } catch { alert("Erreur."); }
+    try { await skillsApi.deleteSkill(id); refetch(); } catch { showToast("Erreur.", 'error'); }
   };
 
   const byCategory = (cat: string) => (skills || []).filter(s => s.category === cat);

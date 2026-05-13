@@ -179,12 +179,12 @@
     "JSON",
     "XML",
     "Protocol Buffers",
-    "gRPC",
     "OpenAPI",
     "Swagger",
     "Postman",
     "Insomnia",
-    "cURL"
+    "cURL",
+    "Fastapi - Aws"
   ],
   "soft": [
     "Communication",

@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from app.models.models import Candidate
 from app.services.normalization import normalize_skill_name
-
 
 def clamp_weight(weight: int) -> int:
     """Clamp recruiter weights to the supported 0..100 range."""
@@ -18,6 +16,67 @@ def clamp_weight(weight: int) -> int:
         return max(0, min(100, int(weight)))
     except (TypeError, ValueError):
         return 0
+
+
+def get_adaptive_thresholds(job_title: Optional[str] = None) -> Dict[str, float]:
+    """Get adaptive decision thresholds based on job domain."""
+    if not job_title:
+        return {"accept": 75.0, "review": 45.0, "confidence": 0.90}
+
+    try:
+        from ai_module.matching.adaptive_thresholds import AdaptiveThresholdEngine
+
+        engine = AdaptiveThresholdEngine()
+        return engine.get_thresholds(job_title)
+    except Exception:
+        return {"accept": 75.0, "review": 45.0, "confidence": 0.90}
+
+
+def generate_enriched_explanation(
+    candidate: Candidate,
+    score: float,
+    details: Dict[str, object],
+    criteria_skills: Optional[Sequence[Dict[str, int]]] = None,
+) -> Dict[str, object]:
+    """Generate enriched explanation using ExplainabilityEngine if available."""
+    if not criteria_skills:
+        return {
+            "score": score,
+            "summary": details.get("summary", ""),
+            "coverage": float(details.get("coverage", 0)),
+            "matched_skills": details.get("matched_skills", []),
+            "missing_skills": details.get("missing_skills", []),
+            "skill_breakdown": details.get("skill_breakdown", []),
+        }
+
+    try:
+        from ai_module.matching.explainability import ExplainabilityEngine
+
+        engine = ExplainabilityEngine()
+        criteria_obj = type("CriteriaObj", (), {})()
+        criteria_obj.required_skills = criteria_skills
+        explanation = engine.explain_score(candidate, criteria_obj, score)
+        return {
+            "score": score,
+            "summary": explanation.get("recommendation", {}).get("rationale", details.get("summary", "")),
+            "coverage": float(details.get("coverage", 0)),
+            "matched_skills": details.get("matched_skills", []),
+            "missing_skills": details.get("missing_skills", []),
+            "skill_breakdown": details.get("skill_breakdown", []),
+            "strengths": explanation.get("strengths", []),
+            "gaps": explanation.get("gaps", []),
+            "recommendation": explanation.get("recommendation", {}),
+            "confidence": explanation.get("confidence", 0.0),
+        }
+    except Exception:
+        return {
+            "score": score,
+            "summary": details.get("summary", ""),
+            "coverage": float(details.get("coverage", 0)),
+            "matched_skills": details.get("matched_skills", []),
+            "missing_skills": details.get("missing_skills", []),
+            "skill_breakdown": details.get("skill_breakdown", []),
+        }
 
 
 def _dedupe_preserve_order(values: Iterable[str]) -> List[str]:
@@ -28,7 +87,7 @@ def _dedupe_preserve_order(values: Iterable[str]) -> List[str]:
         if not normalized or normalized in seen:
             continue
         seen.add(normalized)
-        ordered.append(value.strip())
+        ordered.append(normalized)
     return ordered
 
 
@@ -79,6 +138,15 @@ def extract_candidate_skill_names(candidate: Candidate) -> List[str]:
         except Exception:
             pass
 
+    if skill_names:
+        try:
+            from ai_module.nlp.smart_dedup import SmartSkillDeduplicator
+
+            deduplicator = SmartSkillDeduplicator()
+            return deduplicator.deduplicate(skill_names)
+        except Exception:
+            return _dedupe_preserve_order(skill_names)
+
     return _dedupe_preserve_order(skill_names)
 
 
@@ -94,8 +162,7 @@ def build_skill_universe(db) -> List[str]:
     if db_skills:
         return _dedupe_preserve_order(db_skills)
 
-    fallback_skills = load_skill_dictionary_from_file()
-    return fallback_skills
+    return load_skill_dictionary_from_file()
 
 
 def _vector_norm(values: Sequence[float]) -> float:
@@ -198,8 +265,9 @@ def score_candidate_against_criteria(
     }
 
 
-def build_explanation_payload(score: float, details: Dict[str, object]) -> Dict[str, object]:
+def build_explanation_payload(score: float, details: Dict[str, object], job_title: Optional[str] = None) -> Dict[str, object]:
     """Build a compact payload that can be stored in the MatchResult explanation field."""
+    adaptive_thresholds = get_adaptive_thresholds(job_title)
     return {
         "score": score,
         "summary": details.get("summary", ""),
@@ -207,4 +275,6 @@ def build_explanation_payload(score: float, details: Dict[str, object]) -> Dict[
         "matched_skills": details.get("matched_skills", []),
         "missing_skills": details.get("missing_skills", []),
         "skill_breakdown": details.get("skill_breakdown", []),
+        "adaptive_thresholds": adaptive_thresholds,
+        "job_title": job_title,
     }

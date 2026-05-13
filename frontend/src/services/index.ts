@@ -7,3 +7,4 @@ export { jobsApi, type JobCriteria } from './jobs';
 export { matchingApi, type MatchResult, type CriteriaMatchResult, type SkillBreakdown } from './matching';
 export { chatApi, type ChatRequestPayload, type ChatResponsePayload, type ChatContext, type ChatHistoryEntry } from './chat';
 export { favoritesApi, type Favorite } from './favorites';
+export { feedbackApi, type FeedbackRecordRequest, type FeedbackStats, type SkillRecommendationItem, type BiasAlertItem, type BiasReport, type RetrainingReadiness } from './feedback';

@@ -1,6 +1,7 @@
 'use client';
 
 import Layout from '@/components/Layout';
+import { showToast } from '@/lib/toast';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { favoritesApi } from '@/services/favorites';
@@ -115,7 +116,7 @@ export default function RecruiterShortlist() {
 
   const exportCSV = () => {
     if (shortlist.length === 0) {
-      alert('Aucun candidat à exporter');
+      showToast('Aucun candidat à exporter', 'error');
       return;
     }
 

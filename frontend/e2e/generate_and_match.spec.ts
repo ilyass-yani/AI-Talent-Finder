@@ -7,7 +7,7 @@ test.use({ storageState: './storageState.json' });
 test('Mode-2 generate-and-match returns candidate matches (production)', async ({ request }) => {
   // Auth is stored as a JWT in localStorage (key: access_token).
   // Extract it and pass as Authorization: Bearer header.
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   try {
     const storage = JSON.parse(fs.readFileSync('./storageState.json', 'utf-8'));
     // Try localStorage first (JWT-based auth)

@@ -15,6 +15,18 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db
 from app.models.models import Candidate, CriteriaSkill, JobCriteria, MatchResult, Skill
 
+try:
+    from ai_module.nlp.profile_generator import ProfileGenerator
+    _PROFILE_GENERATOR_AVAILABLE = True
+except Exception:
+    _PROFILE_GENERATOR_AVAILABLE = False
+
+try:
+    from ai_module.chatbot.conversation_memory import ConversationMemory
+    _CONVERSATION_MEMORY = ConversationMemory()
+except Exception:
+    _CONVERSATION_MEMORY = None
+
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -349,6 +361,30 @@ def _explain_score(context: Dict[str, Any]) -> str:
 
     message = str(context.get("message", ""))
     candidate = _pick_candidate_from_message(message, top_candidates) or top_candidates[0]
+    
+    # Try smart fallback first
+    try:
+        from ai_module.chatbot.smart_fallback import SmartFallbackResponder
+
+        responder = SmartFallbackResponder()
+        score = float(candidate.get("score", 0))
+        candidate_name = candidate.get("candidate_name", "Ce candidat")
+        matched_skills = candidate.get("matched_skills", [])
+        missing_skills = candidate.get("missing_skills", [])
+
+        criteria_obj = type('Criteria', (), {})()
+        criteria_obj.title = context.get("current_criteria", {}).get("title", "cette position")
+        criteria_obj.required_skills = context.get("current_criteria", {}).get("required_skills", [])
+
+        cand_obj = type('Candidate', (), {})()
+        cand_obj.full_name = candidate_name
+        cand_obj.candidate_skills = [type('CS', (), {"skill": type('S', (), {"name": s})()})() for s in (matched_skills + missing_skills)]
+
+        return responder.explain_score_fallback(cand_obj, criteria_obj, score)
+    except Exception:
+        pass
+    
+    # Fall back to original template-based explanation
     skills = candidate.get("skill_breakdown") or []
     matched = [item.get("skill") for item in skills if item.get("present")]
     missing = [item.get("skill") for item in skills if not item.get("present")]
@@ -674,6 +710,25 @@ def chat(request_payload: ChatRequest, db: Session = Depends(get_db)):
     local_context = _hydrate_context(request_payload.context, db)
     local_context["message"] = request_payload.message
 
+    if _CONVERSATION_MEMORY and request_payload.session_id:
+        memory_context = _CONVERSATION_MEMORY.summarize_context(request_payload.session_id)
+        if memory_context.get("history"):
+            local_context["history"] = memory_context["history"]
+        if memory_context.get("current_criteria_id") and not local_context.get("current_criteria_id"):
+            local_context["current_criteria_id"] = memory_context["current_criteria_id"]
+            criteria = db.query(JobCriteria).filter(JobCriteria.id == int(memory_context["current_criteria_id"])).first()
+            if criteria:
+                criteria_skills = db.query(CriteriaSkill).filter(CriteriaSkill.criteria_id == criteria.id).all()
+                local_context["current_criteria"] = {
+                    "id": criteria.id,
+                    "title": criteria.title,
+                    "required_skills": [
+                        {"name": item.skill.name, "weight": item.weight}
+                        for item in criteria_skills
+                        if item.skill and item.skill.name
+                    ],
+                }
+
     intent = _detect_intent(request_payload.message)
     if intent == "greeting":
         response_text = _greeting_response(local_context)
@@ -697,6 +752,12 @@ def chat(request_payload: ChatRequest, db: Session = Depends(get_db)):
                 response_text = _adjust_criteria(request_payload.message, local_context, db)
             else:
                 response_text = _general_response(request_payload.message, local_context)
+
+    if _CONVERSATION_MEMORY and request_payload.session_id:
+        _CONVERSATION_MEMORY.add_message(request_payload.session_id, "user", request_payload.message)
+        _CONVERSATION_MEMORY.add_message(request_payload.session_id, "assistant", response_text)
+        if local_context.get("current_criteria_id"):
+            _CONVERSATION_MEMORY.set_current_criteria(request_payload.session_id, int(local_context["current_criteria_id"]))
 
     return ChatResponse(response=response_text, intent=intent, actions=_suggest_actions(intent, local_context))
 
@@ -731,4 +792,25 @@ def ideal_profile(request_payload: IdealProfileRequest, db: Session = Depends(ge
         except Exception:
             pass
 
+    if _PROFILE_GENERATOR_AVAILABLE:
+        try:
+            generated = ProfileGenerator.generate_from_text(
+                f"{request_payload.job_title}\n{request_payload.job_description}\nSkills: {', '.join(request_payload.required_skills)}"
+            )
+            return IdealProfileResponse(
+                title=str(request_payload.job_title),
+                skills=list(generated.get("ideal_skills") or []),
+                experience=str(generated.get("ideal_experience_years") or "3+ years"),
+                education=str(generated.get("ideal_education") or "Bachelor's degree"),
+                languages=list(generated.get("ideal_languages") or ["English"]),
+                explanation=str(
+                    generated.get("industries")
+                    and f"Profil enrichi par le générateur local. Industries cibles: {', '.join(generated.get('industries')[:3])}."
+                    or "Profil enrichi par le générateur local."
+                ),
+            )
+        except Exception:
+            pass
+
     return _build_ideal_profile_fallback(request_payload)
+

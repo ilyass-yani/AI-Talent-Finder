@@ -17,6 +17,13 @@ except ImportError:
 from ai_module.nlp.skill_extractor import SkillExtractor
 from ai_module.matching.semantic_matcher import SemanticSkillMatcher
 
+try:
+    from ai_module.nlp.multilingual_skill_extractor import MultilingualSkillExtractor
+    MULTILINGUAL_EXTRACTOR_AVAILABLE = True
+except Exception:
+    MultilingualSkillExtractor = None
+    MULTILINGUAL_EXTRACTOR_AVAILABLE = False
+
 
 class EnhancedSkillExtractor:
     """
@@ -32,6 +39,7 @@ class EnhancedSkillExtractor:
         self.canonical_skills = list(self.skill_extractor.all_skills)
         self.semantic_threshold = float(os.getenv("SKILL_NORMALIZATION_THRESHOLD", "0.62"))
         self.ner_model_name = os.getenv("HF_SKILL_NER_MODEL", "dslim/bert-base-NER")
+        self.multilingual_extractor = MultilingualSkillExtractor() if MULTILINGUAL_EXTRACTOR_AVAILABLE else None
         
         if load_ner and NER_AVAILABLE:
             try:
@@ -89,6 +97,15 @@ class EnhancedSkillExtractor:
                 }
                 all_skills.append(skill_data)
                 seen_skills.add(skill_name_lower)
+
+        # Step 2b: Multilingual aliases (FR/EN/ES) for better recall.
+        if self.multilingual_extractor is not None:
+            multilingual_skills = self.multilingual_extractor.extract_skills(text)
+            for skill_data in multilingual_skills:
+                skill_name_lower = skill_data["name"].lower()
+                if skill_name_lower not in seen_skills:
+                    all_skills.append(skill_data)
+                    seen_skills.add(skill_name_lower)
 
         # Step 3: Embedding-based normalization to canonical skill list.
         normalized = self._normalize_with_embeddings(all_skills)

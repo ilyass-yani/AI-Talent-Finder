@@ -1,3 +1,123 @@
+
+
+class EnrichedExplanationRequest(BaseModel):
+    """Request for enriched match explanation using AI analysis."""
+    candidate_id: int
+    job_criteria_id: int
+
+
+class EnrichedExplanationResponse(BaseModel):
+
+
+    class SkillMetric(BaseModel):
+        """Single skill metric."""
+        skill_name: str
+        usage_count: int
+        coverage_contribution: float
+        category: str = "tech"
+
+
+    class SkillQualityResponse(BaseModel):
+        """Overall skill quality metrics for the candidate pool."""
+        quality_score: float  # 0-100
+        total_skills: int
+        unique_skills: int
+        average_usage: float
+        coverage_percentage: float
+        unused_skills: list[str]
+        trending_missing: list[str]
+        health_status: str  # "excellent", "good", "fair", "poor"
+        recommendations: list[str]
+        pareto_analysis: dict  # Skills needed for 80% coverage
+
+
+    @router.get("/admin/skills-quality", response_model=SkillQualityResponse)
+    def get_skills_quality_metrics(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ):
+        """
+        Get skill quality metrics for the candidate pool.
+        Provides insights on skill distribution, gaps, and recommendations.
+        Requires admin access.
+        """
+        try:
+            from ai_module.matching.skill_quality import SkillQualityAnalyzer
+
+            analyzer = SkillQualityAnalyzer()
+            metrics = analyzer.compute_metrics(db)
+        
+            return SkillQualityResponse(
+                quality_score=metrics.get("quality_score", 0),
+                total_skills=metrics.get("total_skills", 0),
+                unique_skills=metrics.get("unique_skills", 0),
+                average_usage=metrics.get("average_usage", 0),
+                coverage_percentage=metrics.get("coverage_percentage", 0),
+                unused_skills=metrics.get("unused_skills", []),
+                trending_missing=metrics.get("trending_missing", []),
+                health_status=metrics.get("health_status", "unknown"),
+                recommendations=metrics.get("recommendations", []),
+                pareto_analysis=metrics.get("pareto_analysis", {}),
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error computing skill quality metrics: {str(e)}"
+            )
+    """Enriched explanation with detailed AI analysis."""
+    score: float
+    coverage: float
+    matched_skills: list[str]
+    missing_skills: list[str]
+    summary: str
+    strengths: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    recommendation: dict = Field(default_factory=dict)
+    confidence: float = 0.0
+
+
+@router.post("/enriched-explanation", response_model=EnrichedExplanationResponse)
+def get_enriched_match_explanation(
+    request: EnrichedExplanationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate enriched explanation using AI-powered analysis.
+    Provides detailed breakdown of match with strengths, gaps, and recommendations.
+    """
+    # Get candidate
+    candidate = db.query(Candidate).filter(Candidate.id == request.candidate_id).first()
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # Get job criteria
+    criteria = db.query(JobCriteria).filter(JobCriteria.id == request.job_criteria_id).first()
+    if not criteria:
+        raise HTTPException(status_code=404, detail="Job criteria not found")
+    
+    try:
+        # Load criteria skills and compute score
+        criteria_skills = _load_criteria_skills(criteria.id, db)
+        skill_universe = build_skill_universe(db)
+        score, details = score_candidate_against_criteria(candidate, criteria_skills, skill_universe)
+        
+        # Generate enriched explanation
+        enriched = generate_enriched_explanation(candidate, score, details, criteria_skills)
+        
+        return EnrichedExplanationResponse(
+            score=enriched.get("score", score),
+            coverage=enriched.get("coverage", float(details.get("coverage", 0))),
+            matched_skills=enriched.get("matched_skills", []),
+            missing_skills=enriched.get("missing_skills", []),
+            summary=enriched.get("summary", ""),
+            strengths=enriched.get("strengths", []),
+            gaps=enriched.get("gaps", []),
+            recommendation=enriched.get("recommendation", {}),
+            confidence=enriched.get("confidence", 0.0),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating enriched explanation: {str(e)}")
 """
 Matching API routes - Recruteur workflow
 MODES:
@@ -23,6 +143,7 @@ from app.models.models import (
     CandidateSkill
 )
 from app.services.matching_engine import build_skill_universe, build_explanation_payload, score_candidate_against_criteria
+from app.services.matching_engine import build_skill_universe, build_explanation_payload, score_candidate_against_criteria, generate_enriched_explanation
 from app.services.feature_engineering import build_pair_features, PairFeatureMeta
 from app.services.normalization import normalize_skill_name, normalize_text
 from app.services.explainability_engine import generate_explanation, generate_shortlist_summary
@@ -357,8 +478,8 @@ def _load_criteria_skills(criteria_id: int, db: Session) -> List[Dict[str, int]]
     return [{"name": row.skill.name, "weight": row.weight} for row in rows]
 
 
-def _serialize_match_result(candidate: Candidate, criteria_id: int, score: float, details: Dict[str, object], stored_id: int = 0) -> CriteriaMatchResultResponse:
-    explanation_payload = build_explanation_payload(score, details)
+def _serialize_match_result(candidate: Candidate, criteria_id: int, score: float, details: Dict[str, object], stored_id: int = 0, job_title: Optional[str] = None) -> CriteriaMatchResultResponse:
+    explanation_payload = build_explanation_payload(score, details, job_title)
     return CriteriaMatchResultResponse(
         match_result_id=stored_id,
         criteria_id=criteria_id,
@@ -390,7 +511,7 @@ def _score_all_candidates(criteria: JobCriteria, db: Session) -> List[CriteriaMa
     results: List[CriteriaMatchResultResponse] = []
     for candidate in candidates:
         score, details = score_candidate_against_criteria(candidate, criteria_skills, skill_universe)
-        results.append(_serialize_match_result(candidate, criteria.id, score, details))
+        results.append(_serialize_match_result(candidate, criteria.id, score, details, job_title=criteria.title))
 
     results.sort(key=lambda item: item.score, reverse=True)
     return results
@@ -1243,3 +1364,4 @@ def get_shortlist_summary(
         top_skills_in_pool=summary["top_skills_in_pool"],
         recommendations=summary["recommendations"],
     )
+from app.services.matching_engine import build_skill_universe, build_explanation_payload, score_candidate_against_criteria, generate_enriched_explanation

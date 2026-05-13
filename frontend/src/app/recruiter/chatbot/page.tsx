@@ -33,6 +33,20 @@ export default function ChatbotPage() {
   const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
   const [idealProfile, setIdealProfile] = useState<IdealProfileResponsePayload | null>(null);
   const [idealProfileLoading, setIdealProfileLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+
+  useEffect(() => {
+    const storageKey = 'ai_talent_finder_recruiter_chat_session_id';
+    const existing = window.localStorage.getItem(storageKey);
+    if (existing) {
+      setSessionId(existing);
+      return;
+    }
+
+    const generated = window.crypto?.randomUUID?.() ?? `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(storageKey, generated);
+    setSessionId(generated);
+  }, []);
 
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -94,6 +108,7 @@ export default function ChatbotPage() {
 
       const response = await chatApi.sendMessage({
         message: userMessage.content,
+        session_id: sessionId || undefined,
         context: {
           current_criteria: effectiveCriteria,
           current_criteria_id: effectiveCriteria?.id,

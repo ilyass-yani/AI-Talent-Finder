@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import { candidatesApi, Candidate, filterDisplayableCandidates } from '@/services/candidates';
 import { favoritesApi } from '@/services/favorites';
 import { getErrorMessage } from '@/utils/errorHandler';
+import { showToast } from '@/lib/toast';
 import { SkeletonList } from '@/components/SkeletonLoader';
 import { Search, Upload, Trash2, Heart, Mail, ExternalLink, Code2, X, Users } from 'lucide-react';
 
@@ -54,7 +55,7 @@ export default function CandidatesListPage() {
       await candidatesApi.deleteCandidate(id);
       setCandidates((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      alert(getErrorMessage(err));
+      showToast(getErrorMessage(err), 'error');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import { Upload, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { showToast } from '@/lib/toast';
 
 interface FileUploadProps {
   onFileUpload?: (file: File) => void;
@@ -39,11 +40,11 @@ export default function FileUpload({ onFileUpload, maxSize = 10 }: FileUploadPro
 
   const handleFile = (file: File) => {
     if (file.size > maxSize * 1024 * 1024) {
-      alert(`Fichier trop volumineux (max ${maxSize}MB)`);
+      showToast(`Fichier trop volumineux (max ${maxSize}MB)`, 'error');
       return;
     }
     if (!file.type.includes("pdf")) {
-      alert("Seuls les fichiers PDF sont acceptés");
+      showToast("Seuls les fichiers PDF sont acceptés", 'error');
       return;
     }
     setFileName(file.name);

@@ -101,6 +101,8 @@ def on_startup():
     include_optional_router("app.api.match_results")
     include_optional_router("app.api.chat", "router")
     include_optional_router("app.api.export", "router")
+    # Phase 3: Feedback loop, recommendations, bias detection
+    include_optional_router("app.api.feedback", "router")
 
 
 # Health check endpoint (always available)
