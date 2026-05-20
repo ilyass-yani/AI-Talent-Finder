@@ -9,6 +9,7 @@ argon2-cffi==21.3.*
 bcrypt==4.1.*
 python-multipart==0.0.*
 pydantic[email]==2.*
+email-validator>=2.0.0
 pymupdf==1.25.*
 scikit-learn==1.6.*
 transformers>=4.30.0
@@ -23,3 +24,14 @@ python-docx>=0.8.0
 openpyxl>=3.1.0
 reportlab>=4.0.0
 anthropic>=0.45.0
+# LLM Fine-tuning
+peft>=0.4.0  # Parameter-Efficient Fine-Tuning for LoRA/QLoRA
+bitsandbytes>=0.41.0  # 4-bit/8-bit quantization
+# BERT Embeddings
+pytorch>=2.0.0
+# Web Scraping
+selenium>=4.10.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+# FAISS for similarity search
+faiss-cpu>=1.7.4
