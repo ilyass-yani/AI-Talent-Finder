@@ -3,7 +3,12 @@ CV Extraction Service - Étape 5 Optimization
 Combines PDF text extraction + NER structured data extraction
 """
 
-import fitz  # PyMuPDF
+try:
+    import fitz  # PyMuPDF
+    FITZ_AVAILABLE = True
+except Exception:
+    fitz = None
+    FITZ_AVAILABLE = False
 import io
 import json
 import os
@@ -23,8 +28,15 @@ except Exception:
 try:
     from PIL import Image
     PIL_AVAILABLE = True
+    try:
+        from PIL import ImageOps
+        PIL_IMAGEOPS_AVAILABLE = True
+    except Exception:
+        ImageOps = None
+        PIL_IMAGEOPS_AVAILABLE = False
 except Exception:
     PIL_AVAILABLE = False
+    PIL_IMAGEOPS_AVAILABLE = False
 
 try:
     import pytesseract  # type: ignore
@@ -125,14 +137,30 @@ class CVExtractionService:
         """
         # Step 1: Extract raw text from PDF
         raw_text = extract_text_from_pdf(file_path)
+
+        # Optional: force OCR/YELLOW as source of truth (bypass native text/NER)
+        # Set env `CV_FORCE_OCR=true` to prefer OCR processing for all pages.
+        force_ocr = os.getenv("CV_FORCE_OCR", "false").lower() == "true"
+        if force_ocr and FITZ_AVAILABLE and TESSERACT_AVAILABLE and PIL_AVAILABLE:
+            try:
+                ocr_text = _extract_text_from_pdf_ocr(file_path)
+                if ocr_text:
+                    raw_text = ocr_text
+            except Exception:
+                # keep previous raw_text on failure
+                pass
         
-        # Step 2: NER extraction BEFORE cleaning (important!)
+        # Step 2: Structured extraction (NER) can be disabled when forcing OCR.
         structured_data = {}
         quality_score = 0
-        if self.ner_available:
+        # If OCR is forced we still keep skill extraction from text but avoid
+        # relying on NER structured parsing as the primary source.
+        if not force_ocr and self.ner_available:
             structured_data, quality_score = self._extract_structured_data(raw_text)
         else:
-            print("⚠️ NER not available, using fallback extraction")
+            # Fallback: no structured NER; skills will be extracted from OCR text
+            if force_ocr:
+                logger.info("CVExtractionService: force OCR enabled, skipping NER structured parsing")
         
         # Step 3: Extract skills (hybrid: NER + fuzzy)
         skills = self.skill_extractor.extract_skills_hybrid(raw_text)
@@ -557,35 +585,43 @@ class CVExtractionService:
 
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract text from PDF using multiple strategies and keep the best result."""
+    # If caller passed a plain text file, just read and return it.
+    try:
+        if str(file_path).lower().endswith(".txt"):
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
+                return fh.read()
+    except Exception:
+        pass
     candidates: List[str] = []
 
-    try:
-        doc = fitz.open(file_path)
-        text_parts_default = []
-        text_parts_block = []
-        for page in doc:
-            text_parts_default.append(page.get_text())
-            text_parts_block.append(page.get_text("blocks"))
-        doc.close()
+    if FITZ_AVAILABLE:
+        try:
+            doc = fitz.open(file_path)
+            text_parts_default = []
+            text_parts_block = []
+            for page in doc:
+                text_parts_default.append(page.get_text())
+                text_parts_block.append(page.get_text("blocks"))
+            doc.close()
 
-        # Default extraction.
-        candidates.append("\n".join(text_parts_default).strip())
+            # Default extraction.
+            candidates.append("\n".join(text_parts_default).strip())
 
-        # Block extraction often improves OCR-like and layout-heavy CVs.
-        block_lines = []
-        for page_blocks in text_parts_block:
-            if not isinstance(page_blocks, list):
-                continue
-            sorted_blocks = sorted(page_blocks, key=lambda b: (b[1], b[0]))
-            for block in sorted_blocks:
-                if len(block) >= 5 and isinstance(block[4], str):
-                    value = block[4].strip()
-                    if value:
-                        block_lines.append(value)
-        if block_lines:
-            candidates.append("\n".join(block_lines).strip())
-    except Exception as e:
-        print(f"❌ PDF extraction failed: {e}")
+            # Block extraction often improves OCR-like and layout-heavy CVs.
+            block_lines = []
+            for page_blocks in text_parts_block:
+                if not isinstance(page_blocks, list):
+                    continue
+                sorted_blocks = sorted(page_blocks, key=lambda b: (b[1], b[0]))
+                for block in sorted_blocks:
+                    if len(block) >= 5 and isinstance(block[4], str):
+                        value = block[4].strip()
+                        if value:
+                            block_lines.append(value)
+            if block_lines:
+                candidates.append("\n".join(block_lines).strip())
+        except Exception as e:
+            print(f"❌ PDF extraction failed: {e}")
 
     if PDFPLUMBER_AVAILABLE:
         try:
@@ -596,28 +632,46 @@ def extract_text_from_pdf(file_path: str) -> str:
             pass
 
     candidates = [text for text in candidates if text and text.strip()]
-    if not candidates:
-        return ""
+    if candidates:
+        best_text = max(candidates, key=_score_extracted_text)
+        best_score = _score_extracted_text(best_text)
+    else:
+        best_text = ""
+        best_score = 0
 
-    best_text = max(candidates, key=_score_extracted_text)
-    best_score = _score_extracted_text(best_text)
-
-    # OCR fallback for scanned/image-only PDFs.
-    ocr_mode = os.getenv("CV_OCR_MODE", "auto").strip().lower()
+    # OCR-first by default: favor OCR output whenever it produces usable text,
+    # while keeping native extraction as a fallback for digitally born PDFs.
+    ocr_mode = os.getenv("CV_OCR_MODE", "ocr_first").strip().lower()
     ocr_threshold = int(os.getenv("CV_OCR_TRIGGER_SCORE", "700"))
     should_try_ocr = (
-        ocr_mode == "aggressive"
-        or ocr_mode == "ultra"
+        ocr_mode in {"ocr_first", "aggressive", "ultra"}
         or (ocr_mode == "auto" and best_score < ocr_threshold)
     )
 
-    if should_try_ocr and TESSERACT_AVAILABLE and PIL_AVAILABLE:
+    if should_try_ocr and FITZ_AVAILABLE and TESSERACT_AVAILABLE and PIL_AVAILABLE:
         ocr_text = _extract_text_from_pdf_ocr(file_path)
         if ocr_text:
             ocr_score = _score_extracted_text(ocr_text)
-            if ocr_score > best_score:
+            if ocr_mode == "ocr_first":
+                # Prefer OCR when it yields a meaningful result, but fall back
+                # to native extraction if OCR is clearly weak.
+                if ocr_score >= max(200, best_score * 0.75):
+                    return ocr_text
+            elif ocr_score > best_score:
                 best_text = ocr_text
                 best_score = ocr_score
+        # Aggressive / ultra modes use an extra 'YELLOW' preprocessing pass
+        # (image autocontrast / binarization heuristics) to improve OCR on
+        # poor-quality scans when plain OCR is weak.
+        if ocr_mode in {"aggressive", "ultra"}:
+            yellow_text = _extract_text_with_yellow(file_path)
+            if yellow_text:
+                yellow_score = _score_extracted_text(yellow_text)
+                if ocr_mode == "aggressive":
+                    if yellow_score >= max(150, best_score * 0.6):
+                        return yellow_text
+                elif yellow_score > best_score:
+                    return yellow_text
 
         if ocr_mode == "ultra":
             ultra_text = _extract_text_from_pdf_ultra(file_path)
@@ -641,7 +695,6 @@ def _score_extracted_text(text: str) -> int:
 def _extract_text_from_pdf_ocr(file_path: str) -> str:
     """OCR fallback: render PDF pages to images and run Tesseract."""
     page_texts: List[str] = []
-    max_pages = int(os.getenv("CV_OCR_MAX_PAGES", "8"))
     dpi = int(os.getenv("CV_OCR_DPI", "250"))
     lang = os.getenv("CV_OCR_LANG", "fra+eng")
     psm = os.getenv("CV_OCR_PSM", "6").strip()
@@ -650,7 +703,7 @@ def _extract_text_from_pdf_ocr(file_path: str) -> str:
 
     try:
         doc = fitz.open(file_path)
-        page_count = min(len(doc), max_pages)
+        page_count = _resolve_ocr_page_count(len(doc))
         for idx in range(page_count):
             page = doc.load_page(idx)
             text = _extract_page_ocr_text(page=page, dpi=dpi, lang=lang, tesseract_config=tesseract_config)
@@ -665,7 +718,6 @@ def _extract_text_from_pdf_ocr(file_path: str) -> str:
 
 def _extract_text_from_pdf_ultra(file_path: str) -> str:
     """Ultra mode: page-wise OCR only on weak native-extraction pages."""
-    max_pages = int(os.getenv("CV_OCR_MAX_PAGES", "8"))
     dpi = int(os.getenv("CV_OCR_DPI", "250"))
     lang = os.getenv("CV_OCR_LANG", "fra+eng")
     psm = os.getenv("CV_OCR_PSM", "6").strip()
@@ -677,7 +729,7 @@ def _extract_text_from_pdf_ultra(file_path: str) -> str:
 
     try:
         doc = fitz.open(file_path)
-        page_count = min(len(doc), max_pages)
+        page_count = _resolve_ocr_page_count(len(doc))
         for idx in range(page_count):
             page = doc.load_page(idx)
             native_text = (page.get_text() or "").strip()
@@ -709,6 +761,72 @@ def _extract_page_ocr_text(page: Any, dpi: int, lang: str, tesseract_config: str
     pix = page.get_pixmap(matrix=matrix, alpha=False)
     image = Image.open(io.BytesIO(pix.tobytes("png")))
     return pytesseract.image_to_string(image, lang=lang, config=tesseract_config)
+
+
+def _extract_text_with_yellow(file_path: str) -> str:
+    """A lightweight 'YELLOW' extractor: render pages, apply simple PIL
+    preprocessing (grayscale, autocontrast, optional resize), then OCR.
+    This helps on low-contrast scans without requiring OpenCV.
+    """
+    if not (FITZ_AVAILABLE and TESSERACT_AVAILABLE and PIL_AVAILABLE):
+        return ""
+
+    page_texts: List[str] = []
+    dpi = int(os.getenv("CV_OCR_DPI", "250"))
+    lang = os.getenv("CV_OCR_LANG", "fra+eng")
+    psm = os.getenv("CV_OCR_PSM", "6").strip()
+    oem = os.getenv("CV_OCR_OEM", "1").strip()
+    tesseract_config = f"--oem {oem} --psm {psm}"
+
+    try:
+        doc = fitz.open(file_path)
+        page_count = _resolve_ocr_page_count(len(doc))
+        for idx in range(page_count):
+            page = doc.load_page(idx)
+            zoom = dpi / 72.0
+            matrix = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            image = Image.open(io.BytesIO(pix.tobytes("png")))
+
+            try:
+                if PIL_IMAGEOPS_AVAILABLE and ImageOps is not None:
+                    image = ImageOps.autocontrast(image)
+                image = image.convert("L")
+                # Light sharpening by resizing up can help OCR on tiny fonts
+                w, h = image.size
+                if max(w, h) < 1200:
+                    image = image.resize((int(w * 1.5), int(h * 1.5)))
+            except Exception:
+                pass
+
+            text = pytesseract.image_to_string(image, lang=lang, config=tesseract_config)
+            if text and text.strip():
+                page_texts.append(text.strip())
+
+        doc.close()
+    except Exception:
+        return ""
+
+    return "\n\n".join(page_texts).strip()
+
+
+def _resolve_ocr_page_count(total_pages: int) -> int:
+    """Resolve how many pages OCR should process.
+
+    CV_OCR_MAX_PAGES:
+    - unset/0/negative => process all pages
+    - positive integer => process up to that number of pages
+    """
+    raw_value = os.getenv("CV_OCR_MAX_PAGES", "0").strip()
+    try:
+        max_pages = int(raw_value)
+    except Exception:
+        max_pages = 0
+
+    if max_pages <= 0:
+        return max(0, total_pages)
+
+    return min(total_pages, max_pages)
 
 
 def save_text_as_txt(text: str, output_dir: str, base_name: str) -> str:
