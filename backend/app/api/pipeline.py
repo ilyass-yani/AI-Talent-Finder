@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Body
+import json
+
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Dict, Any, Optional
 
 from app.services.cv_extractor import CVExtractionService
@@ -132,15 +134,20 @@ def np_dot_cosine(a, b):
 
 
 @router.post("/run-full")
-async def run_full(cv: UploadFile = File(...), job: Dict[str, Any] = Body(...)):
+async def run_full(cv: UploadFile = File(...), job_json: str = Form(...)):
     """Minimal endpoint: upload a CV file and a job JSON, return pipeline decision.
 
     This endpoint saves the uploaded CV to a temporary path, runs the existing
     `run_pipeline` function by providing extracted raw text, and returns the same
     output shape as `/run`.
     """
-    if not job:
-        raise HTTPException(status_code=400, detail="'job' body is required")
+    try:
+        job = json.loads(job_json)
+    except Exception:
+        raise HTTPException(status_code=400, detail="'job_json' must be valid JSON")
+
+    if not isinstance(job, dict):
+        raise HTTPException(status_code=400, detail="'job_json' must decode to an object")
 
     from uuid import uuid4
     tmp_path = Path('/tmp')
@@ -162,34 +169,47 @@ async def run_full(cv: UploadFile = File(...), job: Dict[str, Any] = Body(...)):
         extraction = extractor.extract_from_text(text)
 
     payload = {"candidate": {"raw_text": extraction.raw_text or ""}, "job": job}
-    # Reuse existing run_pipeline logic
-    return run_pipeline(payload)
+    decision_payload = run_pipeline(payload)
+
+    matcher = MatchingService()
+    job_text = job.get("job_text") or job.get("description") or ""
+    top_k = int(job.get("top_k", 5))
+    top_k_results = matcher.search_top_k_candidates(job_text=job_text, top_k=top_k)
+
+    return {
+        "decision": decision_payload,
+        "top_k": {
+            "job_text": job_text,
+            "top_k": top_k,
+            "results": top_k_results,
+        },
+    }
 
 
 @router.post("/top-k")
 def top_k_candidates(payload: Dict[str, Any]):
-        """Return the top-K CV candidates for a job description using FAISS.
+    """Return the top-K CV candidates for a job description using FAISS.
 
-        Expected payload:
-            {
-                "job_text": "...",
-                "top_k": 5,
-                "index_dir": "models/faiss_index"
-            }
-        """
-        job_text = payload.get("job_text") or payload.get("description") or ""
-        top_k = int(payload.get("top_k", 5))
-        index_dir = payload.get("index_dir", "models/faiss_index")
-
-        if not job_text.strip():
-                raise HTTPException(status_code=400, detail="'job_text' is required")
-
-        matcher = MatchingService()
-        results = matcher.search_top_k_candidates(job_text=job_text, top_k=top_k, index_dir=index_dir)
-
-        return {
-                "job_text": job_text,
-                "top_k": top_k,
-                "index_dir": index_dir,
-                "results": results,
+    Expected payload:
+        {
+            "job_text": "...",
+            "top_k": 5,
+            "index_dir": "models/faiss_index"
         }
+    """
+    job_text = payload.get("job_text") or payload.get("description") or ""
+    top_k = int(payload.get("top_k", 5))
+    index_dir = payload.get("index_dir", "models/faiss_index")
+
+    if not job_text.strip():
+        raise HTTPException(status_code=400, detail="'job_text' is required")
+
+    matcher = MatchingService()
+    results = matcher.search_top_k_candidates(job_text=job_text, top_k=top_k, index_dir=index_dir)
+
+    return {
+        "job_text": job_text,
+        "top_k": top_k,
+        "index_dir": index_dir,
+        "results": results,
+    }
