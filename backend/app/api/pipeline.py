@@ -16,6 +16,44 @@ import numpy as _np
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
 
+def _load_bert_first_model_bundle():
+    """Load the BERT-first pairwise scoring bundle if it exists."""
+    models_dir = Path("models/classical_from_tfidf_bertfirst")
+    if not models_dir.exists():
+        return None
+
+    meta_path = models_dir / "pair_feature_meta.joblib"
+    if not meta_path.exists():
+        return None
+
+    try:
+        meta = joblib.load(meta_path)
+    except Exception:
+        return None
+
+    model = None
+    for filename in ("xgboost.model", "random_forest.joblib", "logistic.joblib"):
+        model_path = models_dir / filename
+        if model_path.exists():
+            try:
+                model = joblib.load(model_path)
+            except Exception:
+                try:
+                    import xgboost as xgb
+
+                    model = xgb.Booster()
+                    model.load_model(str(model_path))
+                except Exception:
+                    model = None
+            if model is not None:
+                break
+
+    if model is None:
+        return None
+
+    return {"model": model, "meta": meta}
+
+
 @router.post("/run")
 def run_pipeline(payload: Dict[str, Any]):
     """Run full pipeline: extraction -> features -> matching -> scoring -> decision.
@@ -73,31 +111,21 @@ def run_pipeline(payload: Dict[str, Any]):
     )
     # Try to augment with ML model score (if trained models present)
     ml_score_pct = None
-    models_dir = Path('models/classical_from_tfidf')
-    if models_dir.exists():
+    model_bundle = _load_bert_first_model_bundle()
+    if model_bundle is not None:
         try:
-            meta = joblib.load(models_dir / 'feature_meta.joblib')
-            feat_dir = Path(meta.get('features_dir'))
-            if feat_dir.exists():
-                tfidf = pickle.load(open(feat_dir / 'tfidf_vectorizer.pkl', 'rb'))
-                svd = pickle.load(open(feat_dir / 'svd.pkl', 'rb'))
-                # build cv-only feature
-                v = tfidf.transform([cv_text])
-                emb = svd.transform(v)
-                # try random forest then logistic
-                clf = None
-                if (models_dir / 'random_forest.joblib').exists():
-                    clf = joblib.load(models_dir / 'random_forest.joblib')
-                elif (models_dir / 'logistic.joblib').exists():
-                    clf = joblib.load(models_dir / 'logistic.joblib')
-                if clf is not None:
-                    try:
-                        prob = clf.predict_proba(emb)[:, 1].ravel()[0]
-                        ml_score_pct = float(prob * 100.0)
-                    except Exception:
-                        # fallback to predict
-                        pred = clf.predict(emb).ravel()[0]
-                        ml_score_pct = float(pred * 100.0)
+            clf = model_bundle["model"]
+            meta = model_bundle["meta"]
+            X = build_pair_features(cv_text, job_text, meta)
+            try:
+                prob = clf.predict_proba(X)[:, 1].ravel()[0]
+                ml_score_pct = float(prob * 100.0)
+            except Exception:
+                try:
+                    pred = clf.predict(X).ravel()[0]
+                    ml_score_pct = float(pred * 100.0)
+                except Exception:
+                    ml_score_pct = None
         except Exception:
             ml_score_pct = None
 
