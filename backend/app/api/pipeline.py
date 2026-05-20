@@ -50,9 +50,8 @@ def run_pipeline(payload: Dict[str, Any]):
     if mode == "semantic":
         sim = matcher.semantic_similarity(cv_text, job_text)
     elif mode == "vector":
-        # Use vectorized TF-IDF reduced embedding
-        emb = meta.tfidf.transform([cv_text, job_text]).toarray()
-        sim = float(np_dot_cosine(emb[0], emb[1]))
+        # Keep the vector mode aligned with the BERT-first matching stack.
+        sim = matcher.semantic_similarity(cv_text, job_text)
     elif mode == "continuous":
         cont = matcher.continuous_similarity(job_text, cv_text)
         sim = cont.get("max", cont.get("mean", 0.0))
