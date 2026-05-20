@@ -64,3 +64,4 @@ Note:
 - Dans ce workspace, `torch` n'est pas disponible pour Python 3.13; pour réellement lancer la phase 2, utilise un environnement Python compatible avec une wheel CPU PyTorch (par exemple Python 3.12) puis relance la commande ci-dessus.
 - Les features baseline et API partagent la même implémentation dans `backend/app/services/feature_engineering.py`.
 - Le bundle final utilisé en production est `../models/final_match_model.joblib` (avec seuils calibrés dans le bundle).
+- Le fine-tuning Mistral/LLM reste optionnel et sert surtout aux fonctionnalités IA adjacentes; il n'est pas le chemin principal de matching en production.

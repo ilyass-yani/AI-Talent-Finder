@@ -51,7 +51,7 @@ Known feature keys for `AI_FEATURES_REQUIRED`:
 - If `USE_AI_PROFILE_GENERATOR=false` or HF model deps are missing, profile generation falls back to rule-based extraction.
 - If `LOCAL_LLM_BASE_URL` is set, the chatbot can use a local LLM when Anthropic is unavailable.
 
-For a full fallback matrix, see `backend/IA_FALLBACK_MODES.md`.
+For the full fallback logic, inspect the backend services and `backend/scripts/check_ia_environment.py`.
 
 ## How to verify environment quickly
 

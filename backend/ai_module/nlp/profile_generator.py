@@ -20,7 +20,7 @@ except Exception:
 class ProfileGenerator:
     """Generate an ideal profile from free text."""
 
-    USE_AI_MODEL = os.getenv("USE_AI_PROFILE_GENERATOR", "true").lower() == "true"
+    USE_AI_MODEL = os.getenv("USE_AI_PROFILE_GENERATOR", "false").lower() == "true"
     HF_MODEL_NAME = os.getenv("HF_PROFILE_MODEL", "google/flan-t5-base")
     _model_cache: Dict[str, Any] = {}
 

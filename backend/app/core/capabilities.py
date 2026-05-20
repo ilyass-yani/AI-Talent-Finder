@@ -71,7 +71,7 @@ def _feature_status(
 
 
 def detect_capabilities() -> Dict[str, object]:
-    use_ai_profile = _env_bool("USE_AI_PROFILE_GENERATOR", default=True)
+    use_ai_profile = _env_bool("USE_AI_PROFILE_GENERATOR", default=False)
     local_llm_enabled = bool(os.getenv("LOCAL_LLM_BASE_URL", "").strip())
     deps = {
         "fitz": _has_module("fitz"),

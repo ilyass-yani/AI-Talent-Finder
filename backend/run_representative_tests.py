@@ -2,7 +2,7 @@
 """
 Run Representative Test Set
 
-Executes the comprehensive test suite defined in TEST_SET_REPRESENTATIVE.md
+Executes the representative test suite for extraction, matching, chatbot, and NLP edge cases
 covering CV extraction, skill extraction, semantic matching, chatbot, and NLP edge cases.
 
 Requires: Database configured, IA models available
@@ -94,7 +94,7 @@ class SimpleSkillExtractor:
 
 
 class RepresentativeTestRunner:
-    """Run representative tests from TEST_SET_REPRESENTATIVE.md"""
+    """Run the representative backend IA test suite."""
 
     def __init__(self):
         """Initialize test runner."""

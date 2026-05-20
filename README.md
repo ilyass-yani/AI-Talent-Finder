@@ -57,9 +57,12 @@ NODE_ENV=production
 
 Les fichiers `backend/railway.json` et `frontend/railway.json` sont inclus pour forcer le mode Dockerfile et définir les healthchecks.
 
-### Pipeline modèle final
+### Pipeline de production
 
-Pour générer le dataset mixte, entraîner le modèle final et produire le rapport de validation:
+Le matching de production s'appuie sur le bundle classique `models/final_match_model.joblib`.
+Le fine-tuning LLM reste un module auxiliaire pour la génération de profil / chatbot, pas le chemin principal de scoring.
+
+Pour régénérer le dataset mixte, réentraîner le modèle final et produire le rapport de validation:
 
 ```bash
 cd backend
@@ -76,6 +79,22 @@ Cette commande produit:
 - `reports/PLAN_EXCELLENCE_IA.md`
 
 L'API de matching charge d'abord `models/final_match_model.joblib`, puis bascule automatiquement sur l'ancien bundle si besoin.
+
+### Quality Gate Extraction CV (KPI)
+
+Pour mesurer la complétude d'extraction CV avec un seuil explicite (plutôt que promettre 100%), exécuter:
+
+```bash
+cd backend
+python scripts/run_extraction_quality_gate.py --threshold 95
+```
+
+Artefacts générés:
+
+- `backend/reports/extraction_quality_gate.json` (rapport machine-readable)
+- `backend/reports/extraction_kpi.md` (tableau KPI prêt pour le rapport)
+
+Le workflow CI lance également ce quality gate et publie les artefacts KPI.
 
 ### Comptes de test
 
@@ -263,7 +282,7 @@ LOCAL_LLM_BASE_URL=http://127.0.0.1:8001
 LOCAL_LLM_MODEL=local-llm
 LOCAL_LLM_MAX_TOKENS=512
 LOCAL_LLM_TIMEOUT=60
-USE_AI_PROFILE_GENERATOR=true
+USE_AI_PROFILE_GENERATOR=false
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
