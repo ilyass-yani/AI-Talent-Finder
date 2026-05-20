@@ -164,3 +164,32 @@ async def run_full(cv: UploadFile = File(...), job: Dict[str, Any] = Body(...)):
     payload = {"candidate": {"raw_text": extraction.raw_text or ""}, "job": job}
     # Reuse existing run_pipeline logic
     return run_pipeline(payload)
+
+
+@router.post("/top-k")
+def top_k_candidates(payload: Dict[str, Any]):
+        """Return the top-K CV candidates for a job description using FAISS.
+
+        Expected payload:
+            {
+                "job_text": "...",
+                "top_k": 5,
+                "index_dir": "models/faiss_index"
+            }
+        """
+        job_text = payload.get("job_text") or payload.get("description") or ""
+        top_k = int(payload.get("top_k", 5))
+        index_dir = payload.get("index_dir", "models/faiss_index")
+
+        if not job_text.strip():
+                raise HTTPException(status_code=400, detail="'job_text' is required")
+
+        matcher = MatchingService()
+        results = matcher.search_top_k_candidates(job_text=job_text, top_k=top_k, index_dir=index_dir)
+
+        return {
+                "job_text": job_text,
+                "top_k": top_k,
+                "index_dir": index_dir,
+                "results": results,
+        }
