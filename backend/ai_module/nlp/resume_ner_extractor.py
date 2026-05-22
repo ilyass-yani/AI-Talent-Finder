@@ -392,6 +392,10 @@ class ResumeNERExtractor:
             if not in_experience_section:
                 continue
 
+            combined_title = self._extract_title_from_combined_line(line)
+            if combined_title:
+                job_titles.add(combined_title)
+
             if self._looks_like_company_line(line):
                 for next_line in lines[index + 1:index + 4]:
                     next_clean = next_line.strip().strip('•*-').strip()
@@ -414,6 +418,11 @@ class ResumeNERExtractor:
             line = raw_line.strip().strip('•*-').strip()
             if not line:
                 continue
+
+            combined_title = self._extract_title_from_combined_line(line)
+            if combined_title:
+                job_titles.add(combined_title)
+
             if self._looks_like_job_title(line) and index + 1 < len(lines):
                 next_clean = lines[index + 1].strip().strip('•*-').strip()
                 if next_clean and self._looks_like_company_line(next_clean):
@@ -992,7 +1001,22 @@ class ResumeNERExtractor:
         )
 
     def _extract_company_from_line(self, line: str) -> str:
-        candidate = line.split('|', 1)[0].strip()
+        parts = [part.strip() for part in line.split('|') if part.strip()]
+        candidate = ""
+
+        if len(parts) >= 3:
+            if self._contains_date(parts[0]):
+                candidate = parts[-1]
+            else:
+                candidate = parts[0]
+        elif len(parts) == 2:
+            if self._contains_date(parts[0]):
+                candidate = parts[1]
+            else:
+                candidate = parts[0]
+        else:
+            candidate = line
+
         candidate = re.split(r"\s*\(\s*\d{4}.*$", candidate)[0].strip()
         candidate = re.split(r"\s*[-–]\s*[A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s&'’.-]{1,40}$", candidate)[0].strip()
         candidate = candidate.split(',', 1)[0].strip()
@@ -1006,6 +1030,36 @@ class ResumeNERExtractor:
         if any(keyword in normalized for keyword in ('universite', 'université', 'university', 'ecole', 'école', 'school', 'college', 'institute', 'esup')):
             return ''
         return candidate
+
+    def _extract_title_from_combined_line(self, line: str) -> str:
+        """Extract title from OCR-friendly combined lines.
+
+        Examples:
+        - 2023 - PRESENT | DATA SCIENTIST | BLUE METRICS
+        - Product Manager - Digital Retail (2022-2026)
+        """
+        cleaned = line.strip().strip('•*-').strip()
+        if not cleaned:
+            return ''
+
+        # Pipe-separated layout: date | title | company
+        pipe_parts = [part.strip() for part in cleaned.split('|') if part.strip()]
+        if len(pipe_parts) >= 3 and self._contains_date(pipe_parts[0]):
+            title_candidate = pipe_parts[1]
+            if self._looks_like_job_title(title_candidate):
+                return title_candidate
+
+        # Hyphen layout: title - company (date)
+        hyphen_match = re.match(r"^([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9\s/&'’.-]{2,60})\s[-–]\s.+(?:\(\s*(?:19|20)\d{2}.*\))?$", cleaned)
+        if hyphen_match:
+            title_candidate = hyphen_match.group(1).strip()
+            if self._looks_like_job_title(title_candidate):
+                return title_candidate
+
+        return ''
+
+    def _contains_date(self, value: str) -> bool:
+        return bool(re.search(r"\b(?:19|20)\d{2}\b", value))
 
     def _looks_like_job_title(self, line: str) -> bool:
         normalized = self._normalize_for_matching(line)

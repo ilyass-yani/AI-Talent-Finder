@@ -311,7 +311,7 @@ def _decision_from_score(score_pct: float) -> str:
     if score_pct >= accept_threshold:
         return "accepted"
     if score_pct >= review_threshold:
-        return "review"
+        return "to_review"
     return "rejected"
 
 

@@ -1,0 +1,6 @@
+# Suggested accelerate config parameters (use `accelerate config` to create)
+compute_environment: LOCAL_MACHINE
+distributed_type: NO
+use_cpu: false
+num_processes: 1
+mixed_precision: fp16

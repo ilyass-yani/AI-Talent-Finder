@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -44,4 +46,4 @@ def test_run_full_returns_decision_and_top_k():
     assert isinstance(data['top_k']['results'], list)
     assert len(data['top_k']['results']) == 2
     assert data['top_k']['results'][0]['rank'] == 1
-    assert data['decision']['decision']['label'] in {'accept', 'review', 'reject'}
+    assert data['decision']['decision']['label'] in {'accepted', 'to_review', 'rejected'}

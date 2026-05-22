@@ -1,0 +1,11 @@
+# Optional/advanced dependencies for finetuning, semantic search, and scraping
+sentence-transformers>=2.2.2
+transformers>=4.30.0
+peft
+accelerate
+bitsandbytes
+faiss-cpu
+xgboost
+selenium
+datasets
+apscheduler

@@ -1,0 +1,52 @@
+{
+  "description": "Anonymized gold samples for extraction completeness benchmarking",
+  "samples": [
+    {
+      "name": "Anonymized Product Manager",
+      "text": "ANON CANDIDATE A\nEmail: anon.a@example.com\nPhone: +33 6 90 10 20 30\nLinkedIn: https://linkedin.com/in/anon-a\n\nPROFIL\nProduct manager orientee data et impact business.\n\nEXPERIENCES\nProduct Manager - Digital Retail (2022-2026)\nBusiness Analyst - Fin Group (2019-2022)\n\nFORMATION\nMaster Management - Business School\n\nCOMPETENCES\nProduct Strategy, SQL, A/B Testing, Communication\n\nLANGUES\nFrancais, Anglais\n\nPROJETS\nRefonte funnel d'acquisition",
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "education": 1,
+        "skills": 3,
+        "languages": 1,
+        "projects": 1,
+        "linkedin_urls": 1
+      }
+    },
+    {
+      "name": "Anonymized DevOps Engineer",
+      "text": "ANON CANDIDATE B\nanon.b@example.com\n+33 7 01 02 03 04\nGitHub: https://github.com/anon-b\nPortfolio: https://anon-b.dev\n\nEXPERIENCE\nDevOps Engineer - CloudOps Team (2021-2026)\nSystem Engineer - Infra Group (2017-2021)\n\nEDUCATION\nEngineering Degree - Systems and Networks\n\nSKILLS\nDocker, Kubernetes, Terraform, AWS, Linux, Python, CI/CD\n\nCERTIFICATIONS\nCKA\nAWS Solutions Architect Associate",
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "education": 1,
+        "skills": 5,
+        "certifications": 1,
+        "github_urls": 1,
+        "portfolio_urls": 1
+      }
+    },
+    {
+      "name": "Anonymized OCR-like Analyst",
+      "text": "ANON CANDIDATE C\nanon.c@example.com\n+33 6 22 33 44 55\n\nEXPERIENCE PROFESIONELLE\n2024 - PRESNT | DATA ANALYST | RETAIL LAB\nBuild dashbords, KPI, SQL reports\n\n2021 - 2024 | BI SPECIALIST | FIN OPS\nPower BI, ETL, quality checks\n\nFORMATION\nMaster Data Analytics\n\nSKILLS\nSQL, Powr BI, Python, Pandas, Storytelling\n\nPROJECTS\nKPI monitoring for churn reduction",
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "experiences": 1,
+        "education": 1,
+        "skills": 3,
+        "projects": 1
+      }
+    }
+  ]
+}

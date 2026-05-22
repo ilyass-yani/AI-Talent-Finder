@@ -1,0 +1,36 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {"language": "markdown"},
+      "source": [
+        "# Finetuning Notebook",
+        "This notebook walks through preparing data and running LoRA finetuning (requires GPU)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {"language": "python"},
+      "source": [
+        "# Setup: install deps (run in terminal, not notebook)",
+        "# !pip install transformers peft accelerate bitsandbytes datasets sentence-transformers"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {"language": "python"},
+      "source": [
+        "from datasets import load_dataset",
+        "ds = load_dataset('json', data_files='backend/data/finetune_sample.jsonl', split='train')",
+        "print(ds[0])"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {"language": "python"},
+      "source": [
+        "# Use backend/scripts/finetune_lora.py to run finetuning in a reproducible way"
+      ]
+    }
+  ]
+}

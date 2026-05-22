@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Manrope } from 'next/font/google';
 import {
   ArrowRight,
   Briefcase,
@@ -17,11 +16,6 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-});
 
 export default function Home() {
   const router = useRouter();
@@ -125,7 +119,7 @@ export default function Home() {
   ];
 
   return (
-    <div className={`${manrope.className} relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-900`}>
+    <div className="relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
         <div className="absolute top-40 -right-20 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl" />

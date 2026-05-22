@@ -59,6 +59,11 @@ jobs:
           cd backend
           pytest tests/ -v --cov=app --cov=ai_module --cov-report=xml
 
+      - name: Run extraction quality gate
+        run: |
+          cd backend
+          python scripts/run_extraction_quality_gate.py --threshold 95
+
       - name: Test API health endpoint
         run: |
           cd backend
@@ -155,6 +160,14 @@ except Exception as e:
           files: ./backend/coverage.xml
           flags: backend
           fail_ci_if_error: false
+
+      - name: Upload extraction KPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extraction-kpi
+          path: |
+            backend/reports/extraction_quality_gate.json
+            backend/reports/extraction_kpi.md
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request'

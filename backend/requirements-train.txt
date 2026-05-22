@@ -5,3 +5,6 @@ pandas
 datasets
 transformers
 torch
+peft
+accelerate
+bitsandbytes

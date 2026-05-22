@@ -171,7 +171,7 @@ print(f"   Fully Extracted: {'Yes ✅' if candidate_dict.get('is_fully_extracted
 
 if score >= 75:
     print(f"\n   ✅ RECOMMENDATION: Strong candidate for {criteria_job_title}")
-    print(f"   Matched {len(candidate_skills & criteria_lower)}/{len(criteria_skills)} required skills")
+    print(f"   Matched {len(set(candidate_dict.get('normalized_skills', [])) & set(criteria_skills))}/{len(criteria_skills)} required skills")
 elif score >= 60:
     print(f"\n   ⚠️ RECOMMENDATION: Potential candidate, some skill gaps")
 else:

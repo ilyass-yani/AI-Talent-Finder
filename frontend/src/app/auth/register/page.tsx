@@ -4,14 +4,8 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
-import { Manrope } from 'next/font/google';
 import { authApi } from '@/services/auth';
 import { getErrorMessage } from '@/utils/errorHandler';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-});
 
 function RegisterForm() {
   const router = useRouter();
@@ -58,7 +52,7 @@ function RegisterForm() {
   };
 
   return (
-    <div className={`${manrope.className} relative min-h-screen overflow-hidden bg-slate-50 text-slate-900`}>
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-300/30 blur-3xl" />

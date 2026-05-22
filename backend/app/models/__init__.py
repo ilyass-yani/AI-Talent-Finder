@@ -15,10 +15,14 @@ from app.models.models import (
     ProficiencyLevel,
 )
 
+# Backward compatibility for legacy tests/imports that still refer to `Job`.
+Job = JobCriteria
+
 __all__ = [
     "Base",
     "User",
     "Candidate",
+    "Job",
     "Skill",
     "CandidateSkill",
     "Experience",

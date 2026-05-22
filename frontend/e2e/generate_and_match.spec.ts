@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 const storageStatePath = path.resolve(__dirname, 'storageState.json');
+const API_URL = process.env.E2E_API_URL || 'http://127.0.0.1:8010';
 
 // Reuse previously generated authenticated storage state
 test.use({ storageState: storageStatePath });
@@ -29,7 +30,7 @@ test('Mode-2 generate-and-match returns candidate matches (production)', async (
     // If storageState is missing or unreadable, test will proceed unauthenticated and likely fail.
   }
 
-  const resp = await request.post('https://ai-talent-finder-backend-production.up.railway.app/api/matching/generate-and-match', {
+  const resp = await request.post(`${API_URL}/api/matching/generate-and-match`, {
     data: {
       job_title: 'Auto: Data Scientist',
       description: 'Looking for Python, ML, Docker'

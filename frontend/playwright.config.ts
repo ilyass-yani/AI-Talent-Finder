@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PROD_URL = 'https://ai-talent-finder-production-ed09.up.railway.app';
+const BASE_URL = process.env.E2E_BASE_URL || 'http://127.0.0.1:3000';
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: [['html', { open: 'never' }], ['list']],
 
   use: {
-    baseURL: PROD_URL,
+    baseURL: BASE_URL,
     /* Keep a trace on first retry so failures are debuggable */
     trace: 'on-first-retry',
     /* Screenshot every step on failure */

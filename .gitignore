@@ -178,3 +178,28 @@ data.db
 backend/.venv*/
 backend/__pycache__/
 .venv*/
+
+# AI / ML models
+models/
+backend/models/
+
+# Datasets
+data/
+scrapes/
+
+# ML artifacts
+*.joblib
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.index
+*.safetensors
+*.bin
+
+# HuggingFace cache
+bert_cache/
+.cache/huggingface/
+
+# macOS cloud
+*.icloud

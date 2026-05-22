@@ -71,19 +71,14 @@ def include_optional_router(module_path: str, attr_name: str = "router"):
         logging.warning(f"Skipping router {module_path}.{attr_name}: {e}")
 
 
-@app.on_event("startup")
-def on_startup():
-    # Ensure database tables exist (best-effort)
-    try:
-        Base.metadata.create_all(bind=engine)
-    except Exception as e:
-        logging.exception("Failed to create database tables: %s", e)
+_ROUTERS_REGISTERED = False
 
-    capabilities = log_capabilities_summary()
-    assert_required_features(capabilities)
 
-    # Conditionally include API routers. If a router import fails (e.g. heavy
-    # ML dependencies missing), the app still starts and exposes /health.
+def register_optional_routers():
+    global _ROUTERS_REGISTERED
+    if _ROUTERS_REGISTERED:
+        return
+
     include_optional_router("app.api.auth")
     include_optional_router("app.api.candidates")
     include_optional_router("app.api.skills")
@@ -99,6 +94,45 @@ def on_startup():
     include_optional_router("app.api.export", "router")
     # Ensure the full matching API (rich endpoints like /predict) is included when available
     include_optional_router("app.api.matching", "router")
+    include_optional_router("app.api.pipeline", "router")
+    include_optional_router("app.api.models", "router")
+    # Advanced features: Mistral fine-tuning, BERT embeddings, web scraping
+    include_optional_router("app.api.advanced_features", "router")
+    _ROUTERS_REGISTERED = True
+
+
+# Register routers immediately so bare TestClient(app) instances see them even
+# when the startup event is not used.
+register_optional_routers()
+
+
+@app.on_event("startup")
+def on_startup():
+    # Ensure database tables exist (best-effort)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logging.exception("Failed to create database tables: %s", e)
+
+    capabilities = log_capabilities_summary()
+    assert_required_features(capabilities)
+
+    # Conditionally include API routers. If a router import fails (e.g. heavy
+    # ML dependencies missing), the app still starts and exposes /health.
+    register_optional_routers()
+    # Start optional background scheduler for scraping when configured
+    try:
+        if os.getenv("START_SCRAPER_SCHEDULER", "0") == "1":
+            from jobs.scraper_scheduler import start_scheduler
+            # configure via env vars
+            interval = int(os.getenv("SCRAPER_INTERVAL_MINUTES", "60"))
+            query = os.getenv("SCRAPER_QUERY", "data scientist")
+            out_dir = os.getenv("SCRAPER_OUT_DIR", "scrapes")
+            proxy = os.getenv("SCRAPER_PROXY", None)
+            cookie_file = os.getenv("SCRAPER_COOKIE_FILE", None)
+            start_scheduler(interval_minutes=interval, query=query, out_dir=out_dir, proxy=proxy, cookie_file=cookie_file)
+    except Exception as e:
+        logging.exception("Failed to start scraper scheduler: %s", e)
     # Phase 3: Feedback loop, recommendations, bias detection
     include_optional_router("app.api.feedback", "router")
 

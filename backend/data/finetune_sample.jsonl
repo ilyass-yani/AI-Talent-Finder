@@ -1,0 +1,2 @@
+{"prompt": "Instruction: Extract skills. CV: John Doe, experienced in Python and AWS.", "completion": "\n\nPython, AWS"}
+{"prompt": "Instruction: Extract skills. CV: Jane Smith, experienced in React and Node.js.", "completion": "\n\nReact, Node.js"}

@@ -12,6 +12,7 @@ from typing import List, Optional, cast
 from app.core.dependencies import get_db, get_current_user
 from app.models.models import Candidate, User, UserRole, CandidateSkill, Skill
 from app.schemas.candidate import CandidateResponse, CandidateCreate, CandidateUpdate
+from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf
 
 from fastapi import Depends
 
@@ -35,6 +36,76 @@ def _is_displayable_candidate(candidate: Candidate) -> bool:
         and candidate.full_name
         and candidate.full_name != "Unknown"
     )
+
+
+def _decode_json_list(value: Optional[str]) -> List:
+    if not value:
+        return []
+    try:
+        payload = json.loads(value)
+    except Exception:
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _decode_json_dict(value: Optional[str]) -> dict:
+    if not value:
+        return {}
+    try:
+        payload = json.loads(value)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _build_complete_extraction_payload(candidate: Candidate, extraction_result=None) -> dict:
+    structured = _decode_json_dict(candidate.ner_extraction_data)
+    extracted_skills = []
+    if extraction_result is not None:
+        extracted_skills = extraction_result.skills
+
+    return {
+        "identity": {
+            "full_name": candidate.full_name,
+            "extracted_name": candidate.extracted_name,
+            "email": candidate.email,
+            "emails": _decode_json_list(candidate.extracted_emails),
+            "phone": candidate.phone,
+            "phones": _decode_json_list(candidate.extracted_phones),
+            "linkedin_url": candidate.linkedin_url,
+            "github_url": candidate.github_url,
+        },
+        "career": {
+            "job_titles": _decode_json_list(candidate.extracted_job_titles),
+            "companies": _decode_json_list(candidate.extracted_companies),
+            "experiences": structured.get("experiences", []),
+            "projects": structured.get("projects", []),
+            "certifications": structured.get("certifications", []),
+        },
+        "education_and_languages": {
+            "education": _decode_json_list(candidate.extracted_education),
+            "languages": structured.get("languages", []),
+        },
+        "skills_and_profile": {
+            "skills": structured.get("skills", []),
+            "soft_skills": structured.get("soft_skills", []),
+            "interests": structured.get("interests", []),
+            "profile_summary": structured.get("profile_summary"),
+            "skill_entities": extracted_skills,
+        },
+        "links_and_location": {
+            "linkedin_urls": structured.get("linkedin_urls", []),
+            "github_urls": structured.get("github_urls", []),
+            "portfolio_urls": structured.get("portfolio_urls", []),
+            "locations": structured.get("locations", []),
+        },
+        "quality": {
+            "score": float(candidate.extraction_quality_score or 0.0),
+            "is_fully_extracted": bool(candidate.is_fully_extracted),
+        },
+        "metadata": structured.get("extraction_metadata", {}),
+        "raw_text_length": len(candidate.raw_text or ""),
+    }
 
 
 # ===== GENERAL ROUTES (un-authenticated) =====
@@ -279,7 +350,6 @@ async def upload_candidate_cv(
 
         # Extract text from PDF/TXT
         if file_content_type == "application/pdf" or file_name.lower().endswith('.pdf'):
-            from app.services.cv_extractor import extract_text_from_pdf
             extracted_text = extract_text_from_pdf(str(pdf_path))
         else:
             extracted_text = contents.decode('utf-8')
@@ -290,7 +360,6 @@ async def upload_candidate_cv(
             extracted_text = f"Uploaded CV file: {Path(file_name).name}"
 
         # ===== NER EXTRACTION PIPELINE (NEW) =====
-        from app.services.cv_extractor import CVExtractionService
         extraction_service = CVExtractionService()
         extraction_result = extraction_service.extract_from_text(extracted_text)
         
@@ -392,7 +461,9 @@ async def upload_candidate_cv(
                 "entities_found": extraction_result.extraction_metadata.get("entities_found", 0),
                 "skills_extracted": len(extraction_result.skills),
                 "top_skills": [s["name"] for s in extraction_result.skills[:5]],
-                "metadata": extraction_result.extraction_metadata
+                "metadata": extraction_result.extraction_metadata,
+                "structured": extraction_result.structured,
+                "complete_payload": _build_complete_extraction_payload(db_candidate, extraction_result),
             }
         }
 
@@ -462,6 +533,26 @@ def get_candidate(
             detail="Candidate not found"
         )
     return candidate
+
+
+@router.get("/{candidate_id}/extraction-full")
+def get_candidate_full_extraction(
+    candidate_id: int,
+    db: Session = Depends(get_db)
+):
+    """Return all extracted CV fields in a recruiter-friendly JSON payload."""
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found"
+        )
+
+    return {
+        "candidate_id": candidate.id,
+        "full_name": candidate.full_name,
+        "extraction": _build_complete_extraction_payload(candidate),
+    }
 
 
 @router.put("/{candidate_id}", response_model=CandidateResponse)

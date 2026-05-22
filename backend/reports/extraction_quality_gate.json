@@ -1,0 +1,274 @@
+{
+  "generated_at": "2026-05-19T12:00:19.047779+00:00",
+  "threshold": 95.0,
+  "global_score": 98.89,
+  "passed": true,
+  "samples": [
+    {
+      "sample": "Senior backend engineer",
+      "quality_score": 100.0,
+      "quality_from_service": 100.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 100.0,
+        "enrichment": 100.0
+      },
+      "missing_fields": [],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 5,
+        "companies": 4,
+        "experiences": 2,
+        "education": 1,
+        "skills": 7,
+        "languages": 2,
+        "soft_skills": 1,
+        "projects": 1,
+        "certifications": 1,
+        "linkedin_urls": 1,
+        "github_urls": 1,
+        "portfolio_urls": 3,
+        "profile_summary": 1,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 2,
+        "companies": 2,
+        "experiences": 1,
+        "education": 1,
+        "skills": 6,
+        "languages": 2,
+        "projects": 1,
+        "certifications": 1,
+        "linkedin_urls": 1,
+        "github_urls": 1,
+        "portfolio_urls": 1,
+        "profile_summary": 1
+      }
+    },
+    {
+      "sample": "OCR noisy profile",
+      "quality_score": 100.0,
+      "quality_from_service": 100.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 100.0,
+        "enrichment": 100.0
+      },
+      "missing_fields": [],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 3,
+        "companies": 3,
+        "experiences": 3,
+        "education": 1,
+        "skills": 5,
+        "languages": 0,
+        "soft_skills": 0,
+        "projects": 1,
+        "certifications": 0,
+        "linkedin_urls": 0,
+        "github_urls": 0,
+        "portfolio_urls": 2,
+        "profile_summary": 1,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "experiences": 1,
+        "education": 1,
+        "skills": 4,
+        "projects": 1
+      }
+    },
+    {
+      "sample": "Minimal profile",
+      "quality_score": 100.0,
+      "quality_from_service": 40.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 100.0,
+        "enrichment": 100.0
+      },
+      "missing_fields": [],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 0,
+        "job_titles": 0,
+        "companies": 0,
+        "experiences": 0,
+        "education": 0,
+        "skills": 3,
+        "languages": 0,
+        "soft_skills": 0,
+        "projects": 0,
+        "certifications": 0,
+        "linkedin_urls": 0,
+        "github_urls": 0,
+        "portfolio_urls": 1,
+        "profile_summary": 0,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "skills": 2
+      }
+    },
+    {
+      "sample": "Anonymized Product Manager",
+      "quality_score": 93.33,
+      "quality_from_service": 100.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 66.67,
+        "enrichment": 100.0
+      },
+      "missing_fields": [
+        {
+          "field": "skills",
+          "expected_min": 3,
+          "found": 1
+        }
+      ],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 2,
+        "companies": 3,
+        "experiences": 2,
+        "education": 1,
+        "skills": 1,
+        "languages": 2,
+        "soft_skills": 1,
+        "projects": 1,
+        "certifications": 0,
+        "linkedin_urls": 1,
+        "github_urls": 0,
+        "portfolio_urls": 1,
+        "profile_summary": 1,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "education": 1,
+        "skills": 3,
+        "languages": 1,
+        "projects": 1,
+        "linkedin_urls": 1
+      }
+    },
+    {
+      "sample": "Anonymized DevOps Engineer",
+      "quality_score": 100.0,
+      "quality_from_service": 100.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 100.0,
+        "enrichment": 100.0
+      },
+      "missing_fields": [],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 2,
+        "companies": 4,
+        "experiences": 2,
+        "education": 1,
+        "skills": 5,
+        "languages": 0,
+        "soft_skills": 1,
+        "projects": 0,
+        "certifications": 2,
+        "linkedin_urls": 0,
+        "github_urls": 1,
+        "portfolio_urls": 2,
+        "profile_summary": 0,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "education": 1,
+        "skills": 5,
+        "certifications": 1,
+        "github_urls": 1,
+        "portfolio_urls": 1
+      }
+    },
+    {
+      "sample": "Anonymized OCR-like Analyst",
+      "quality_score": 100.0,
+      "quality_from_service": 100.0,
+      "category_scores": {
+        "identity": 100.0,
+        "career": 100.0,
+        "education": 100.0,
+        "skills": 100.0,
+        "enrichment": 100.0
+      },
+      "missing_fields": [],
+      "counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 3,
+        "companies": 2,
+        "experiences": 3,
+        "education": 1,
+        "skills": 4,
+        "languages": 0,
+        "soft_skills": 1,
+        "projects": 1,
+        "certifications": 0,
+        "linkedin_urls": 0,
+        "github_urls": 0,
+        "portfolio_urls": 1,
+        "profile_summary": 1,
+        "interests": 0
+      },
+      "expected_min_counts": {
+        "full_name": 1,
+        "email": 1,
+        "phone": 1,
+        "job_titles": 1,
+        "companies": 1,
+        "experiences": 1,
+        "education": 1,
+        "skills": 3,
+        "projects": 1
+      }
+    }
+  ]
+}

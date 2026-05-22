@@ -8,6 +8,7 @@ from app.services.feature_engineering import PairFeatureMeta, build_pair_feature
 from app.services.matching_service import MatchingService
 from app.services.scoring import compute_match_score, apply_business_rules
 from app.scoring.decision import combine_scores, decision_from_score
+from app.services.explainability_engine import generate_explanation
 import joblib
 import pickle
 from pathlib import Path
@@ -52,6 +53,69 @@ def _load_bert_first_model_bundle():
         return None
 
     return {"model": model, "meta": meta}
+
+
+def _normalize_skill_names(values):
+    normalized = []
+    for value in values or []:
+        if isinstance(value, dict):
+            name = value.get("name") or value.get("skill") or ""
+        else:
+            name = value
+        name = str(name).strip()
+        if name:
+            normalized.append(name)
+    return normalized
+
+
+def _build_explainability_payload(extraction, job, score, sim):
+    cv_skills = _normalize_skill_names(extraction.structured.get("skills", []) if extraction.structured else [])
+    job_skills = _normalize_skill_names(job.get("skills", []))
+    cv_skill_map = {}
+    for skill in cv_skills:
+        cv_skill_map.setdefault(skill.lower(), skill)
+    job_skill_map = {}
+    for skill in job_skills:
+        job_skill_map.setdefault(skill.lower(), skill)
+
+    matching_skills = [job_skill_map[key] for key in job_skill_map if key in cv_skill_map]
+    missing_skills = [job_skill_map[key] for key in job_skill_map if key not in cv_skill_map]
+
+    candidate_years = extraction.structured.get("years_experience", 0) if extraction.structured else 0
+    job_years = job.get("years_experience", 0)
+    job_title = job.get("job_title") or job.get("title") or job.get("name") or "Job"
+    candidate_name = (
+        extraction.structured.get("full_name")
+        or extraction.structured.get("name")
+        or job.get("candidate_name")
+        or "Candidate"
+    )
+
+    explanation = generate_explanation(
+        candidate_name=str(candidate_name),
+        job_title=str(job_title),
+        match_score={
+            "match_score": float(score),
+            "text_similarity": float(sim),
+            "skills_match": 0.0 if not job_skills else len(matching_skills) / max(1, len(job_skills)),
+        },
+        matching_skills=matching_skills,
+        missing_skills=missing_skills,
+        candidate_years_exp=float(candidate_years or 0),
+        required_years_exp=float(job_years or 0),
+    )
+
+    return {
+        "candidate_name": candidate_name,
+        "job_title": job_title,
+        "matching_skills": explanation.matching_skills,
+        "missing_skills": explanation.missing_skills,
+        "experience_alignment": explanation.experience_alignment,
+        "key_reason": explanation.key_reason,
+        "recommendations": explanation.recommendations,
+        "overall_score": explanation.overall_score,
+        "interpretation": explanation.interpretation,
+    }
 
 
 @router.post("/run")
@@ -137,6 +201,7 @@ def run_pipeline(payload: Dict[str, Any]):
     sim_pct = float(sim) * 100.0 if sim is not None else 0.0
     final_score = combine_scores(sim_pct, ml_score_pct, w_sim=0.5, w_ml=0.5)
     decision_label, decision_meta = decision_from_score(final_score)
+    explanation = _build_explainability_payload(extraction, job, score, float(sim))
 
     return {
         "extraction": {
@@ -147,6 +212,7 @@ def run_pipeline(payload: Dict[str, Any]):
         "ml_score": ml_score_pct,
         "final_score": final_score,
         "decision": {"label": decision_label, "meta": decision_meta},
+        "explanation": explanation,
     }
 
 
