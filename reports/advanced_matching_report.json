@@ -1,0 +1,60 @@
+{
+  "dataset": {
+    "rows_total": 82,
+    "rows_train": 65,
+    "rows_test": 17,
+    "source_counts": {
+      "synthetic": 80,
+      "real_db": 2
+    },
+    "positive_rate": 0.5121951219512195,
+    "seed": 42
+  },
+  "model": {
+    "name": "xgboost",
+    "path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/final_match_model.joblib",
+    "fallback_path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/baseline_model.joblib"
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "threshold": 0.5
+    },
+    "test": {
+      "accuracy": 0.9411764705882353,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9473684210526315,
+      "roc_auc": 0.9305555555555556,
+      "threshold": 0.5
+    },
+    "test_best_f1": {
+      "accuracy": 0.9411764705882353,
+      "precision": 0.9,
+      "recall": 1.0,
+      "f1": 0.9473684210526315,
+      "roc_auc": 0.9305555555555556,
+      "threshold": 0.09
+    },
+    "lightweight_semantic": {
+      "accuracy": 0.7647058823529411,
+      "precision": 1.0,
+      "recall": 0.5555555555555556,
+      "f1": 0.7142857142857143,
+      "roc_auc": 0.9583333333333333,
+      "threshold": 0.5
+    }
+  },
+  "production_recommendation": {
+    "accept_threshold_score_pct": 80.0,
+    "review_threshold_score_pct": 50.0,
+    "env": {
+      "MATCH_ACCEPT_THRESHOLD": "80.0",
+      "MATCH_REVIEW_THRESHOLD": "50.0"
+    }
+  }
+}

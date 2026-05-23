@@ -1,0 +1,122 @@
+import os
+from pathlib import Path
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from dotenv import load_dotenv
+
+# Load environment variables from root .env file
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+from app.core.database import Base, engine
+from app.core.capabilities import assert_required_features, get_capabilities, log_capabilities_summary
+import importlib
+import logging
+
+
+class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to ensure redirects use HTTPS in production.
+    When deployed behind a reverse proxy (e.g., Railway), the request arrives as HTTP
+    but should redirect to HTTPS. Starlette's redirect_slashes uses the request scheme,
+    so we wrap the scope to force HTTPS redirects in production.
+    """
+    async def dispatch(self, request: Request, call_next):
+        # In production, ensure the scheme seen by Starlette is HTTPS
+        # by checking X-Forwarded-Proto header (set by reverse proxies)
+        if (os.getenv("NODE_ENV") == "production" or 
+            os.getenv("RAILWAY_ENVIRONMENT_NAME") == "production"):
+            forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+            if forwarded_proto == "https":
+                # Force the scope to use https so redirects are generated correctly
+                request.scope["scheme"] = "https"
+        
+        return await call_next(request)
+
+
+# Initialize FastAPI app early so lightweight endpoints work even if heavy
+# ML-related dependencies fail to import. Routers are added conditionally.
+app = FastAPI(
+    title="AI Talent Finder",
+    version="1.0.0",
+    # Allow automatic redirect from paths without trailing slash to their
+    # canonical route with trailing slash. This prevents 404s for clients
+    # that omit the trailing slash while endpoints require it.
+    redirect_slashes=True,
+)
+
+# Add HTTPS redirect middleware BEFORE CORS to catch all requests
+app.add_middleware(HTTPSRedirectMiddleware)
+
+# Configure CORS
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def include_optional_router(module_path: str, attr_name: str = "router"):
+    try:
+        module = importlib.import_module(module_path)
+        router = getattr(module, attr_name)
+        app.include_router(router)
+        logging.info(f"Included router {module_path}.{attr_name}")
+    except Exception as e:
+        logging.warning(f"Skipping router {module_path}.{attr_name}: {e}")
+
+
+@app.on_event("startup")
+def on_startup():
+    # Ensure database tables exist (best-effort)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logging.exception("Failed to create database tables: %s", e)
+
+    capabilities = log_capabilities_summary()
+    assert_required_features(capabilities)
+
+    # Conditionally include API routers. If a router import fails (e.g. heavy
+    # ML dependencies missing), the app still starts and exposes /health.
+    include_optional_router("app.api.auth")
+    include_optional_router("app.api.candidates")
+    include_optional_router("app.api.skills")
+    include_optional_router("app.api.jobs")
+    include_optional_router("app.api.scoring")
+    include_optional_router("app.api.criteria", "criteria_router")
+    include_optional_router("app.api.criteria", "matching_router")
+    include_optional_router("app.api.favorites")
+    include_optional_router("app.api.experiences")
+    include_optional_router("app.api.educations")
+    include_optional_router("app.api.match_results")
+    include_optional_router("app.api.chat", "router")
+    include_optional_router("app.api.export", "router")
+    # Ensure the full matching API (rich endpoints like /predict) is included when available
+    include_optional_router("app.api.matching", "router")
+    # Phase 3: Feedback loop, recommendations, bias detection
+    include_optional_router("app.api.feedback", "router")
+
+    # =========================================================================
+    # ai_pipeline : nouveau pipeline IA complet (PFA ESISA-TechForge4)
+    # Routes : /pipeline/match, /pipeline/batch-match, /llm/score, /scraping/jobs
+    # =========================================================================
+    include_optional_router("ai_pipeline.api.pipeline_router", "router")
+    include_optional_router("ai_pipeline.api.llm_router", "router")
+    include_optional_router("ai_pipeline.api.scraping_router", "router")
+
+
+# Health check endpoint (always available)
+@app.get("/health")
+def health():
+    return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/health/deps")
+def health_deps():
+    return get_capabilities()

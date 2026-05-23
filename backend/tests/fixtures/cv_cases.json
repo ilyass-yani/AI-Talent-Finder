@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {
+      "id": "case-basic-backend",
+      "title": "Backend Python CV",
+      "text": "JOHN DOE\nEmail: john@example.com\nSenior Backend Engineer with 6 years of experience building APIs.\nSkills: Python, FastAPI, PostgreSQL, Docker, Kubernetes.\nLanguages: English",
+      "expected_skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+      "expected_languages": ["English"]
+    },
+    {
+      "id": "case-fullstack-multilang",
+      "title": "Fullstack CV",
+      "text": "ALICE MARTIN\nFull Stack Developer focused on React, Node.js, TypeScript, AWS, and CI/CD.\nExperience with Terraform and GitHub Actions.\nLanguages: French, English",
+      "expected_skills": ["React", "Node.js", "TypeScript", "AWS", "CI/CD"],
+      "expected_languages": ["French", "English"]
+    },
+    {
+      "id": "case-scan-placeholder",
+      "title": "Scanned PDF placeholder",
+      "pdf_path": "backend/tests/fixtures/cv_scanned_sample.pdf",
+      "requires_ocr": true,
+      "notes": "Add a real scanned PDF here to test OCR extraction."
+    }
+  ]
+}

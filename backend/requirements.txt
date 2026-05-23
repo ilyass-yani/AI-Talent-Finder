@@ -1,0 +1,47 @@
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+sqlalchemy==2.0.*
+alembic==1.14.*
+psycopg2-binary==2.9.*
+python-jose[cryptography]==3.3.*
+passlib[bcrypt]==1.7.*
+argon2-cffi==21.3.*
+bcrypt==4.1.*
+python-multipart==0.0.*
+pydantic[email]==2.*
+email-validator>=2.0.0
+pymupdf==1.25.*
+scikit-learn==1.6.*
+transformers>=4.30.0
+sentence-transformers>=3.0.0
+python-dotenv==1.0.*
+fuzzywuzzy==0.18.*
+python-Levenshtein>=0.27.0
+pdfplumber>=0.10.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+python-docx>=0.8.0
+openpyxl>=3.1.0
+reportlab>=4.0.0
+anthropic>=0.45.0
+# LLM Fine-tuning
+peft>=0.4.0  # Parameter-Efficient Fine-Tuning for LoRA/QLoRA
+# bitsandbytes>=0.41.0  # 4-bit/8-bit quantization — GPU/Linux only, skip on Windows CPU
+# BERT Embeddings
+# pytorch>=2.0.0  # typo — use torch; already installed transitively
+# Web Scraping
+selenium>=4.10.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+# FAISS for similarity search
+faiss-cpu>=1.7.4
+
+# =============================================================================
+# ai_pipeline (PFA pipeline) - dépendances additionnelles
+# =============================================================================
+trl>=0.10.0            # SFTTrainer pour LoRA/QLoRA
+shap>=0.45.0           # Explicabilité (ShapExplainer)
+# chromadb>=0.5.0        # Vector store alternative à FAISS — may fail on some OS configs
+xgboost>=2.0.0         # XGBoostModel dans ai_pipeline/models
+accelerate>=0.33.0     # Requis par trl/transformers récents
+datasets>=2.20.0       # HuggingFace datasets pour LoRA trainer

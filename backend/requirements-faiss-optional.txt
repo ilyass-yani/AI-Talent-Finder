@@ -1,0 +1,4 @@
+# Optional acceleration for semantic search.
+# Not required for normal matching (project has a no-FAISS fallback).
+# On macOS, this may require extra native tooling (e.g. swig).
+faiss-cpu>=1.8.0

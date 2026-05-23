@@ -1,0 +1,8 @@
+{
+  "model_type": "baseline_poc",
+  "n_training_samples": 160,
+  "n_features": 50,
+  "lr_accuracy": 0.725,
+  "rf_accuracy": 0.575,
+  "timestamp": "1778014768.627346"
+}

@@ -1,0 +1,56 @@
+{
+  "dataset": {
+    "path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/data/training_pairs.csv",
+    "rows_total": 5000,
+    "rows_train": 4250,
+    "rows_test": 750,
+    "seed": 42,
+    "test_size": 0.15
+  },
+  "baseline": {
+    "default_threshold_0_5": {
+      "accuracy": 0.9453333333333334,
+      "precision": 0.9446640316205533,
+      "recall": 0.9735234215885947,
+      "f1": 0.958876629889669,
+      "roc_auc": 0.9290707641013141,
+      "threshold": 0.5
+    },
+    "best_f1": {
+      "accuracy": 0.9453333333333334,
+      "precision": 0.9446640316205533,
+      "recall": 0.9735234215885947,
+      "f1": 0.958876629889669,
+      "roc_auc": 0.9290707641013141,
+      "threshold": 0.06
+    }
+  },
+  "siamese": {
+    "default_threshold_0_5": {
+      "accuracy": 0.9453333333333334,
+      "precision": 0.9446640316205533,
+      "recall": 0.9735234215885947,
+      "f1": 0.958876629889669,
+      "roc_auc": 0.927325055634628,
+      "threshold": 0.5
+    },
+    "best_f1": {
+      "accuracy": 0.9453333333333334,
+      "precision": 0.9446640316205533,
+      "recall": 0.9735234215885947,
+      "f1": 0.958876629889669,
+      "roc_auc": 0.927325055634628,
+      "threshold": 0.01
+    },
+    "model_path": "/Users/elhadjibassirousy/Desktop/AI-Talent-Finder/models/siamese_model_phase2_full"
+  },
+  "production_recommendation": {
+    "model": "baseline",
+    "accept_threshold_score_pct": 94.78,
+    "review_threshold_score_pct": 89.78,
+    "env": {
+      "MATCH_ACCEPT_THRESHOLD": "94.78",
+      "MATCH_REVIEW_THRESHOLD": "89.78"
+    }
+  }
+}

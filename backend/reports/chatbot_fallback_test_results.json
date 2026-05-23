@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-05-12T23:47:02.728881",
+  "test_mode": "fallback_deterministic",
+  "note": "Pas de clé API Anthropic — utilise réponses rule-based",
+  "scenarios": [
+    {
+      "scenario": "Explain Match",
+      "status": "SUCCESS",
+      "job_title": "Senior React Developer",
+      "candidates_analyzed": 0,
+      "response": "Je n'ai pas encore de candidat ou de détail de score à expliquer. Lancez d'abord un matching.",
+      "context": {
+        "current_criteria": {
+          "id": 1,
+          "title": "Senior React Developer",
+          "required_skills": []
+        },
+        "top_candidates": []
+      }
+    },
+    {
+      "scenario": "Compare Candidates",
+      "status": "SKIPPED",
+      "reason": "Need at least 2 candidates with matches",
+      "candidates_available": 0,
+      "response": null
+    },
+    {
+      "scenario": "Ideal Profile",
+      "status": "SUCCESS",
+      "job_title": "Senior React Developer",
+      "skills_analyzed": 0,
+      "response": "Je n'ai pas encore de profil idéal défini. Chargez d'abord une matrice de critères.",
+      "context": {
+        "current_criteria": {
+          "id": 1,
+          "title": "Senior React Developer",
+          "required_skills": []
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_scenarios": 3,
+    "successful": 2,
+    "skipped": 1,
+    "message": "2/3 scénarios testés avec succès"
+  }
+}
