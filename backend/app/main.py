@@ -102,6 +102,14 @@ def on_startup():
     # Phase 3: Feedback loop, recommendations, bias detection
     include_optional_router("app.api.feedback", "router")
 
+    # =========================================================================
+    # ai_pipeline : nouveau pipeline IA complet (PFA ESISA-TechForge4)
+    # Routes : /pipeline/match, /pipeline/batch-match, /llm/score, /scraping/jobs
+    # =========================================================================
+    include_optional_router("ai_pipeline.api.pipeline_router", "router")
+    include_optional_router("ai_pipeline.api.llm_router", "router")
+    include_optional_router("ai_pipeline.api.scraping_router", "router")
+
 
 # Health check endpoint (always available)
 @app.get("/health")
