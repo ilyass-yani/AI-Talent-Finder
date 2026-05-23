@@ -315,3 +315,4 @@ cd tools/llama.cpp
 | Frontend  | Next.js 16, React 19, TypeScript, Tailwind CSS                     |
 | Tests     | Jest (frontend), pytest (backend)                                  |
 | Deploy    | Docker Compose, Railway                                            |
+BACKUP
