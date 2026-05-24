@@ -6,6 +6,7 @@ Designed to be used both from FastAPI endpoints and standalone CLI scripts.
 from __future__ import annotations
 
 import logging
+import os
 import random
 import time
 from dataclasses import dataclass, field
@@ -79,6 +80,7 @@ def _build_driver(headless: bool = True) -> "webdriver.Chrome":
         options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
@@ -86,7 +88,15 @@ def _build_driver(headless: bool = True) -> "webdriver.Chrome":
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--lang=fr-FR,fr;q=0.9,en;q=0.8")
 
-    driver = webdriver.Chrome(options=options)
+    # Use Chromium binary if set (Docker / Linux environments)
+    chrome_bin = os.getenv("CHROME_BIN")
+    if chrome_bin:
+        options.binary_location = chrome_bin
+
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH")
+    service = ChromeService(executable_path=chromedriver_path) if chromedriver_path else ChromeService()
+
+    driver = webdriver.Chrome(service=service, options=options)
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"},
