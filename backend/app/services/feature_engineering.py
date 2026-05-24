@@ -7,10 +7,11 @@ the same feature recipe.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.services.normalization import normalize_text
@@ -20,6 +21,7 @@ from app.services.normalization import normalize_text
 class PairFeatureMeta:
     tfidf: TfidfVectorizer
     svd: TruncatedSVD
+    bow: Optional[CountVectorizer] = None
 
 
 def _tokenize(text: str) -> set[str]:
@@ -75,16 +77,34 @@ def fit_pair_vectorizer(candidate_texts: Iterable[str], job_texts: Iterable[str]
     return PairFeatureMeta(tfidf=tfidf, svd=svd)
 
 
-def build_pair_features(candidate_text: str, job_text: str, meta: PairFeatureMeta) -> np.ndarray:
-    candidate_text = normalize_text(candidate_text)
-    job_text = normalize_text(job_text)
+def fit_pair_bow_vectorizer(candidate_texts: Iterable[str], job_texts: Iterable[str], max_features: int = 20000, svd_components: int = 200) -> PairFeatureMeta:
+    """Classic feature engineering using a Bag-of-Words corpus representation."""
+    candidate_texts = [normalize_text(text) for text in candidate_texts]
+    job_texts = [normalize_text(text) for text in job_texts]
+    combined = candidate_texts + job_texts
 
-    x_candidate = meta.tfidf.transform([candidate_text])
-    x_job = meta.tfidf.transform([job_text])
+    bow = CountVectorizer(max_features=max_features, ngram_range=(1, 2), binary=False)
+    bow.fit(combined)
 
-    x_candidate_red = meta.svd.transform(x_candidate)
-    x_job_red = meta.svd.transform(x_job)
-    cosine = _safe_cosine(x_candidate_red, x_job_red)
+    candidate_matrix = bow.transform(candidate_texts)
+    svd = TruncatedSVD(n_components=min(svd_components, max(1, candidate_matrix.shape[1] - 1)))
+    svd.fit(candidate_matrix)
+
+    # Keep tfidf field populated for backward compatibility in callers.
+    tfidf = TfidfVectorizer(max_features=max_features, ngram_range=(1, 2))
+    tfidf.fit(combined)
+
+    return PairFeatureMeta(bow=bow, tfidf=tfidf, svd=svd)
+
+
+def _build_pair_features_from_matrix(candidate_text: str, job_text: str, matrix_builder, svd: TruncatedSVD) -> np.ndarray:
+    x_candidate = matrix_builder([candidate_text])
+    x_job = matrix_builder([job_text])
+
+    x_candidate_red = svd.transform(x_candidate)
+    x_job_red = svd.transform(x_job)
+    # Keep the feature vector shape stable, but make BERT the primary similarity signal.
+    semantic_similarity = np.array([build_bert_similarity_feature(candidate_text, job_text)], dtype=float)
     extra = _extra_pair_features(candidate_text, job_text).reshape(1, -1)
 
     return np.hstack([
@@ -92,9 +112,33 @@ def build_pair_features(candidate_text: str, job_text: str, meta: PairFeatureMet
         x_job_red,
         np.abs(x_candidate_red - x_job_red),
         x_candidate_red * x_job_red,
-        cosine.reshape(-1, 1),
+        semantic_similarity.reshape(-1, 1),
         extra,
     ])
+
+
+def build_pair_features(candidate_text: str, job_text: str, meta: PairFeatureMeta) -> np.ndarray:
+    candidate_text = normalize_text(candidate_text)
+    job_text = normalize_text(job_text)
+
+    matrix_builder = meta.tfidf.transform
+    if meta.bow is not None:
+        matrix_builder = meta.bow.transform
+
+    return _build_pair_features_from_matrix(candidate_text, job_text, matrix_builder, meta.svd)
+
+
+def build_bert_similarity_feature(candidate_text: str, job_text: str) -> float:
+    """Recommended feature: semantic similarity from sentence-transformers (BERT family).
+
+    Returns a value in [0, 1]. Falls back to 0.0 if the model is unavailable.
+    """
+    try:
+        from ai_module.matching.semantic_matcher import SemanticSkillMatcher
+
+        return float(SemanticSkillMatcher.semantic_similarity(candidate_text, job_text))
+    except Exception:
+        return 0.0
 
 
 def build_pair_features_dataframe(df):

@@ -37,6 +37,74 @@ export default function CandidateDetail() {
     }
   };
 
+  // Reuse candidate profile parsing utilities for full extraction display
+  const safeJsonParse = (
+    jsonString: string | null | undefined,
+    fallback: unknown[] = [],
+    useFallbackIfEmpty = false
+  ) => {
+    try {
+      if (!jsonString) {
+        return fallback;
+      }
+      const parsed = JSON.parse(jsonString);
+      if (!Array.isArray(parsed)) {
+        return fallback;
+      }
+      if (useFallbackIfEmpty && parsed.length === 0 && fallback.length > 0) {
+        return fallback;
+      }
+      return parsed;
+    } catch (e) {
+      console.error('❌ JSON Parse Error:', e, 'String:', jsonString);
+      return fallback;
+    }
+  };
+
+  const safeJsonObjectParse = (jsonString: string | null | undefined, fallback: Record<string, unknown> = {}) => {
+    try {
+      if (!jsonString) return fallback;
+      const parsed = JSON.parse(jsonString);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return fallback;
+      }
+      return parsed;
+    } catch (e) {
+      console.error('❌ JSON Object Parse Error:', e, 'String:', jsonString);
+      return fallback;
+    }
+  };
+
+  const toStringArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => String(item || '').trim())
+      .filter((item) => item.length > 0);
+  };
+
+  type ExtractedExperience = {
+    title?: string;
+    company?: string;
+    period?: string | null;
+    responsibilities?: string[];
+  };
+
+  const toExperienceArray = (value: unknown): ExtractedExperience[] => {
+    if (!Array.isArray(value)) return [];
+    const results: ExtractedExperience[] = [];
+    for (const item of value) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const data = item as Record<string, unknown>;
+      const title = typeof data.title === 'string' ? data.title.trim() : '';
+      const company = typeof data.company === 'string' ? data.company.trim() : '';
+      const period = typeof data.period === 'string' ? data.period.trim() : null;
+      const responsibilities = toStringArray(data.responsibilities).filter((line) => line.length > 0);
+      if (!title && !company && responsibilities.length === 0) continue;
+      results.push({ title, company, period, responsibilities });
+    }
+    return results;
+  };
+
   useEffect(() => {
     const fetchCandidate = async () => {
       try {
@@ -106,6 +174,21 @@ export default function CandidateDetail() {
   const extractedEmails = parseJsonList(candidate.extracted_emails);
   const extractedPhones = parseJsonList(candidate.extracted_phones);
   const extractedEducation = parseJsonList(candidate.extracted_education);
+
+  const nerData = safeJsonObjectParse(candidate.ner_extraction_data);
+
+  const languages = toStringArray(nerData.languages);
+  const softSkills = toStringArray(nerData.soft_skills);
+  const interests = toStringArray(nerData.interests);
+  const locations = toStringArray(nerData.locations);
+  const linkedins = toStringArray(nerData.linkedin_urls);
+  const githubUrls = toStringArray(nerData.github_urls);
+  const portfolioUrls = toStringArray(nerData.portfolio_urls);
+  const certifications = toStringArray(nerData.certifications);
+  const projects = toStringArray(nerData.projects);
+  const profileSummary = typeof nerData.profile_summary === 'string' ? nerData.profile_summary.trim() : '';
+  const linkedinUrl = candidate.linkedin_url || linkedins[0] || null;
+  const experiences = toExperienceArray(nerData.experiences);
 
   return (
     <Layout>
@@ -241,6 +324,112 @@ export default function CandidateDetail() {
                 </div>
               </div>
             )}
+
+            {/* Profile Summary */}
+            {profileSummary && (
+              <div className="mb-8 bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="summary-heading">
+                <h3 className="text-xl font-bold text-gray-900 mb-3" id="summary-heading">📝 Profil</h3>
+                <p className="text-gray-700 p-4 bg-indigo-50 rounded leading-relaxed">{profileSummary}</p>
+              </div>
+            )}
+
+            {/* Professional Experiences */}
+            <div className="mb-8" role="region" aria-labelledby="experiences-heading">
+              <h3 className="text-lg font-bold text-gray-900 mb-3" id="experiences-heading">🧭 Expériences Professionnelles</h3>
+              <div className="space-y-4" role="list">
+                {experiences.map((experience, idx) => (
+                  <div key={idx} className="p-4 rounded border border-slate-200 bg-slate-50" role="listitem">
+                    <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                      <p className="font-semibold text-slate-900">{experience.title || 'Poste non détecté'}</p>
+                      {experience.period && (
+                        <span className="text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded px-2 py-1">
+                          {experience.period}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-700 mb-2">{experience.company || 'Entreprise non détectée'}</p>
+                    {experience.responsibilities && experience.responsibilities.length > 0 && (
+                      <ul className="space-y-1 text-sm text-slate-700 list-disc pl-5">
+                        {experience.responsibilities.map((item, itemIdx) => (
+                          <li key={itemIdx}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+                {experiences.length === 0 && (
+                  <p className="text-gray-400" role="listitem">Aucune expérience détaillée trouvée</p>
+                )}
+              </div>
+            </div>
+
+            {/* Certifications & Projects */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div role="region" aria-labelledby="certifications-heading" className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="certifications-heading">📜 Certifications</h3>
+                <div className="space-y-2" role="list">
+                  {certifications.map((certification: string, idx: number) => (
+                    <p key={idx} className="text-gray-600 p-2 bg-amber-50 rounded" role="listitem">{certification}</p>
+                  ))}
+                  {certifications.length === 0 && <p className="text-gray-400">Aucune certification trouvée</p>}
+                </div>
+              </div>
+              <div role="region" aria-labelledby="projects-heading" className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="projects-heading">🚀 Projets</h3>
+                <div className="space-y-2" role="list">
+                  {projects.map((project: string, idx: number) => (
+                    <p key={idx} className="text-gray-600 p-2 bg-lime-50 rounded" role="listitem">{project}</p>
+                  ))}
+                  {projects.length === 0 && <p className="text-gray-400">Aucun projet trouvé</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Languages, Skills, Interests */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div role="region" aria-labelledby="languages-heading" className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="languages-heading">🌍 Langues</h3>
+                <div className="space-y-2" role="list">
+                  {languages.map((language: string, idx: number) => (
+                    <p key={idx} className="text-gray-600 p-2 bg-cyan-50 rounded" role="listitem">{language}</p>
+                  ))}
+                  {languages.length === 0 && <p className="text-gray-400">Aucune langue trouvée</p>}
+                </div>
+              </div>
+              <div role="region" aria-labelledby="soft-skills-heading" className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="soft-skills-heading">🤝 Compétences</h3>
+                <div className="space-y-2" role="list">
+                  {softSkills.map((skill: string, idx: number) => (
+                    <p key={idx} className="text-gray-600 p-2 bg-emerald-50 rounded" role="listitem">{skill}</p>
+                  ))}
+                  {softSkills.length === 0 && <p className="text-gray-400">Aucune compétence trouvée</p>}
+                </div>
+              </div>
+              <div role="region" aria-labelledby="interests-heading" className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="interests-heading">🎯 Centres d’intérêt</h3>
+                <div className="space-y-2" role="list">
+                  {interests.map((interest: string, idx: number) => (
+                    <p key={idx} className="text-gray-600 p-2 bg-rose-50 rounded" role="listitem">{interest}</p>
+                  ))}
+                  {interests.length === 0 && <p className="text-gray-400">Aucun centre d’intérêt trouvé</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Visibility Badge */}
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center">
+                <span className="text-3xl mr-3">✓</span>
+                <div>
+                  <p className="font-bold text-green-700">Profil visible</p>
+                  <p className="text-sm text-green-600">
+                    {candidate.is_fully_extracted
+                      ? 'Les recruteurs peuvent découvrir ce profil avec toutes ses données'
+                      : 'Profil partiellement extrait — compléter le CV pour améliorer la visibilité'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
