@@ -1338,8 +1338,8 @@ def get_match_explanation(
         )
     
     return ExplainabilityResponse(
-        candidate_name=explanation.candidate_name,
-        job_title=explanation.job_title,
+        candidate_name=candidate.full_name,
+        job_title=criteria.title,
         overall_score=explanation.overall_score,
         interpretation=explanation.interpretation,
         matching_skills=explanation.matching_skills,
