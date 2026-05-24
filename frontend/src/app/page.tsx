@@ -11,12 +11,15 @@ import {
   Cpu,
   Lock,
   MessageSquare,
+  Moon,
   ShieldCheck,
   Sparkles,
+  Sun,
   Target,
   Users,
   Zap,
 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -25,6 +28,7 @@ const manrope = Manrope({
 
 export default function Home() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [contactSubmitting, setContactSubmitting] = useState(false);
@@ -152,6 +156,13 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-100"
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <Link href="/auth/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:px-4">
               Connexion
             </Link>
