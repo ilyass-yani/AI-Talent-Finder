@@ -4,3 +4,7 @@
 # Heavy submodules such as semantic_matcher should be imported explicitly
 # by the caller when needed.
 
+from .scorer import CosineScorer
+
+__all__ = ["CosineScorer"]
+
