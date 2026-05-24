@@ -101,6 +101,8 @@ def on_startup():
     include_optional_router("app.api.matching", "router")
     # Phase 3: Feedback loop, recommendations, bias detection
     include_optional_router("app.api.feedback", "router")
+    # Job scraping (Selenium)
+    include_optional_router("app.api.scraping", "router")
 
 
 # Health check endpoint (always available)

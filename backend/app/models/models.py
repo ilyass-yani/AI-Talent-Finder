@@ -185,6 +185,25 @@ class Favorite(Base):
     candidate = relationship("Candidate", back_populates="favorites")
 
 
+class ScrapedJob(Base):
+    """Job offers scraped from external sites (LinkedIn, Indeed, etc.)."""
+    __tablename__ = "scraped_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False, index=True)
+    company = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    url = Column(String, nullable=True, unique=True)
+    source = Column(String, nullable=True)  # "linkedin" | "indeed" | "glassdoor"
+    keywords = Column(String, nullable=True)   # search keywords used
+    contract_type = Column(String, nullable=True)  # CDI, CDD, stage…
+    salary_range = Column(String, nullable=True)
+    posted_at = Column(String, nullable=True)   # original posting date (raw string)
+    scraped_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    imported = Column(Boolean, default=False)   # True once converted to JobCriteria
+
+
 class RecruiterFeedback(Base):
     """Phase 3: Capture recruiter decisions vs model predictions for continuous learning."""
     __tablename__ = "recruiter_feedback"
