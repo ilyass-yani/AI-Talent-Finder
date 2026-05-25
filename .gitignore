@@ -1,5 +1,10 @@
 #Les miens
 .env
+
+# ML model binaries — store in model registry, not git
+*.safetensors
+*.bin
+backend/models/bert_matching/
 venv/
 .venv/
 .venv-phase2/
