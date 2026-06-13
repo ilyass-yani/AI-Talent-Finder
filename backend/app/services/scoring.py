@@ -1,13 +1,22 @@
-"""Scoring and decision logic with calibrated business rules."""
+"""Scoring and decision logic with calibrated business rules.
+
+Weights and decision thresholds default to the calibrated values below but can
+be overridden at runtime by an administrator through the admin settings
+("Configurer les paramètres du pipeline IA"). The current values are read from
+``app.core.settings_store`` which falls back to these defaults when nothing has
+been configured.
+"""
 
 from typing import Dict, Any, List, Tuple
 from enum import Enum
 
+from app.core.settings_store import get_runtime_pipeline_config
+
 
 class MatchDecision(str, Enum):
-    ACCEPTED = "accepted"  # Score >= 0.8
-    REVIEW = "to_review"    # 0.5 <= Score < 0.8
-    REJECTED = "rejected"   # Score < 0.5
+    ACCEPTED = "accepted"  # Score >= accept_threshold (default 0.8)
+    REVIEW = "to_review"    # review_threshold <= Score < accept_threshold
+    REJECTED = "rejected"   # Score < review_threshold (default 0.5)
 
 
 def compute_match_score(
@@ -28,55 +37,63 @@ def compute_match_score(
     - Education: 10%
     - Bonus: 5% for perfect match
     """
+    cfg = get_runtime_pipeline_config()
+    w_skill = cfg["skill_weight"]
+    w_semantic = cfg["semantic_weight"]
+    w_exp = cfg["experience_weight"]
+    w_edu = cfg["education_weight"]
+    bonus = cfg["perfect_match_bonus"]
+
     score = 0.0
 
-    # Skill matching (weight: 50%)
+    # Skill matching
     if job_skills:
         required_set = set(s.lower() for s in job_skills)
         cv_set = set(s.lower() for s in cv_skills)
         intersection = required_set & cv_set
         skill_score = len(intersection) / len(required_set) if intersection else 0.0
-        score += skill_score * 0.50
+        score += skill_score * w_skill
     else:
-        score += 0.50  # no skills required
+        score += w_skill  # no skills required
 
-    # Semantic similarity (weight: 20%)
-    score += (similarity_score or 0.0) * 0.20
+    # Semantic similarity
+    score += (similarity_score or 0.0) * w_semantic
 
-    # Experience match (weight: 15%)
+    # Experience match
     if job_years > 0:
         if cv_years >= job_years:
-            score += 0.15
+            score += w_exp
         else:
-            # Linear penalty: each missing year = 15% / job_years penalty
+            # Linear penalty: each missing year reduces the experience weight
             penalty = (job_years - cv_years) / job_years
-            score += max(0, 0.15 * (1 - penalty))
+            score += max(0, w_exp * (1 - penalty))
     else:
-        score += 0.15
+        score += w_exp
 
-    # Education match (weight: 10%)
+    # Education match
     if job_edu_level > 0:
         if cv_edu_level >= job_edu_level:
-            score += 0.10
+            score += w_edu
         else:
             # Penalty proportional to gap
             penalty = (job_edu_level - cv_edu_level) / job_edu_level
-            score += max(0, 0.10 * (1 - penalty))
+            score += max(0, w_edu * (1 - penalty))
     else:
-        score += 0.10
+        score += w_edu
 
-    # Bonus for perfect skill + experience match (up to 5%)
+    # Bonus for perfect skill + experience match
     if job_skills and cv_years >= job_years and len(intersection) == len(required_set):
-        score += 0.05
+        score += bonus
 
     return min(1.0, max(0.0, score))
 
 
 def decide_match(score: float) -> MatchDecision:
-    """Map score to decision."""
-    if score >= 0.80:
+    """Map score to decision using the configured thresholds."""
+    cfg = get_runtime_pipeline_config()
+    if score >= cfg["accept_threshold"]:
         return MatchDecision.ACCEPTED
-    elif score >= 0.50:
+    elif score >= cfg["review_threshold"]:
         return MatchDecision.REVIEW
     else:
         return MatchDecision.REJECTED

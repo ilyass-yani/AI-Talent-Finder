@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .security import decode_token
 from app.schemas.user import TokenData
-from app.models.models import User
+from app.models.models import User, UserRole
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -90,5 +90,44 @@ def get_current_user(
             detail="User not found in database",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency guard for admin-only routes.
+
+    Use in admin endpoints/routers:
+        @router.get("/users", dependencies=[Depends(require_admin)])
+
+    Raises:
+        HTTPException 403 if the authenticated user is not an administrator.
+    """
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs",
+        )
+    return current_user
+
+
+def log_activity(
+    db: Session,
+    action: str,
+    *,
+    user_id: Optional[int] = None,
+    detail: Optional[str] = None,
+    level: str = "INFO",
+) -> None:
+    """Best-effort audit logging used by the admin monitoring view.
+
+    Never raises: a logging failure must not break the originating request.
+    """
+    try:
+        from app.models.models import ActivityLog
+
+        entry = ActivityLog(action=action, user_id=user_id, detail=detail, level=level)
+        db.add(entry)
+        db.commit()
+    except Exception:
+        db.rollback()
