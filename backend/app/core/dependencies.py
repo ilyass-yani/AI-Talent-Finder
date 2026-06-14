@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .security import decode_token
 from app.schemas.user import TokenData
-from app.models.models import User
+from app.models.models import User, UserRole
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -92,3 +92,13 @@ def get_current_user(
         )
     
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Dependency that restricts access to admin users only."""
+    if current_user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
