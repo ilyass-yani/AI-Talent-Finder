@@ -11,6 +11,12 @@ class UserRole(str, enum.Enum):
     candidate = "candidate"
 
 
+class ModerationStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
 class SkillCategory(str, enum.Enum):
     tech = "tech"
     soft = "soft"
@@ -32,6 +38,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.recruiter, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
@@ -136,6 +143,7 @@ class JobCriteria(Base):
     recruiter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    moderation_status = Column(Enum(ModerationStatus), default=ModerationStatus.pending, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Menu, X, LogOut, LayoutDashboard, Users, Upload, SlidersHorizontal,
   GitCompareArrows, MessageCircle, Heart, FileDown, BrainCircuit, BarChart3,
-  UserCircle, Wrench, ChevronLeft, Moon, Sun,
+  UserCircle, Wrench, ChevronLeft, Moon, Sun, ShieldAlert, Briefcase,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -26,6 +26,12 @@ const candidateNav = [
   { href: "/candidate/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/candidate/upload", label: "Déposer mon CV", icon: Upload },
   { href: "/candidate/profile", label: "Mon profil", icon: UserCircle },
+];
+
+const adminNav = [
+  { href: "/admin/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Utilisateurs", icon: Users },
+  { href: "/admin/jobs", label: "Offres", icon: Briefcase },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -57,7 +63,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const isCandidate = role === "candidate";
-  const nav = isCandidate ? candidateNav : recruiterNav;
+  const isAdmin = role === "admin";
+  const nav = isAdmin ? adminNav : isCandidate ? candidateNav : recruiterNav;
 
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <>
@@ -78,9 +85,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {(sidebarOpen || mobile) && (
         <div className="px-4 pt-3 pb-1">
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-            isCandidate ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
+            isAdmin
+              ? "bg-red-100 text-red-700"
+              : isCandidate
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-indigo-100 text-indigo-700"
           }`}>
-            {isCandidate ? "Espace Candidat" : "Espace Recruteur"}
+            {isAdmin && <ShieldAlert className="h-3 w-3" />}
+            {isAdmin ? "Espace Admin" : isCandidate ? "Espace Candidat" : "Espace Recruteur"}
           </span>
         </div>
       )}
