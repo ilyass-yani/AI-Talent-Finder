@@ -53,6 +53,17 @@ export interface SystemHealth {
   counts: Record<string, number>;
 }
 
+export interface PipelineConfig {
+  skill_weight: number;
+  semantic_weight: number;
+  experience_weight: number;
+  education_weight: number;
+  perfect_match_bonus: number;
+  accept_threshold: number;
+  review_threshold: number;
+  defaults: Record<string, number>;
+}
+
 export const adminApi = {
   // Users
   getUsers: (params?: { skip?: number; limit?: number; role?: string; is_active?: boolean }) =>
@@ -84,4 +95,14 @@ export const adminApi = {
 
   getLogs: (params?: { level?: string; limit?: number }) =>
     apiClient.get<ActivityLog[]>('/admin/logs', { params }),
+
+  // Pipeline
+  getPipelineConfig: () =>
+    apiClient.get<PipelineConfig>('/admin/pipeline/config'),
+
+  updatePipelineConfig: (config: Partial<Omit<PipelineConfig, 'defaults'>>) =>
+    apiClient.patch<PipelineConfig>('/admin/pipeline/config', config),
+
+  resetPipelineConfig: () =>
+    apiClient.post<PipelineConfig>('/admin/pipeline/config/reset'),
 };
