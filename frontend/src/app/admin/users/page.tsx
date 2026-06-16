@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Trash2, ToggleLeft, ToggleRight, ShieldAlert } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -16,6 +16,14 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Chargement...</div>}>
+      <UsersContent />
+    </Suspense>
+  );
+}
+
+function UsersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
