@@ -90,7 +90,7 @@ def get_current_user(
             detail="User not found in database",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return user
 
 

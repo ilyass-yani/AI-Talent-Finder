@@ -193,6 +193,39 @@ class Favorite(Base):
     candidate = relationship("Candidate", back_populates="favorites")
 
 
+class SystemSetting(Base):
+    """Admin use case: 'Configurer les paramètres du pipeline IA'.
+
+    Key/value store (value is JSON-encoded) for runtime configuration such as
+    the matching pipeline weights and decision thresholds.
+    """
+    __tablename__ = "system_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=True)  # JSON-encoded payload
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+
+class ActivityLog(Base):
+    """Admin use case: 'Superviser les logs et performances'.
+
+    Lightweight audit trail of meaningful actions (auth, user management,
+    configuration changes) used to power the admin monitoring view.
+    """
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    level = Column(String, default="INFO", nullable=False)  # INFO | WARNING | ERROR
+    action = Column(String, nullable=False, index=True)  # e.g. "user.create", "auth.login"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    detail = Column(Text, nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
 class RecruiterFeedback(Base):
     """Phase 3: Capture recruiter decisions vs model predictions for continuous learning."""
     __tablename__ = "recruiter_feedback"

@@ -82,9 +82,22 @@ def on_startup():
     capabilities = log_capabilities_summary()
     assert_required_features(capabilities)
 
+    # Load admin-configurable AI pipeline parameters into the runtime cache.
+    try:
+        from app.core.database import SessionLocal
+        from app.core.settings_store import load_pipeline_config
+        _db = SessionLocal()
+        try:
+            load_pipeline_config(_db)
+        finally:
+            _db.close()
+    except Exception as e:
+        logging.warning("Could not preload pipeline config: %s", e)
+
     # Conditionally include API routers. If a router import fails (e.g. heavy
     # ML dependencies missing), the app still starts and exposes /health.
     include_optional_router("app.api.auth")
+    include_optional_router("app.api.admin")
     include_optional_router("app.api.candidates")
     include_optional_router("app.api.skills")
     include_optional_router("app.api.jobs")
