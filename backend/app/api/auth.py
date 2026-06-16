@@ -15,7 +15,7 @@ from app.core.security import (
     decode_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
-from app.core.dependencies import get_db, get_current_user
+from app.core.dependencies import get_db, get_current_user, log_activity
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, TokenData
 from app.models.models import User, UserRole as DBUserRole
 
@@ -115,7 +115,9 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
     access_token = create_access_token(
         data={"sub": db_user.email, "user_id": db_user.id}
     )
-    
+
+    log_activity(db, "auth.login", user_id=db_user.id, detail=f"Connexion de {db_user.email}")
+
     # 4. Return token + user
     return Token(
         access_token=access_token,

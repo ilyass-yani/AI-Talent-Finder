@@ -36,8 +36,9 @@ export default function LoginPage() {
         router.push('/candidate/dashboard');
       } else if (response.user.role === 'recruiter') {
         router.push('/recruiter/dashboard');
+      } else if (response.user.role === 'admin') {
+        router.push('/admin/dashboard');
       } else {
-        // Admin or unknown role
         router.push('/');
       }
     } catch (err: unknown) {
@@ -172,6 +173,7 @@ export default function LoginPage() {
             <ul className="space-y-1">
               <li><strong>Candidat:</strong> alice@test.com / password123</li>
               <li><strong>Recruteur:</strong> bob@test.com / password123</li>
+              <li><strong>Admin:</strong> admin@test.com / password123</li>
             </ul>
           </div>
         </div>

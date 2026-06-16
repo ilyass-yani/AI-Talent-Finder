@@ -37,6 +37,12 @@ def seed_users():
             "password": "pass123",
             "full_name": "Alice Example",
             "role": UserRole.candidate
+        },
+        {
+            "email": "admin@test.com",
+            "password": "password123",
+            "full_name": "Admin Principal",
+            "role": UserRole.admin
         }
     ]
     
