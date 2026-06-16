@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Trash2, CheckCircle, XCircle, ShieldAlert } from 'lucide-react';
 import Layout from '@/components/Layout';
@@ -27,6 +27,14 @@ const statusLabel: Record<ModerationStatus, string> = {
 };
 
 export default function AdminJobsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Chargement...</div>}>
+      <JobsContent />
+    </Suspense>
+  );
+}
+
+function JobsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
