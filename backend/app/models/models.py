@@ -197,7 +197,7 @@ class SystemSetting(Base):
     key = Column(String, unique=True, index=True, nullable=False)
     value = Column(Text, nullable=True)  # JSON-encoded payload
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
 
 class ActivityLog(Base):
@@ -212,7 +212,7 @@ class ActivityLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     level = Column(String, default="INFO", nullable=False)  # INFO | WARNING | ERROR
     action = Column(String, nullable=False, index=True)  # e.g. "user.create", "auth.login"
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     detail = Column(Text, nullable=True)
 
     user = relationship("User", foreign_keys=[user_id])

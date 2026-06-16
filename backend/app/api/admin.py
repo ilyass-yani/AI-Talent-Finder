@@ -14,6 +14,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user, require_admin, log_activity
@@ -27,6 +28,7 @@ from app.models.models import (
     RecruiterFeedback,
     Skill,
     ActivityLog,
+    SystemSetting,
 )
 from app.schemas.admin import (
     AdminUserCreate,
@@ -150,8 +152,27 @@ def delete_user(
         _assert_not_last_admin(db, user.id)
 
     email = user.email
-    db.delete(user)
-    db.commit()
+
+    # Detach audit references so deletion is not blocked by their FK. These are
+    # metadata only (safe to null). Done explicitly because pre-existing
+    # databases may carry the FK without ON DELETE SET NULL.
+    db.query(ActivityLog).filter(ActivityLog.user_id == user.id).update(
+        {ActivityLog.user_id: None}, synchronize_session=False
+    )
+    db.query(SystemSetting).filter(SystemSetting.updated_by == user.id).update(
+        {SystemSetting.updated_by: None}, synchronize_session=False
+    )
+
+    try:
+        db.delete(user)
+        db.commit()
+    except IntegrityError:
+        # User still owns domain data (offres, favoris, feedback, profil candidat…).
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Impossible de supprimer: cet utilisateur possède des données liées (offres, favoris, feedback ou profil). Supprimez-les d'abord.",
+        )
 
     log_activity(db, "user.delete", user_id=admin.id, detail=f"Suppression de {email}")
     return None
