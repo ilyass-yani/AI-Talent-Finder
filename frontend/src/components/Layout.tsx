@@ -4,21 +4,17 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Menu, X, LogOut, LayoutDashboard, Users, Upload, SlidersHorizontal,
-  GitCompareArrows, MessageCircle, Heart, FileDown, BrainCircuit, BarChart3,
-  UserCircle, Wrench, ChevronLeft, Moon, Sun, ShieldAlert, Briefcase,
+  Menu, X, LogOut, LayoutDashboard, Users, Upload,
+  MessageCircle, Heart, FileDown, BrainCircuit,
+  UserCircle, ChevronLeft, Moon, Sun, ShieldAlert, Briefcase, Target,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
 const recruiterNav = [
   { href: "/recruiter/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/candidates", label: "Candidats", icon: Users },
-  { href: "/skills", label: "Compétences", icon: Wrench },
-  { href: "/jobs", label: "Critères de poste", icon: SlidersHorizontal },
-  { href: "/matching", label: "Matching", icon: GitCompareArrows },
+  { href: "/matching", label: "Trouver des candidats", icon: Target },
+  { href: "/recruiter/shortlist", label: "Ma Shortlist", icon: Heart },
   { href: "/recruiter/chatbot", label: "Chatbot IA", icon: MessageCircle },
-  { href: "/recruiter/feedback", label: "Feedback IA", icon: BarChart3 },
-  { href: "/recruiter/shortlist", label: "Shortlist", icon: Heart },
   { href: "/recruiter/export", label: "Export", icon: FileDown },
 ];
 

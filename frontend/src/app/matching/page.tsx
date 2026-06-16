@@ -6,8 +6,10 @@ import ScoreGauge from "@/components/ScoreGauge";
 import { useApi } from "@/hooks/useApi";
 import { criteriaApi, type Criteria, type CriteriaSkillInput } from "@/services/criteria";
 import { matchingApi, type CriteriaMatchResult, type PredictCandidateResult } from "@/services/matching";
+import { jobsApi } from "@/services/jobs";
 import { filterDisplayableCandidateNames, filterDisplayableIdentities } from "@/services/candidates";
 import { skillsApi, type Skill } from "@/services/skills";
+import { getErrorMessage } from "@/utils/errorHandler";
 import {
   BarChart3,
   Check,
@@ -19,6 +21,8 @@ import {
   Sparkles,
   Trash2,
   Play,
+  SlidersHorizontal,
+  Wand2,
 } from "lucide-react";
 import {
   Cell,
@@ -31,8 +35,10 @@ import {
 const palette = ["#2563eb", "#0f766e", "#f59e0b", "#7c3aed", "#ef4444", "#14b8a6", "#ec4899", "#22c55e"];
 
 type FormSkill = CriteriaSkillInput & { key: string };
+type Tab = "manual" | "ai";
 
 export default function MatchingPage() {
+  const [activeTab, setActiveTab] = useState<Tab>("manual");
   const { data: skills } = useApi(() => skillsApi.getSkills(), []);
   const { data: criteriaList, loading: criteriaLoading, refetch: refetchCriteria } = useApi(() => criteriaApi.getCriteria(), []);
   const [selectedCriteriaId, setSelectedCriteriaId] = useState<number | null>(null);
@@ -255,30 +261,56 @@ export default function MatchingPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header */}
         <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-800 px-6 py-8 text-white shadow-2xl md:px-8">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.35),_transparent_34%),radial-gradient(circle_at_bottom_left,_rgba(16,185,129,0.24),_transparent_30%)]" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-100">
-                <Sparkles className="h-3.5 w-3.5" />
-                Étape 7 · Moteur de matching personnalisable
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">Construisez vos critères, puis lancez le ranking instantané.</h1>
-                <p className="mt-3 max-w-2xl text-sm text-slate-200 md:text-base">
-                  Sélectionnez des compétences depuis le dictionnaire, attribuez des poids, visualisez la répartition en temps réel et comparez les candidats selon un score cosinus pondéré.
-                </p>
-              </div>
+          <div className="relative space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-sky-100">
+              <Sparkles className="h-3.5 w-3.5" />
+              Trouver des candidats
             </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[38rem] lg:grid-cols-2 xl:grid-cols-4">
-              <Stat label="Critères" value={criteriaList?.length ?? 0} />
-              <Stat label="Compétences" value={selectedSkills.length} />
-              <Stat label="Poids total" value={`${totalWeight}%`} />
-              <Stat label="Résultats" value={sortedResults.length} />
-            </div>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              Matching intelligent CV / Offre
+            </h1>
+            <p className="max-w-2xl text-sm text-slate-300 md:text-base">
+              Choisissez comment définir votre recherche : manuellement avec des poids par compétence, ou en décrivant librement votre besoin à l'IA.
+            </p>
           </div>
         </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("manual")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+              activeTab === "manual"
+                ? "bg-slate-950 text-white shadow"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Recherche par critères
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("ai")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+              activeTab === "ai"
+                ? "bg-violet-600 text-white shadow"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Wand2 className="h-4 w-4" />
+            Génération IA
+          </button>
+        </div>
+
+        {/* Tab: AI Generation */}
+        {activeTab === "ai" && <GenerateMode />}
+
+        {/* Tab: Manual — existing content */}
+        {activeTab === "manual" && <>
 
         {error && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -660,6 +692,7 @@ export default function MatchingPage() {
             </div>
           )}
         </section>
+        </>}
       </div>
     </Layout>
   );
@@ -670,6 +703,162 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
       <div className="text-xs uppercase tracking-[0.24em] text-slate-300">{label}</div>
       <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Onglet Génération IA
+// ---------------------------------------------------------------------------
+function GenerateMode() {
+  const [jobTitle, setJobTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [idealProfile, setIdealProfile] = useState<any>(null);
+  const [results, setResults] = useState<any[]>([]);
+  const [error, setError] = useState('');
+
+  const handleGenerate = async () => {
+    if (!jobTitle.trim() || !description.trim()) {
+      setError('Remplissez le titre du poste et la description.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setIdealProfile(null);
+    setResults([]);
+    try {
+      const profileResponse = await matchingApi.generateAndMatch(jobTitle, description);
+      setIdealProfile(profileResponse.data.ideal_profile);
+
+      const criteria = await jobsApi.createJob({ title: jobTitle, description });
+      await matchingApi.runCriteriaMatching(criteria.data.id);
+      const matchResults = await matchingApi.getCriteriaMatchingResults(criteria.data.id);
+      setResults(matchResults.data);
+      if (matchResults.data.length === 0) {
+        setError('Aucun candidat ne correspond au profil généré.');
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <Wand2 className="h-5 w-5 text-violet-600" />
+          <h2 className="text-xl font-semibold text-slate-900">Décrivez votre besoin, l'IA fait le reste</h2>
+        </div>
+        <p className="text-sm text-slate-500 mb-6">
+          L'IA génère automatiquement le profil idéal (compétences + niveaux) et lance le matching sur tous les candidats.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Titre du poste <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={jobTitle}
+              onChange={e => setJobTitle(e.target.value)}
+              placeholder="Ex: Lead Data Scientist, CTO Startup, Développeur Full-Stack"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Décrivez vos besoins <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={5}
+              placeholder="Ex: Je cherche quelqu'un pour piloter notre équipe data, construire notre pipeline ML en production et former les équipes. L'expérience en NLP et en MLOps est un plus..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100 resize-none"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <span className="inline-block animate-spin">⚙️</span>
+              L'IA génère le profil et lance le matching...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Générer le profil idéal et lancer le matching
+            </>
+          )}
+        </button>
+
+        {error && (
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            ⚠️ {error}
+          </div>
+        )}
+      </div>
+
+      {/* Profil idéal généré */}
+      {idealProfile && (
+        <div className="rounded-3xl border border-violet-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-violet-600" />
+            Profil idéal généré par l'IA
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {idealProfile.ideal_skills?.map((skill: { name: string; weight?: number; level?: string }) => (
+              <div key={skill.name} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <span className="text-sm font-medium text-slate-800">{skill.name}</span>
+                <span className="text-xs font-semibold text-violet-700 bg-violet-100 rounded-full px-3 py-1">
+                  {skill.level || 'Requis'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Résultats */}
+      {results.length > 0 && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            Candidats correspondants — {results.length} résultat{results.length > 1 ? 's' : ''}, classés par score
+          </h3>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[...results].sort((a, b) => b.score - a.score).map((result, index) => (
+              <article key={result.match_result_id || index} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">#{index + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-slate-900">{result.candidate_name}</div>
+                    <div className="text-sm text-slate-500">{result.candidate_email}</div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {result.matched_skills.slice(0, 4).map((skill: string) => (
+                        <span key={skill} className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">{skill}</span>
+                      ))}
+                      {result.missing_skills.slice(0, 2).map((skill: string) => (
+                        <span key={skill} className="rounded-full bg-amber-100 px-3 py-1 text-amber-800">Manque: {skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <ScoreGauge score={result.score} size="lg" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

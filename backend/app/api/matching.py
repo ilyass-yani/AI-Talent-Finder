@@ -524,9 +524,8 @@ def _serialize_match_result(candidate: Candidate, criteria_id: int, score: float
 def _score_all_candidates(criteria: JobCriteria, db: Session) -> List[CriteriaMatchResultResponse]:
     criteria_skills = _load_criteria_skills(criteria.id, db)
     skill_universe = build_skill_universe(db)
-    # Only match fully extracted candidates with valid names and uploaded CV text
+    # Include all candidates with a name and raw text — quality filtering excluded real CVs
     candidates = db.query(Candidate).filter(
-        ((Candidate.is_fully_extracted == True) | (Candidate.extraction_quality_score >= 80)),
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",
@@ -651,9 +650,8 @@ def _compute_candidate_matches(criteria: JobCriteria, db: Session) -> List[Candi
 
     results: List[CandidateMatchResponse] = []
 
-    # Iterate candidates and score them (only fully extracted with valid names)
+    # Include all candidates with a name and raw text
     candidates = db.query(Candidate).filter(
-        ((Candidate.is_fully_extracted == True) | (Candidate.extraction_quality_score >= 80)),
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",
@@ -1020,7 +1018,6 @@ async def generate_and_match(
 
     ideal_skills = generated_profile.get("ideal_skills", [])
     candidates = db.query(Candidate).filter(
-        ((Candidate.is_fully_extracted == True) | (Candidate.extraction_quality_score >= 80)),
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",
@@ -1182,7 +1179,6 @@ async def predict_for_criteria(
     job_text = f"{criteria.title} \n {criteria.description} \n Skills: {'; '.join(skill_names)}"
 
     candidates = db.query(Candidate).filter(
-        ((Candidate.is_fully_extracted == True) | (Candidate.extraction_quality_score >= 80)),
         Candidate.full_name.isnot(None),
         Candidate.full_name != "Unknown",
         Candidate.full_name != "",

@@ -129,9 +129,9 @@ def run_pipeline(payload: Dict[str, Any]):
         except Exception:
             ml_score_pct = None
 
-    # ml_score_pct None -> map from heuristic of extraction quality
+    # ml_score_pct None -> use compute_match_score result (skills + experience)
     if ml_score_pct is None:
-        ml_score_pct = float(extraction.quality_score or 0)
+        ml_score_pct = float(score * 100.0)
 
     # combine similarity (0..1) -> convert to 0..100
     sim_pct = float(sim) * 100.0 if sim is not None else 0.0
