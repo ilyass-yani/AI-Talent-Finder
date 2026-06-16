@@ -38,6 +38,21 @@ export interface AdminStats {
   total_matchings: number;
 }
 
+export interface ActivityLog {
+  id: number;
+  timestamp: string;
+  level: string;
+  action: string;
+  detail: string | null;
+}
+
+export interface SystemHealth {
+  status: string;
+  database_connected: boolean;
+  capabilities: Record<string, unknown>;
+  counts: Record<string, number>;
+}
+
 export const adminApi = {
   // Users
   getUsers: (params?: { skip?: number; limit?: number; role?: string; is_active?: boolean }) =>
@@ -62,4 +77,11 @@ export const adminApi = {
   // Stats
   getStats: () =>
     apiClient.get<AdminStats>('/admin/stats'),
+
+  // Monitoring
+  getHealth: () =>
+    apiClient.get<SystemHealth>('/admin/health'),
+
+  getLogs: (params?: { level?: string; limit?: number }) =>
+    apiClient.get<ActivityLog[]>('/admin/logs', { params }),
 };
