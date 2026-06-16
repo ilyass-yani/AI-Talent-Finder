@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack configuration (Next.js 16 default)
-  // Keep empty to use Turbopack defaults
-  turbopack: {},
-
   // Rewrites to proxy /api/* to the FastAPI backend server-side.
   // In both development and production, we need to rewrite to the backend.
   async rewrites() {

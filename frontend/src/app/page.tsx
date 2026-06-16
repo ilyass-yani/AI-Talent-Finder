@@ -35,7 +35,9 @@ export default function Home() {
     
     if (token) {
       const role = localStorage.getItem('user_role');
-      if (role === 'recruiter') {
+      if (role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (role === 'recruiter') {
         router.push('/recruiter/dashboard');
       } else if (role === 'candidate') {
         router.push('/candidate/dashboard');

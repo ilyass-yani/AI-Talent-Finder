@@ -2,28 +2,39 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Trash2, ToggleLeft, ToggleRight, ShieldAlert } from 'lucide-react';
+import { Trash2, CheckCircle, XCircle, ShieldAlert } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { adminApi, AdminUser } from '@/services/admin';
+import { adminApi, AdminJob, ModerationStatus } from '@/services/admin';
 import { getErrorMessage } from '@/utils/errorHandler';
 
-const ROLE_OPTIONS = ['', 'candidate', 'recruiter', 'admin'];
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: '', label: 'Tous les statuts' },
+  { value: 'pending', label: 'En attente' },
+  { value: 'approved', label: 'Approuvées' },
+  { value: 'rejected', label: 'Rejetées' },
+];
 
-const roleBadge: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700',
-  recruiter: 'bg-indigo-100 text-indigo-700',
-  candidate: 'bg-emerald-100 text-emerald-700',
+const statusBadge: Record<ModerationStatus, string> = {
+  pending: 'bg-yellow-100 text-yellow-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
 };
 
-export default function AdminUsersPage() {
+const statusLabel: Record<ModerationStatus, string> = {
+  pending: 'En attente',
+  approved: 'Approuvée',
+  rejected: 'Rejetée',
+};
+
+export default function AdminJobsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [jobs, setJobs] = useState<AdminJob[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [roleFilter, setRoleFilter] = useState(searchParams.get('role') ?? '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('moderation_status') ?? '');
   const [page, setPage] = useState(0);
   const limit = 20;
 
@@ -31,14 +42,14 @@ export default function AdminUsersPage() {
     setLoading(true);
     setError(null);
     adminApi
-      .getUsers({ skip: page * limit, limit, role: roleFilter || undefined })
+      .getJobs({ skip: page * limit, limit, moderation_status: statusFilter || undefined })
       .then((res) => {
-        setUsers(res.data.items);
+        setJobs(res.data.items);
         setTotal(res.data.total);
       })
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
-  }, [page, roleFilter]);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -50,19 +61,19 @@ export default function AdminUsersPage() {
     load();
   }, [router, load]);
 
-  const handleToggleStatus = async (user: AdminUser) => {
+  const handleModerate = async (job: AdminJob, newStatus: ModerationStatus) => {
     try {
-      await adminApi.setUserStatus(user.id, !user.is_active);
+      await adminApi.moderateJob(job.id, newStatus);
       load();
     } catch (err) {
       setError(getErrorMessage(err));
     }
   };
 
-  const handleDelete = async (user: AdminUser) => {
-    if (!confirm(`Supprimer le compte de ${user.full_name} (${user.email}) ?`)) return;
+  const handleDelete = async (job: AdminJob) => {
+    if (!confirm(`Supprimer l'offre "${job.title}" ?`)) return;
     try {
-      await adminApi.deleteUser(user.id);
+      await adminApi.deleteJob(job.id);
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -77,20 +88,19 @@ export default function AdminUsersPage() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <ShieldAlert className="h-6 w-6 text-red-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-          <span className="ml-auto text-sm text-gray-500">{total} utilisateur(s)</span>
+          <h1 className="text-2xl font-bold text-gray-900">Modération des offres</h1>
+          <span className="ml-auto text-sm text-gray-500">{total} offre(s)</span>
         </div>
 
         {/* Filters */}
         <div className="flex gap-3 mb-5">
           <select
-            value={roleFilter}
-            onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
-            <option value="">Tous les rôles</option>
-            {ROLE_OPTIONS.filter(Boolean).map((r) => (
-              <option key={r} value={r}>{r}</option>
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
@@ -104,55 +114,58 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Nom</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Rôle</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Titre</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Recruteur</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Statut</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Créé le</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Créée le</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">Chargement...</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">Chargement...</td>
                 </tr>
               )}
-              {!loading && users.length === 0 && (
+              {!loading && jobs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">Aucun utilisateur trouvé.</td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">Aucune offre trouvée.</td>
                 </tr>
               )}
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-900">{user.full_name}</td>
-                  <td className="px-4 py-3 text-gray-600">{user.email}</td>
+              {jobs.map((job) => (
+                <tr key={job.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{job.title}</td>
+                  <td className="px-4 py-3 text-gray-600">{job.recruiter_email ?? `#${job.recruiter_id}`}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${roleBadge[user.role] ?? 'bg-gray-100 text-gray-700'}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {user.is_active ? 'Actif' : 'Désactivé'}
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusBadge[job.moderation_status as ModerationStatus]}`}>
+                      {statusLabel[job.moderation_status as ModerationStatus]}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                    {new Date(job.created_at).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
+                      {job.moderation_status !== 'approved' && (
+                        <button
+                          onClick={() => handleModerate(job, 'approved')}
+                          title="Approuver"
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-green-50 hover:text-green-600 transition-colors"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                      )}
+                      {job.moderation_status !== 'rejected' && (
+                        <button
+                          onClick={() => handleModerate(job, 'rejected')}
+                          title="Rejeter"
+                          className="p-1.5 rounded-lg text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleToggleStatus(user)}
-                        title={user.is_active ? 'Désactiver' : 'Activer'}
-                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-                      >
-                        {user.is_active
-                          ? <ToggleRight className="h-4 w-4 text-green-600" />
-                          : <ToggleLeft className="h-4 w-4 text-gray-400" />}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user)}
+                        onClick={() => handleDelete(job)}
                         title="Supprimer"
                         className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                       >
