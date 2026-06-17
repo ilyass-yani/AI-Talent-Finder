@@ -183,3 +183,6 @@ data.db
 backend/.venv*/
 backend/__pycache__/
 .venv*/
+# Fichier pour deployements (ilyass)
+notebooks/
+ai-talent-finder-backend/

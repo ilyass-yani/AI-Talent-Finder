@@ -48,10 +48,14 @@ app = FastAPI(
 )
 
 # Add HTTPS redirect middleware BEFORE CORS to catch all requests
-app.add_middleware(HTTPSRedirectMiddleware)
+if os.getenv("ENABLE_HTTPS_REDIRECT", "false").lower() == "true":
+        app.add_middleware(HTTPSRedirectMiddleware)
 
 # Configure CORS
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+allowed_origins = [
+    "https://ai-talent-finder-flame.vercel.app",
+    "http://localhost:3000",
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
