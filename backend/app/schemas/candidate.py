@@ -26,8 +26,11 @@ class CandidateResponse(CandidateBase):
     id: int
     cv_path: Optional[str]
     raw_text: Optional[str]
+    owner_role: Optional[str] = None
+    is_visible: bool = False
     created_at: datetime
-    
+    updated_at: Optional[datetime] = None
+
     # NER Extraction Fields (Étape 5-6 Optimization)
     extracted_name: Optional[str] = None
     extracted_emails: Optional[str] = None

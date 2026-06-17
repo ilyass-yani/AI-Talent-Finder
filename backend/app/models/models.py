@@ -59,7 +59,11 @@ class Candidate(Base):
     github_url = Column(String, nullable=True)
     cv_path = Column(String, nullable=True)
     raw_text = Column(Text, nullable=True)
+    # Visibility: who deposited ("candidate" | "recruiter") and whether recruiters can see it
+    owner_role = Column(String, nullable=True)  # "candidate" or "recruiter"
+    is_visible = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
     
     # NER Extraction Fields (Étape 5-6 optimization)
     extracted_name = Column(String, nullable=True)  # From NER
