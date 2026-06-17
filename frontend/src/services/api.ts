@@ -1,12 +1,9 @@
 import axios from 'axios';
 
 function resolveApiUrl(): string {
-  // In production, talk directly to the HTTPS backend to avoid frontend proxy redirects.
-  if (process.env.NODE_ENV === 'production') {
-    return 'https://ai-talent-finder-backend-production.up.railway.app/api';
-  }
-
-  // In development, check for explicit API URL override
+  // Always prefer the explicit env variable (works in both dev and production).
+  // NEXT_PUBLIC_API_URL must be set to https://RHmaster-ai-talent-finder-backend.hf.space
+  // in Vercel (no trailing slash, no /api — the /api prefix is appended below).
   const runtimeUrl = typeof window !== 'undefined'
     ? (window as typeof window & { __NEXT_PUBLIC_API_URL?: string }).__NEXT_PUBLIC_API_URL
     : process.env.NEXT_PUBLIC_API_URL;
