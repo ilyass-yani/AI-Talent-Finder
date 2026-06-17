@@ -1,0 +1,36 @@
+# Secrets — JAMAIS en ligne
+.env
+.env.*
+*.key
+
+# Base locale (on utilise Supabase)
+*.sqlite3
+*.db
+*.pkl
+*.bin
+*.pt
+*.pth
+*.h5
+*.onnx
+*.joblib
+*.safetensors
+ai_talent_finder.db
+
+# Données perso / résidus
+uploads/
+reports/
+test_cv*.txt
+
+# Modèles & entraînement (trop lourd pour HF)
+train/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Divers
+.pytest_cache/
+.DS_Store

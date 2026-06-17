@@ -1,3 +1,4 @@
+import logging
 from typing import Generator, Optional
 from fastapi import Header, HTTPException, status, Depends
 from sqlalchemy.orm import Session
@@ -5,6 +6,9 @@ from .database import SessionLocal
 from .security import decode_token
 from app.schemas.user import TokenData
 from app.models.models import User, UserRole
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -25,6 +29,19 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def log_activity(db=None, action: str = "", user_id=None, detail: str = "", **kwargs):
+    """
+    Best-effort activity logger used by auth and other routes.
+
+    It accepts db for backward compatibility but does not require it.
+    Any logging failure is swallowed so it never blocks the app startup or request flow.
+    """
+    try:
+        logger.info("[activity] action=%s user_id=%s detail=%s extra=%s", action, user_id, detail, kwargs)
+    except Exception:
+        pass
 
 
 def get_current_user(
