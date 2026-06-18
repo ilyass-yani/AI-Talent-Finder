@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from typing import Any, Dict, List, Optional
 from urllib import request
+from urllib.error import HTTPError
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -349,6 +351,56 @@ def _call_local_llm(prompt: str) -> Optional[str]:
         content = message.get("content")
         if isinstance(content, str):
             return content.strip() or None
+        return None
+    except Exception:
+        return None
+
+
+_HF_INFERENCE_URL = "https://router.huggingface.co/v1/chat/completions"
+
+
+def _call_hf_inference(prompt: str) -> Optional[str]:
+    token = os.getenv("HF_TOKEN_CHATBOT")
+    if not token:
+        return None
+
+    model = os.getenv("CHATBOT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+
+    def _do_request() -> Optional[str]:
+        payload = json.dumps({
+            "model": model,
+            "max_tokens": 700,
+            "temperature": 0.2,
+            "messages": [{"role": "user", "content": prompt}],
+        }).encode("utf-8")
+        req = request.Request(
+            _HF_INFERENCE_URL,
+            data=payload,
+            headers={
+                "content-type": "application/json",
+                "Authorization": f"Bearer {token}",
+            },
+            method="POST",
+        )
+        with request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        choices = data.get("choices", [])
+        if not choices:
+            return None
+        content = choices[0].get("message", {}).get("content")
+        return content.strip() if isinstance(content, str) else None
+
+    try:
+        return _do_request()
+    except HTTPError as exc:
+        if exc.code == 503:
+            # cold start — retry once after a short wait
+            try:
+                time.sleep(15)
+                return _do_request()
+            except Exception:
+                return None
+        # 429 quota or other HTTP errors → fallback
         return None
     except Exception:
         return None
@@ -737,6 +789,9 @@ def chat(request_payload: ChatRequest, db: Session = Depends(get_db)):
         llm_response = _call_anthropic(prompt)
 
         if not llm_response:
+            llm_response = _call_hf_inference(prompt)
+
+        if not llm_response:
             llm_response = _call_local_llm(prompt)
 
         if llm_response:
@@ -775,6 +830,8 @@ def ideal_profile(request_payload: IdealProfileRequest, db: Session = Depends(ge
         "Be concise and realistic.",
     ])
     llm_response = _call_anthropic(llm_prompt)
+    if not llm_response:
+        llm_response = _call_hf_inference(llm_prompt)
     if not llm_response:
         llm_response = _call_local_llm(llm_prompt)
     if llm_response:
