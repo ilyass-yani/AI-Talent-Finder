@@ -23,7 +23,7 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     but should redirect to HTTPS. Starlette's redirect_slashes uses the request scheme,
     so we wrap the scope to force HTTPS redirects in production.
     """
-    async def dispatch(self, request: Request, call_next):
+    """ async def dispatch(self, request: Request, call_next):
         # In production, ensure the scheme seen by Starlette is HTTPS
         # by checking X-Forwarded-Proto header (set by reverse proxies)
         if (os.getenv("NODE_ENV") == "production" or 
@@ -33,6 +33,11 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
                 # Force the scope to use https so redirects are generated correctly
                 request.scope["scheme"] = "https"
         
+        return await call_next(request) """
+    async def dispatch(self, request: Request, call_next):
+        forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
+        if forwarded_proto == "https":
+            request.scope["scheme"] = "https"
         return await call_next(request)
 
 
@@ -47,9 +52,12 @@ app = FastAPI(
     redirect_slashes=True,
 )
 
+
 # Add HTTPS redirect middleware BEFORE CORS to catch all requests
-if os.getenv("ENABLE_HTTPS_REDIRECT", "false").lower() == "true":
-        app.add_middleware(HTTPSRedirectMiddleware)
+""" if os.getenv("ENABLE_HTTPS_REDIRECT", "false").lower() == "true":
+        app.add_middleware(HTTPSRedirectMiddleware) """
+app.add_middleware(HTTPSRedirectMiddleware)
+
 
 # Configure CORS
 allowed_origins = [
