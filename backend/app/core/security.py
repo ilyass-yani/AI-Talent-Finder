@@ -11,7 +11,19 @@ from app.schemas.user import TokenData
 
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-to-something-very-secure-and-random")
+#SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-to-something-very-secure-and-random")
+SECRET_KEY = os.getenv("SECRET_KEY")
+_INSECURE_DEFAULT = "your-secret-key-change-in-production-to-something-very-secure-and-random"
+if not SECRET_KEY or SECRET_KEY == _INSECURE_DEFAULT:
+    # Autorise un fallback uniquement en dev local explicite
+    if os.getenv("ALLOW_INSECURE_SECRET", "false").lower() == "true":
+        SECRET_KEY = _INSECURE_DEFAULT
+    else:
+        raise RuntimeError(
+            "SECRET_KEY manquante ou non securisee. "
+            "Definis une vraie cle via la variable d'environnement SECRET_KEY "
+            "(genere-la avec: python -c \"import secrets; print(secrets.token_hex(32))\")."
+        )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days in minutes
 
