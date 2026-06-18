@@ -762,7 +762,8 @@ async def create_job_criteria(
     🅰️ MODE 1 (Search): Décrire les besoins, le système cherche dans les candidats
     """
     # Simplified recruiter fallback for MVP
-    recruiter_id = 1
+    #recruiter_id = 1
+    recruiter_id = current_user.id
     
     # Create criteria
     db_criteria = JobCriteria(
