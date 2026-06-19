@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -362,7 +363,9 @@ _HF_INFERENCE_URL = "https://router.huggingface.co/v1/chat/completions"
 def _call_hf_inference(prompt: str) -> Optional[str]:
     token = os.getenv("HF_TOKEN_CHATBOT")
     if not token:
+        logging.warning("[chatbot] HF_TOKEN_CHATBOT absent de l'environnement")
         return None
+    logging.info("[chatbot] HF_TOKEN_CHATBOT present, appel HF...")
 
     model = os.getenv("CHATBOT_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 
@@ -379,6 +382,7 @@ def _call_hf_inference(prompt: str) -> Optional[str]:
             headers={
                 "content-type": "application/json",
                 "Authorization": f"Bearer {token}",
+                "User-Agent": "ai-talent-finder/1.0",
             },
             method="POST",
         )
@@ -401,8 +405,11 @@ def _call_hf_inference(prompt: str) -> Optional[str]:
             except Exception:
                 return None
         # 429 quota or other HTTP errors → fallback
+    
+        logging.warning(f"[chatbot] HF HTTPError {exc.code}: {exc.read()[:300]}")
         return None
-    except Exception:
+    except Exception as exc:
+        logging.warning(f"[chatbot] HF call failed: {type(exc).__name__}: {exc}")
         return None
 
 
