@@ -30,11 +30,14 @@ def _can_access_profile(profile: Candidate, requesting_user: User) -> bool:
 
     Rules:
     - Owner always has access.
+    - A recruiter can read candidates they uploaded themselves.
     - An authenticated recruiter can read a candidate-deposited profile that
       has is_visible = True.
     - Everything else is denied (return False → caller raises 404).
     """
     if profile.user_id == requesting_user.id:
+        return True
+    if profile.recruiter_id == requesting_user.id:
         return True
     effective_role = profile.owner_role or "candidate"
     if (
