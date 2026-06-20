@@ -95,6 +95,8 @@ def detect_capabilities() -> Dict[str, object]:
         "ANTHROPIC_API_KEY": _env_set("ANTHROPIC_API_KEY"),
         "OPENAI_API_KEY": _env_set("OPENAI_API_KEY"),
         "HUGGINGFACE_API_KEY": _env_set("HUGGINGFACE_API_KEY"),
+        "HF_TOKEN_CHATBOT": _env_set("HF_TOKEN_CHATBOT"),
+        "LOCAL_LLM_BASE_URL": _env_set("LOCAL_LLM_BASE_URL"),
     }
 
     features = {
@@ -130,8 +132,14 @@ def detect_capabilities() -> Dict[str, object]:
             notes="If missing, export endpoints are disabled.",
         ),
         "chat_llm": _feature_status(
-            required={"ANTHROPIC_API_KEY": api_keys["ANTHROPIC_API_KEY"]},
-            notes="If missing, deterministic chatbot responses are used.",
+            required={
+                "llm_provider": (
+                    api_keys["ANTHROPIC_API_KEY"]
+                    or api_keys["HF_TOKEN_CHATBOT"]
+                    or api_keys["LOCAL_LLM_BASE_URL"]
+                )
+            },
+            notes="Disponible si un provider LLM est configure (Anthropic, HF Inference, ou LLM local). Sinon, reponses deterministes.",
         ),
         "profile_generator": _feature_status(
             required={"transformers": deps["transformers"], "torch": deps["torch"]}
