@@ -44,7 +44,7 @@ class User(Base):
     # Relationships
     job_criteria = relationship("JobCriteria", back_populates="recruiter")
     favorites = relationship("Favorite", back_populates="recruiter")
-    candidate = relationship("Candidate", back_populates="user", uselist=False)
+    candidate = relationship("Candidate", back_populates="user", uselist=False, foreign_keys="Candidate.user_id")
 
 
 class Candidate(Base):
