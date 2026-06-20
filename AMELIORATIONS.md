@@ -206,3 +206,62 @@ La migration est réversible (`downgrade`).
 5. **Page `/jobs`** : la route existe toujours, seul le lien nav a été retiré. Si des liens externes pointent vers `/jobs`, les rediriger vers `/matching`.
 6. **Tests e2e** : définir `E2E_BASE_URL` dans l'environnement CI pointant vers le déploiement cible.
 7. **Compétences techniques dans le profil candidat** : les `nerData.skills` (compétences tech extraites) ne sont pas encore affichés dans la page `candidates/[id]`. Amélioration facile à ajouter si souhaité.
+
+---
+
+## Batch fix du 2026-06-20 (session 2) — Bug migrations Alembic
+
+### PRIORITÉ 0 — Bug critique : migrations Alembic jamais exécutées sur Supabase
+
+**Symptômes observés :**
+- À chaque démarrage HF : `Generating static SQL`, `Will assume transactional DDL`, puis un bloc `BEGIN; ... COMMIT;` qui rejoue toute la chaîne depuis zéro dans les logs.
+- Les tables existaient déjà, mais la dernière migration (`recruiter_id`) n'était jamais appliquée.
+- Erreur runtime : `psycopg2.errors.UndefinedColumn: column candidates.recruiter_id does not exist`
+- `alembic upgrade head` dans `docker-entrypoint.sh` semblait fonctionner mais ne faisait rien.
+
+**Cause racine (chaîne de 3 défauts) :**
+
+| # | Fichier | Défaut |
+|---|---|---|
+| 1 | `backend/alembic.ini` ligne 66 | `sqlalchemy.url = postgresql://postgres:postgres@localhost:5432/ai_talent_finder` — URL localhost codée en dur |
+| 2 | `backend/alembic/env.py` lignes 76-93 | `run_migrations_online()` : le `except Exception` silencieux appelait `run_migrations_offline()` en cas d'échec de connexion |
+| 3 | `backend/alembic/env.py` lignes 44-66 | `run_migrations_offline()` utilise `as_sql=True` → génère du SQL vers stdout SANS l'exécuter |
+
+**Flux exact :**
+1. `alembic upgrade head` démarre en mode online (pas de `--sql`, pas de `context.is_offline_mode()`)
+2. `engine_from_config()` lit `sqlalchemy.url` depuis `alembic.ini` → URL `localhost:5432`
+3. Connexion impossible (pas de PostgreSQL local dans le container HF) → exception
+4. `except Exception` attrape silencieusement → appelle `run_migrations_offline()`
+5. Mode offline avec `as_sql=True` → Alembic génère le SQL dans stdout (les logs qu'on voyait)
+6. Aucune migration n'est appliquée à Supabase
+7. Au démarrage uvicorn : `Base.metadata.create_all()` dans `main.py:on_startup()` crée les tables manquantes via SQLAlchemy (sans Alembic), ce qui explique pourquoi les tables existaient malgré l'Alembic non fonctionnel. `create_all()` ne modifie pas les tables déjà existantes → `recruiter_id` reste absent.
+
+**Correctif appliqué — `backend/alembic/env.py` :**
+- Ajout en tête de fichier : lecture de `os.environ["DATABASE_URL"]` et injection dans la config Alembic via `config.set_main_option("sqlalchemy.url", _db_url)`, avec normalisation `postgres://` → `postgresql://`.
+- Suppression du bloc `try/except` dans `run_migrations_online()` — toute erreur de connexion doit désormais échouer bruyamment (crash visible dans les logs HF) plutôt que d'être avalée silencieusement.
+- Aucune modification de `alembic.ini` (l'URL localhost reste valable pour le dev local, elle est désormais surchargée en prod par la variable d'env).
+
+**Fichiers modifiés :**
+| Fichier | Changement |
+|---|---|
+| `backend/alembic/env.py` | Injection `DATABASE_URL` avant `engine_from_config`, suppression fallback offline silencieux |
+
+**Commandes SQL manuelles à exécuter sur Supabase AVANT le déploiement** (voir `DEPLOY_STEPS.md` pour le détail complet) :
+
+```sql
+ALTER TABLE candidates ADD COLUMN IF NOT EXISTS recruiter_id INTEGER REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS ix_candidates_recruiter_id ON candidates (recruiter_id);
+UPDATE candidates SET recruiter_id = user_id, user_id = NULL
+WHERE owner_role = 'recruiter' AND user_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS alembic_version (
+    version_num VARCHAR(32) NOT NULL,
+    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+);
+DELETE FROM alembic_version;
+INSERT INTO alembic_version (version_num) VALUES ('20260620_add_recruiter_id');
+```
+
+**Statut déploiement HF :**
+- Code GitHub : commit effectué, push effectué.
+- HF Space : le dossier HF Space n'est pas disponible localement. Suivre `DEPLOY_STEPS.md` pour copier `backend/alembic/env.py` vers le clone HF Space et pusher.
+- Validation finale requise après déploiement HF (voir DEPLOY_STEPS.md étape 3).
