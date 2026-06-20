@@ -84,7 +84,7 @@ def get_candidates(
     elif current_user.role == UserRole.recruiter:
         query = db.query(Candidate).filter(
             or_(
-                Candidate.user_id == current_user.id,
+                Candidate.recruiter_id == current_user.id,
                 and_(
                     or_(
                         Candidate.owner_role == "candidate",
@@ -380,29 +380,39 @@ async def upload_candidate_cv(
 
         # Visibility metadata
         depositor_role = cast(UserRole, current_user.role)
-        candidate_dict["user_id"] = current_user.id
         candidate_dict["owner_role"] = depositor_role.value  # "candidate" or "recruiter"
         # Recruiter deposits are always private; candidate profiles start hidden
         candidate_dict["is_visible"] = False
 
-        # Upsert: prefer user_id match, fall back to email
-        existing_candidate = db.query(Candidate).filter(
-            Candidate.user_id == current_user.id
-        ).first()
-
-        if not existing_candidate and candidate_dict.get("email"):
+        if depositor_role == UserRole.candidate:
+            # Candidate owns their profile: link via user_id (unique per user)
+            candidate_dict["user_id"] = current_user.id
+            candidate_dict["recruiter_id"] = None
             existing_candidate = db.query(Candidate).filter(
-                Candidate.email == candidate_dict["email"]
+                Candidate.user_id == current_user.id
             ).first()
+            if not existing_candidate and candidate_dict.get("email"):
+                existing_candidate = db.query(Candidate).filter(
+                    Candidate.email == candidate_dict["email"]
+                ).first()
+        else:
+            # Recruiter deposits: track recruiter via recruiter_id, NOT user_id.
+            # This allows a recruiter to upload many CVs without constraint conflicts.
+            candidate_dict["user_id"] = None
+            candidate_dict["recruiter_id"] = current_user.id
+            # Upsert only by email to avoid overwriting a different person's record
+            existing_candidate = None
+            if candidate_dict.get("email"):
+                existing_candidate = db.query(Candidate).filter(
+                    Candidate.email == candidate_dict["email"]
+                ).first()
 
         if existing_candidate:
             for key, value in candidate_dict.items():
                 setattr(existing_candidate, key, value)
-            existing_candidate.user_id = current_user.id
             db_candidate = existing_candidate
         else:
             db_candidate = Candidate(**candidate_dict)
-            db_candidate.user_id = current_user.id
             db.add(db_candidate)
 
         db.flush()
@@ -528,10 +538,14 @@ async def upload_cv_with_ner(
         candidate_email = profile.get("email") or current_user.email
         depositor_role = cast(UserRole, current_user.role)
 
+        is_recruiter_upload = depositor_role == UserRole.recruiter
         candidate = db.query(Candidate).filter(Candidate.email == candidate_email).first()
 
         if candidate:
-            candidate.user_id = current_user.id
+            if is_recruiter_upload:
+                candidate.recruiter_id = current_user.id
+            else:
+                candidate.user_id = current_user.id
             candidate.full_name = profile.get("full_name") or current_user.full_name
             candidate.phone = profile.get("phone")
             candidate.raw_text = text[:5000]
@@ -547,7 +561,8 @@ async def upload_cv_with_ner(
             candidate.cv_path = None  # not persisted
         else:
             candidate = Candidate(
-                user_id=current_user.id,
+                user_id=None if is_recruiter_upload else current_user.id,
+                recruiter_id=current_user.id if is_recruiter_upload else None,
                 full_name=profile.get("full_name") or current_user.full_name,
                 email=candidate_email,
                 phone=profile.get("phone"),

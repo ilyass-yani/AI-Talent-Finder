@@ -4,7 +4,8 @@ import json
 import sys
 import requests
 
-URL = "https://ai-talent-finder-production-ed09.up.railway.app/api/matching/generate-and-match"
+import os
+URL = os.getenv("PROD_API_URL", "http://localhost:8000") + "/api/matching/generate-and-match"
 payload = {
     "job_title": "Auto: Data Scientist",
     "description": "Looking for Python, ML, Docker"

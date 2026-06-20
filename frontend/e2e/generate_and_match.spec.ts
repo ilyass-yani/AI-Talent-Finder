@@ -29,7 +29,8 @@ test('Mode-2 generate-and-match returns candidate matches (production)', async (
     // If storageState is missing or unreadable, test will proceed unauthenticated and likely fail.
   }
 
-  const resp = await request.post('https://ai-talent-finder-backend-production.up.railway.app/api/matching/generate-and-match', {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const resp = await request.post(`${apiUrl}/api/matching/generate-and-match`, {
     data: {
       job_title: 'Auto: Data Scientist',
       description: 'Looking for Python, ML, Docker'

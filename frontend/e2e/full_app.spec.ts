@@ -24,8 +24,8 @@ import * as fs from 'fs';
 // ──────────────────────────────────────────────
 // Config
 // ──────────────────────────────────────────────
-const BASE_URL = 'https://ai-talent-finder-production-ed09.up.railway.app';
-const API_URL = 'https://ai-talent-finder-backend-production.up.railway.app';
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const CV_PATH = path.resolve(
   'C:\\Users\\ACER\\OneDrive - usmba.ac.ma\\Documents\\chafik\\Resume\\resume chafik boulealam v2.pdf'
 );
@@ -69,7 +69,7 @@ test.describe('1. Homepage', () => {
     // The page should either show the landing page or redirect to a dashboard/login
     // It should NOT be an error page
     const status = page.url();
-    expect(status).toContain('railway.app');
+    expect(status).toBeTruthy();
 
     // Take a screenshot to visually inspect
     await screenshotStep(page, '01_homepage');

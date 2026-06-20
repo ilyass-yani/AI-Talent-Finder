@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 (async () => {
   const storagePath = path.resolve(__dirname, "storageState.json");
-  const target = "https://ai-talent-finder-production-ed09.up.railway.app/";
+  const target = process.env.E2E_BASE_URL || "http://localhost:3000/";
   console.log("Using storage state:", storagePath);
   const browser = await chromium.launch();
   const context = await browser.newContext({ storageState: storagePath });

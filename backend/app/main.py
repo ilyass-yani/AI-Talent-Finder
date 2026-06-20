@@ -19,18 +19,18 @@ import logging
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """
     Middleware to ensure redirects use HTTPS in production.
-    When deployed behind a reverse proxy (e.g., Railway), the request arrives as HTTP
+    When deployed behind a reverse proxy the request arrives as HTTP
     but should redirect to HTTPS. Starlette's redirect_slashes uses the request scheme,
     so we wrap the scope to force HTTPS redirects in production.
+    Activated by setting DEPLOY_ENV=production or NODE_ENV=production.
     """
     async def dispatch(self, request: Request, call_next):
         # In production, ensure the scheme seen by Starlette is HTTPS
         # by checking X-Forwarded-Proto header (set by reverse proxies)
-        if (os.getenv("NODE_ENV") == "production" or 
-            os.getenv("RAILWAY_ENVIRONMENT_NAME") == "production"):
+        if (os.getenv("NODE_ENV") == "production" or
+                os.getenv("DEPLOY_ENV") == "production"):
             forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()
             if forwarded_proto == "https":
-                # Force the scope to use https so redirects are generated correctly
                 request.scope["scheme"] = "https"
         
         return await call_next(request)

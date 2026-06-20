@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PROD_URL = 'https://ai-talent-finder-production-ed09.up.railway.app';
+const PROD_URL = process.env.E2E_BASE_URL || 'http://localhost:3000';
 
 export default defineConfig({
   testDir: './e2e',

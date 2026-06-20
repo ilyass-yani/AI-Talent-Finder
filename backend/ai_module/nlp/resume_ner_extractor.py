@@ -243,35 +243,43 @@ class ResumeNERExtractor:
             email_fallback = self._infer_name_from_email(emails[0])
 
         for index, raw_line in enumerate(lines[:80]):
-            line = raw_line.strip().strip('•*-').strip()
+            line = raw_line.strip().strip(‘•*-’).strip()
             normalized = self._normalize_for_matching(line)
 
-            if not line or '@' in line or 'http' in normalized or self._is_section_header(normalized):
+            if not line or ‘@’ in line or ‘http’ in normalized or self._is_section_header(normalized):
                 continue
-            if any(token in normalized for token in ('linkedin', 'github', 'contact', 'profil', 'profile')):
+            if any(token in normalized for token in (‘linkedin’, ‘github’, ‘contact’, ‘profil’, ‘profile’)):
                 continue
             if any(char.isdigit() for char in line):
                 continue
 
-            words = [word for word in re.split(r'\s+', line) if word]
-            if not 2 <= len(words) <= 3:
+            words = [word for word in re.split(r’\s+’, line) if word]
+            # Allow 1–4 words: single-name aliases, compound names, and particle names (de, van…)
+            if not 1 <= len(words) <= 4:
                 continue
 
-            alpha_words = sum(1 for word in words if re.search(r'[A-Za-zÀ-ÿ]', word))
+            alpha_words = sum(1 for word in words if re.search(r’[A-Za-zÀ-ÿ]’, word))
             if alpha_words != len(words):
                 continue
 
             score = 0
-            if index < 15:
-                score += 3
-            if re.fullmatch(r"[A-ZÀ-Ÿ][A-ZÀ-Ÿ'’\-]+(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ'’\-]+){1,2}", line):
+            # Strong position bonus for the very first lines of the CV
+            if index < 5:
                 score += 5
-            elif re.fullmatch(r"[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+){1,2}", line):
+            elif index < 15:
+                score += 3
+
+            # ALL_CAPS name (common in French CVs): highest match
+            if re.fullmatch(r"[A-ZÀ-Ÿ][A-ZÀ-Ÿ’’\-]+(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ’’\-]+){0,3}", line):
+                score += 5
+            # Title-case properly capitalized name
+            elif re.fullmatch(r"[A-ZÀ-Ÿ][A-Za-zÀ-ÿ’’\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ’’\-]+){0,3}", line):
                 score += 4
-            else:
+            # Mixed-case but all letters
+            elif all(re.search(r’[A-Za-zÀ-ÿ]’, w) for w in words):
                 score += 2
 
-            if any(keyword in normalized for keyword in ('experience', 'formation', 'education', 'profil', 'contact')):
+            if any(keyword in normalized for keyword in (‘experience’, ‘formation’, ‘education’, ‘profil’, ‘contact’)):
                 score -= 4
 
             candidates.append((score, line.title()))

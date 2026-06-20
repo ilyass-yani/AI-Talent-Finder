@@ -28,6 +28,7 @@ class CandidateResponse(CandidateBase):
     raw_text: Optional[str]
     owner_role: Optional[str] = None
     is_visible: bool = False
+    recruiter_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
