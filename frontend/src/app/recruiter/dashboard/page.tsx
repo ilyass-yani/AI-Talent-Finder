@@ -1,16 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jobsApi } from '@/services/jobs';
 import { matchingApi } from '@/services/matching';
+import { candidatesApi } from '@/services/candidates';
+import { favoritesApi } from '@/services/favorites';
+import { criteriaApi } from '@/services/criteria';
 import { getErrorMessage } from '@/utils/errorHandler';
 import Layout from '@/components/Layout';
 import MatchResultCard from '@/components/MatchResultCard';
 
+interface DashboardStats {
+  candidateCount: number;
+  criteriaCount: number;
+  favoritesCount: number;
+  loading: boolean;
+}
+
 export default function RecruiterDashboard() {
   const [selectedMode, setSelectedMode] = useState<'search' | 'generate' | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    candidateCount: 0,
+    criteriaCount: 0,
+    favoritesCount: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const [candRes, critRes, favRes] = await Promise.allSettled([
+        candidatesApi.getCandidates(0, 1000),
+        criteriaApi.getCriteria(),
+        favoritesApi.getFavorites(),
+      ]);
+      setStats({
+        candidateCount: candRes.status === 'fulfilled' ? (candRes.value.data?.length ?? 0) : 0,
+        criteriaCount: critRes.status === 'fulfilled' ? (critRes.value.data?.length ?? 0) : 0,
+        favoritesCount: favRes.status === 'fulfilled' ? (favRes.value.data?.length ?? 0) : 0,
+        loading: false,
+      });
+    };
+    fetchStats();
+  }, []);
 
   return (
     <Layout>
@@ -120,43 +153,43 @@ export default function RecruiterDashboard() {
 
         {/* Quick Stats */}
         {!selectedMode && (
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+          <div className="grid md:grid-cols-3 gap-4">
+            <Link href="/candidates" className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-blue-600">0</div>
-                  <div className="text-gray-600 font-medium">Recherches</div>
-                </div>
-                <div className="text-3xl">🔍</div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-purple-600">0</div>
-                  <div className="text-gray-600 font-medium">Candidats vus</div>
+                  <div className="text-3xl font-bold text-blue-600">
+                    {stats.loading ? <span className="text-lg text-gray-400">…</span> : stats.candidateCount}
+                  </div>
+                  <div className="text-gray-600 font-medium">Candidats</div>
+                  <div className="text-xs text-gray-400 mt-1">dans la base</div>
                 </div>
                 <div className="text-3xl">👥</div>
               </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+            </Link>
+            <Link href="/matching" className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-green-600">0</div>
+                  <div className="text-3xl font-bold text-purple-600">
+                    {stats.loading ? <span className="text-lg text-gray-400">…</span> : stats.criteriaCount}
+                  </div>
+                  <div className="text-gray-600 font-medium">Critères de poste</div>
+                  <div className="text-xs text-gray-400 mt-1">créés</div>
+                </div>
+                <div className="text-3xl">🎯</div>
+              </div>
+            </Link>
+            <Link href="/recruiter/shortlist" className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-green-600">
+                    {stats.loading ? <span className="text-lg text-gray-400">…</span> : stats.favoritesCount}
+                  </div>
                   <div className="text-gray-600 font-medium">En shortlist</div>
+                  <div className="text-xs text-gray-400 mt-1">favoris enregistrés</div>
                 </div>
                 <div className="text-3xl">⭐</div>
               </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500 hover:shadow-lg transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold text-orange-600">0</div>
-                  <div className="text-gray-600 font-medium">Exported</div>
-                </div>
-                <div className="text-3xl">📊</div>
-              </div>
-            </div>
+            </Link>
           </div>
         )}
       </div>

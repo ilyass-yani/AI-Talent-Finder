@@ -40,7 +40,7 @@ function buildFallbackExplanation(candidateName: string, jobTitle: string): Expl
     experience_alignment: 'Explication générée en mode dégradé: vérifiez le service IA côté backend.',
     key_reason: 'Le backend d\'explication n\'a pas répondu; affichage d\'une version de secours.',
     recommendations: [
-      'Vérifier les logs Railway du backend IA.',
+      'Vérifier les logs du backend IA.',
       'Confirmer la disponibilité des dépendances/modeles optionnels.',
     ],
   };

@@ -3,8 +3,8 @@ import { resolve } from 'path';
 import { randomUUID } from 'crypto';
 
 const STORAGE_STATE_PATH = resolve(__dirname, 'storageState.json');
-const FRONTEND_ORIGIN = 'https://ai-talent-finder-production-ed09.up.railway.app';
-const API_BASE_URL = 'https://ai-talent-finder-backend-production.up.railway.app';
+const FRONTEND_ORIGIN = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 type AuthResponse = {
   access_token: string;

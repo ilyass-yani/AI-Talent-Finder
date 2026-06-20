@@ -41,15 +41,9 @@ export function isDisplayableIdentity(fullName?: string | null, email?: string |
 }
 
 export function isDisplayableCandidate(candidate: CandidateVisibilityLike): boolean {
-  const hasCvPath = Boolean(candidate.cv_path && candidate.cv_path.trim());
-  const hasRawText = Boolean(candidate.raw_text && candidate.raw_text.trim());
-  const hasExtractionScore = typeof candidate.extraction_quality_score === 'number' && candidate.extraction_quality_score > 0;
-  const hasExtractedProfile = candidate.is_fully_extracted === true;
-
-  if (!(hasCvPath || hasRawText || hasExtractionScore || hasExtractedProfile)) {
-    return false;
-  }
-
+  // The backend already applies _is_displayable_candidate before returning candidates.
+  // Here we only guard against candidates returned by the backend that still have
+  // no meaningful identity (edge case: import via manual POST without raw data).
   return isDisplayableIdentity(candidate.full_name, candidate.email);
 }
 

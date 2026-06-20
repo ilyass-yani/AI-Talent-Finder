@@ -11,7 +11,7 @@ from urllib import request as urlrequest, error as urlerror
 
 
 def main():
-    base = os.getenv("PROD_URL", "https://ai-talent-finder-backend-production.up.railway.app")
+    base = os.getenv("PROD_URL", "http://localhost:8000")
     criteria_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     top_k = os.getenv("TOP_K", "10")
     auth_token = os.getenv("AUTH_TOKEN", "").strip()

@@ -33,29 +33,28 @@ npm install
 npm run dev
 ```
 
-### Option 3 — Railway (production)
+### Option 3 — Production (Hugging Face Spaces / Vercel / Supabase)
 
-Créer 3 services Railway:
-
-- PostgreSQL (plugin Railway)
-- Backend (Root Directory: `backend`, Dockerfile)
-- Frontend (Root Directory: `frontend`, Dockerfile)
+L'application est déployée sur :
+- **Backend** : Hugging Face Spaces (FastAPI)
+- **Frontend** : Vercel (Next.js)
+- **Base de données** : Supabase (PostgreSQL)
 
 Variables minimales à définir:
 
 ```env
-# Backend
-DATABASE_URL=<Postgres Railway URL>
+# Backend (HF Spaces secrets)
+DATABASE_URL=<Supabase PostgreSQL URL>
 SECRET_KEY=<minimum-32-characters>
-ALLOWED_ORIGINS=<Frontend Railway URL>
-ANTHROPIC_API_KEY=<optional>
+ALLOWED_ORIGINS=<Frontend Vercel URL>
+HF_TOKEN_CHATBOT=<Hugging Face token pour le chatbot>
+CHATBOT_MODEL=Qwen/Qwen2.5-7B-Instruct
 
-# Frontend
-NEXT_PUBLIC_API_URL=<Backend Railway URL>
+# Frontend (Vercel env vars)
+NEXT_PUBLIC_API_URL=<Backend HF Spaces URL>
 NODE_ENV=production
+DEPLOY_ENV=production
 ```
-
-Les fichiers `backend/railway.json` et `frontend/railway.json` sont inclus pour forcer le mode Dockerfile et définir les healthchecks.
 
 ### Pipeline de production
 
@@ -314,4 +313,4 @@ cd tools/llama.cpp
 | Export    | ReportLab (PDF), openpyxl (Excel), csv                             |
 | Frontend  | Next.js 16, React 19, TypeScript, Tailwind CSS                     |
 | Tests     | Jest (frontend), pytest (backend)                                  |
-| Deploy    | Docker Compose, Railway                                            |
+| Deploy    | Docker Compose, Hugging Face Spaces, Vercel                        |

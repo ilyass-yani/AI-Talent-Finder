@@ -13,12 +13,11 @@ import { useTheme } from "@/hooks/useTheme";
 const recruiterNav = [
   { href: "/recruiter/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/candidates", label: "Candidats", icon: Users },
+  { href: "/matching", label: "Critères & Matching", icon: GitCompareArrows },
+  { href: "/recruiter/shortlist", label: "Shortlist", icon: Heart },
   { href: "/skills", label: "Compétences", icon: Wrench },
-  { href: "/jobs", label: "Critères de poste", icon: SlidersHorizontal },
-  { href: "/matching", label: "Matching", icon: GitCompareArrows },
   { href: "/recruiter/chatbot", label: "Chatbot IA", icon: MessageCircle },
   { href: "/recruiter/feedback", label: "Feedback IA", icon: BarChart3 },
-  { href: "/recruiter/shortlist", label: "Shortlist", icon: Heart },
   { href: "/recruiter/export", label: "Export", icon: FileDown },
 ];
 
