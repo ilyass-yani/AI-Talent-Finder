@@ -54,7 +54,8 @@ class SemanticSkillMatcher:
         try:
             print(f"Loading {cls.MODEL_NAME}...")
             cls._model = SentenceTransformer(cls.MODEL_NAME)
-            print(f"✓ Model loaded successfully. Embedding dimension: {cls._model.get_sentence_embedding_dimension()}")
+            _get_dim = getattr(cls._model, "get_embedding_dimension", cls._model.get_sentence_embedding_dimension)
+            print(f"Loaded {cls.MODEL_NAME}. Embedding dimension: {_get_dim()}")
             return cls._model
         except Exception as e:
             print(f"Error loading model: {e}")

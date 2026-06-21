@@ -122,6 +122,11 @@ def on_startup():
     include_optional_router("app.api.admin", "router")
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "AI Talent Finder"}
+
+
 # Health check endpoint (always available)
 @app.get("/health")
 def health():
