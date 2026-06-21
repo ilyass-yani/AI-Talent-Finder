@@ -58,6 +58,21 @@ _COMPANY_SUFFIX_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Detects a capitalized word (4+ chars) immediately followed — with NO space —
+# by a common French preposition or article.
+# Used to fix PDF text-extraction artifacts such as "Voyageen sac a dos"
+# (should be "Voyage en sac a dos") where adjacent text blocks were merged
+# without a space separator.
+# The char ranges:
+#   [A-Z\xc0-\xde]     uppercase basic + accented (A-Z, A-grave … Thorn)
+#   [a-z\xdf-\xff]     lowercase basic + accented (a-z, sharp-s … y-diaeresis)
+_FUSED_WORD_RE = re.compile(
+    r"([A-Z\xc0-\xde][a-z\xdf-\xff]{3,})"
+    r"(en|de|du|des|le|la|les|et|ou|au|aux|par|sur|sous|dans|avec|pour|un|une|y|si)"
+    r"(?=\s)",   # lookahead: the preposition must be followed by whitespace,
+    re.UNICODE,  # so that "Benevola" (ends in "la") is not incorrectly split.
+)
+
 # Normalized CV section header names.
 # Used to reject section titles that leak into entity lists.
 # All values must be in their _normalize_key() form (lowercase, no accents,
@@ -321,8 +336,16 @@ class GLiNERExtractor:
     def _clean_interests(
         self, interests: List[str], full_name: Optional[str]
     ) -> List[str]:
-        """Filter interests: reject the candidate name, section headers, and
-        form-label patterns (strings containing '/' or '|').
+        """Filter and repair interests.
+
+        Operations (in order):
+        1. Reject form labels (spans containing '/' or '|').
+        2. Attempt to fix PDF word-concatenation artifacts by inserting a
+           missing space before fused French prepositions/articles
+           (e.g. 'Voyageen sac a dos' -> 'Voyage en sac a dos').
+        3. Reject spans whose normalized key matches the candidate full name.
+        4. Reject CV section headers (exact and word-token match).
+        5. Deduplicate.
         """
         name_key = self._normalize_key(full_name) if full_name else None
         seen: set = set()
@@ -331,14 +354,16 @@ class GLiNERExtractor:
             span = raw.strip(_STRIP_CHARS)
             if not span:
                 continue
-            # Reject form labels (e.g. 'INTITULE DU POSTE / STAGE')
+            # Step 1: reject form labels (e.g. 'INTITULE DU POSTE / STAGE')
             if "/" in span or "|" in span:
                 continue
+            # Step 2: fix missing space between fused words
+            span = self._fix_concatenated_words(span)
             key = self._normalize_key(span)
-            # Reject if it matches the candidate name
+            # Step 3: reject if it matches the candidate name
             if name_key and key == name_key:
                 continue
-            # Reject exact section header matches
+            # Step 4: reject exact section header matches
             if key in _SECTION_HEADERS:
                 continue
             # Reject if any word token is an unambiguous section header
@@ -351,6 +376,20 @@ class GLiNERExtractor:
             seen.add(key)
             result.append(span)
         return result
+
+    @staticmethod
+    def _fix_concatenated_words(text: str) -> str:
+        """Insert a missing space where a common French preposition/article is
+        fused to the preceding capitalized word.
+
+        Example: 'Voyageen sac a dos' -> 'Voyage en sac a dos'
+
+        This repairs a specific PDF text-extraction artifact where two adjacent
+        positioned text blocks are concatenated without a space separator.
+        Applied only to interests (not to company/school/name spans) to avoid
+        unintended side-effects on proper names or brand names.
+        """
+        return _FUSED_WORD_RE.sub(r"\1 \2", text)
 
     def _dedup(self, items: List[str]) -> List[str]:
         """Deduplicate a list of spans preserving first-seen order."""

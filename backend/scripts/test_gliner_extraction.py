@@ -193,6 +193,42 @@ def test_cleanup_logic():
         f"cleanup: form label NOT in interests (got {interests})",
     )
 
+    # --- word-concatenation fix ---
+    # Simulate the real artifact observed in production: 'Voyageen sac a dos'
+    # (two adjacent PDF text blocks merged without a space separator).
+    from ai_module.nlp.gliner_extractor import GLiNERExtractor as _G
+    _ext = _G()
+    fused_cases = [
+        ("Voyageen sac a dos",      "Voyage en sac a dos"),
+        ("Theatreet concerts",      "Theatre et concerts"),
+        ("Cuisinedu jour",          "Cuisine du jour"),
+        ("Randonnee",               "Randonnee"),     # single word -- must be unchanged
+        ("Benevola",                "Benevola"),      # ends in 'la' but no following space
+        ("Voyage en sac a dos",     "Voyage en sac a dos"),  # already correct
+    ]
+    for fused, expected in fused_cases:
+        got = _ext._fix_concatenated_words(fused)
+        check(
+            got == expected,
+            f"concat fix: {fused!r} -> {got!r} (expected {expected!r})",
+        )
+    # End-to-end: verify the full pipeline repairs the concat artifact
+    fused_mock_extra = [
+        {"label": "person name", "text": "Test User"},
+        {"label": "interest", "text": "Voyageen sac a dos"},
+        {"label": "interest", "text": "Randonnee"},
+    ]
+    fused_result = _ext._clean_entities(fused_mock_extra)
+    check(
+        any("Voyage" in i and " en" in i for i in fused_result.get("interests", [])),
+        f"concat e2e: 'Voyageen sac a dos' repaired in pipeline "
+        f"(interests={fused_result.get('interests')})",
+    )
+    check(
+        "Randonnee" in fused_result.get("interests", []),
+        f"concat e2e: 'Randonnee' unchanged (interests={fused_result.get('interests')})",
+    )
+
 
 def test_gliner_unit():
     """Unit test: GLiNERExtractor on raw CV text (no PDF parsing)."""
