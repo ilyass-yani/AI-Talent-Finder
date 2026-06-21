@@ -56,6 +56,12 @@ try:
 except ImportError:
     NER_AVAILABLE = False
 
+try:
+    from ai_module.nlp.gliner_extractor import get_gliner_extractor as _get_gliner
+    GLINER_AVAILABLE = True
+except ImportError:
+    GLINER_AVAILABLE = False
+
 from ai_module.nlp.cv_cleaner import CVCleaner
 
 try:
@@ -105,6 +111,11 @@ class CVExtractionService:
         else:
             self.skill_extractor = _FallbackSkillExtractor()
         self.debug_enabled = os.getenv("CV_EXTRACTION_DEBUG", "0") == "1"
+        # Set USE_GLINER=false to disable GLiNER without redeploying code.
+        self._use_gliner = (
+            GLINER_AVAILABLE
+            and os.getenv("USE_GLINER", "true").strip().lower() not in ("false", "0", "no")
+        )
         self.hf_ner_model_name = os.getenv("HF_CV_NER_MODEL", "dslim/bert-base-NER")
         self.hf_parser = None
 
@@ -184,34 +195,40 @@ class CVExtractionService:
         )
     
     def _extract_structured_data(self, text: str) -> tuple:
-        """
-        Extract structured data via NER
-        
+        """Extract structured data via NER cascade: GLiNER -> regex -> BERT.
+
         Returns:
             Tuple of (structured_dict, quality_score)
         """
         if not self.ner_available or not text:
             return {}, 0
-        
+
         try:
             normalized_text = self._normalize_text_for_extraction(text)
-            hf_structured: Dict = {}
-            hf_quality = 0.0
-
-            # Run modern HF parser first (high precision on identity entities),
-            # then merge with the richer legacy extractor output.
-            if self.hf_parser is not None and self.hf_parser.available:
-                hf_structured, hf_quality = self.hf_parser.extract_structured_profile(normalized_text)
 
             if self.debug_enabled:
                 logger.info("TEXT EXTRACTED (preview): %s", normalized_text[:1000])
 
+            # --- Step 1: regex extractor (full breadth: skills, phone, email, …) ---
             structured = self.ner_extractor.extract_structured_profile(normalized_text)
             quality = self._compute_quality_score(structured)
 
+            # --- Step 2: GLiNER cascade (principal for name / companies / education) ---
+            # GLiNER overrides the regex results for high-precision identity fields.
+            # Falls back to regex values when GLiNER returns nothing for a field.
+            gliner_data = self._run_gliner(normalized_text)
+            if gliner_data:
+                structured = self._apply_gliner_override(structured, gliner_data)
+
+            # --- Step 3: BERT NER enrichment (fills gaps not covered by regex+GLiNER) ---
+            hf_structured: Dict = {}
+            hf_quality = 0.0
+            if self.hf_parser is not None and self.hf_parser.available:
+                hf_structured, hf_quality = self.hf_parser.extract_structured_profile(normalized_text)
             if hf_structured:
                 structured = self._merge_structured_profiles(base=structured, hf=hf_structured)
 
+            # --- Step 4: postprocess & score ---
             structured = self._postprocess_structured(structured)
             quality = max(quality, hf_quality, self._compute_quality_score(structured))
 
@@ -224,13 +241,61 @@ class CVExtractionService:
                     "companies": len(structured.get("companies", [])),
                     "education": len(structured.get("education", [])),
                     "skills": len(structured.get("skills", [])),
+                    "gliner_used": bool(gliner_data),
                 }
                 logger.info("ENTITIES SUMMARY: %s", entity_counts)
 
             return structured, quality
         except Exception as e:
-            print(f"⚠️ Structured extraction failed: {e}")
+            print(f"Warning: Structured extraction failed: {e}")
             return {}, 0
+
+    def _run_gliner(self, text: str) -> Dict:
+        """Run GLiNER and return its dict, or {} on any failure / disabled."""
+        if not self._use_gliner:
+            return {}
+        try:
+            extractor = _get_gliner()
+            # Trigger lazy model load on first call
+            extractor._load_model()
+            if not extractor.available:
+                return {}
+            return extractor.extract(text)
+        except Exception as exc:
+            logger.warning("GLiNER run error: %s", exc)
+            return {}
+
+    def _apply_gliner_override(self, structured: Dict, gliner: Dict) -> Dict:
+        """Override regex-extracted identity fields with GLiNER results.
+
+        GLiNER is higher precision for name / companies / education / job_titles.
+        Regex is kept for everything else (skills, phone, email, languages, etc.).
+        A GLiNER field only overrides when GLiNER actually found something
+        (non-empty), so the regex value is kept as fallback when GLiNER is silent.
+        """
+        result = dict(structured)
+
+        if gliner.get("full_name"):
+            result["full_name"] = gliner["full_name"]
+            result["name"] = gliner["full_name"]
+
+        if gliner.get("companies"):
+            result["companies"] = gliner["companies"]
+
+        if gliner.get("education"):
+            result["education"] = gliner["education"]
+
+        if gliner.get("job_titles"):
+            result["job_titles"] = gliner["job_titles"]
+
+        # Tag the extraction metadata so we know GLiNER ran
+        meta = result.get("extraction_metadata")
+        if not isinstance(meta, dict):
+            meta = {}
+        meta["gliner_model"] = os.getenv("GLINER_MODEL", "urchade/gliner_multi-v2.1")
+        result["extraction_metadata"] = meta
+
+        return result
 
     def _merge_structured_profiles(self, base: Dict, hf: Dict) -> Dict:
         """Merge legacy and HF structured outputs while preserving richer fields."""
