@@ -61,6 +61,63 @@ class ResumeNERExtractor:
         # Other Tools
         "jira", "confluence", "slack", "discord", "figma", "sketch",
         "vim", "vscode", "intellij",
+
+        # Sante / Health
+        "infirmier", "infirmiere", "pharmacien", "pharmacienne", "chirurgie",
+        "soins infirmiers", "soins intensifs", "bloc operatoire", "urgences",
+        "radiologie", "anesthesie", "pediatrie", "geriatrie", "cardiologie",
+        "neurologie", "oncologie", "kinesitherapie", "orthophonie",
+        "aide soignant", "auxiliaire de vie", "sage femme", "medecin",
+        "urgentiste", "generaliste", "specialiste", "imagerie medicale",
+        "pharmacologie", "biologie medicale", "dossier patient", "hip",
+
+        # Commerce / Vente
+        "negociation", "prospection", "crm", "salesforce", "hubspot",
+        "vente", "commerce", "relation client", "fidélisation", "fidélisation client",
+        "fidelisation", "pipeline commercial", "force de vente", "b2b", "b2c",
+        "cold calling", "account management", "key account", "grands comptes",
+        "administration des ventes", "devis", "facturation", "customer success",
+        "closing", "lead generation",
+
+        # Finance / Comptabilite
+        "comptabilite", "comptabilité", "audit", "controle de gestion",
+        "excel financier", "ifrs", "normes ifrs", "bilan", "liasses fiscales",
+        "gestion budgetaire", "tresorerie", "fiscalite", "sage comptabilité",
+        "sage compta", "sage", "cegid", "erp finance", "consolidation",
+        "reporting financier", "analyse financiere", "due diligence",
+        "commissariat aux comptes", "expert comptable", "bilan comptable",
+        "grand livre", "journaux comptables", "pcg", "tva",
+
+        # Marketing
+        "seo", "sea", "sem", "content marketing", "branding", "brand management",
+        "marketing digital", "emailing", "e-mailing", "google analytics",
+        "google ads", "facebook ads", "meta ads", "reseaux sociaux",
+        "community management", "inbound marketing", "marketing automation",
+        "mailchimp", "hubspot marketing", "copywriting", "ux writing",
+        "webmarketing", "e-commerce", "shopify", "growth hacking",
+
+        # BTP / Construction
+        "conduite de chantier", "autocad", "maconnerie", "gros oeuvre",
+        "second oeuvre", "menuiserie", "plomberie", "electricite batiment",
+        "genie civil", "architecture", "bim", "revit", "suivi de chantier",
+        "planification chantier", "metres", "cubature", "beton arme",
+        "coffreur", "platrerie", "carrelage", "peinture batiment",
+        "chef de chantier", "conducteur de travaux",
+
+        # Droit / Juridique
+        "droit du travail", "contrats", "contentieux", "droit commercial",
+        "droit civil", "droit penal", "jurisprudence", "redaction juridique",
+        "negociation contractuelle", "veille juridique", "rgpd", "droit des affaires",
+        "droit de la propriete intellectuelle", "droit des societes",
+        "recouvrement de creances", "arbitrage", "mediation",
+
+        # Ressources Humaines / RH
+        "recrutement", "gpec", "gestion des talents", "paie",
+        "administration du personnel", "droit social", "formation professionnelle",
+        "onboarding", "marque employeur", "entretien professionnel",
+        "gestion des competences", "bilan social", "dsn", "sirh",
+        "workday", "peoplesoft", "adp", "talent management",
+        "sourcing", "assessment center", "mobilite interne",
     }
     
     # Job title keywords

@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import ScoreGauge from "@/components/ScoreGauge";
 import { useApi } from "@/hooks/useApi";
 import { criteriaApi, type Criteria, type CriteriaSkillInput } from "@/services/criteria";
-import { matchingApi, type CriteriaMatchResult, type PredictCandidateResult } from "@/services/matching";
+import { matchingApi, type CriteriaMatchResult, type PredictCandidateResult, type RankAllResult } from "@/services/matching";
 import { filterDisplayableCandidateNames, filterDisplayableIdentities } from "@/services/candidates";
 import { skillsApi, type Skill } from "@/services/skills";
 import {
@@ -47,6 +47,9 @@ export default function MatchingPage() {
   const [loadingCriteria, setLoadingCriteria] = useState(false);
   const [results, setResults] = useState<CriteriaMatchResult[]>([]);
   const [predictedResults, setPredictedResults] = useState<PredictCandidateResult[]>([]);
+  const [rankAllResults, setRankAllResults] = useState<RankAllResult[]>([]);
+  const [rankAllLoading, setRankAllLoading] = useState(false);
+  const [rankAllCriteriaId, setRankAllCriteriaId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [isChartMounted, setIsChartMounted] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -251,6 +254,24 @@ export default function MatchingPage() {
   };
 
   const sortedResults = [...results].sort((left, right) => right.score - left.score);
+
+  const launchRankAll = async () => {
+    const criteriaId = rankAllCriteriaId ?? selectedCriteriaId;
+    if (!criteriaId) {
+      setError("Selectionnez un critere de poste pour lancer le classement.");
+      return;
+    }
+    setRankAllLoading(true);
+    setError("");
+    try {
+      const response = await matchingApi.rankAll(criteriaId);
+      setRankAllResults(response.data);
+    } catch {
+      setError("Impossible de charger le classement complet.");
+    } finally {
+      setRankAllLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -657,6 +678,101 @@ export default function MatchingPage() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+        </section>
+
+        {/* B1 - Classement de CVs (ranking top-N) - panneau dedie rank-all */}
+        <section className="space-y-5 rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Classement complet de mes candidats</h2>
+              <p className="text-sm text-slate-500">
+                Scorez TOUS vos candidats (recruiter_id) sur un critere de poste et triez du meilleur au moins bon.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Critere de poste
+                </label>
+                <select
+                  value={rankAllCriteriaId ?? ""}
+                  onChange={(e) => setRankAllCriteriaId(e.target.value ? Number(e.target.value) : null)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">-- Selectionner --</option>
+                  {(criteriaList || []).map((c) => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={launchRankAll}
+                disabled={rankAllLoading || (!rankAllCriteriaId && !selectedCriteriaId)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Play className="h-4 w-4" />
+                {rankAllLoading ? "Calcul..." : "Lancer le classement"}
+              </button>
+            </div>
+          </div>
+
+          {rankAllLoading ? (
+            <div className="rounded-2xl border border-indigo-100 bg-white px-4 py-10 text-center text-sm text-slate-500">
+              Calcul des scores en cours...
+            </div>
+          ) : rankAllResults.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/70 px-4 py-10 text-center text-sm text-slate-500">
+              Selectionnez un critere puis cliquez sur &quot;Lancer le classement&quot; pour voir tous vos candidats classes par score.
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-4 py-3">Rang</th>
+                    <th className="px-4 py-3">Nom</th>
+                    <th className="px-4 py-3 hidden sm:table-cell">Email</th>
+                    <th className="px-4 py-3">Score</th>
+                    <th className="px-4 py-3 hidden md:table-cell">Competences cles</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {rankAllResults.map((r) => (
+                    <tr key={r.candidate_id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-400">#{r.rank}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-900">{r.full_name}</td>
+                      <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">{r.email}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-indigo-500"
+                              style={{ width: `${Math.min(r.score, 100)}%` }}
+                            />
+                          </div>
+                          <span className={`font-semibold ${r.score >= 70 ? 'text-emerald-700' : r.score >= 40 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {Math.round(r.score)}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {r.matched_skills.slice(0, 3).map((skill) => (
+                            <span key={skill} className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">{skill}</span>
+                          ))}
+                          {r.matched_skills.length > 3 && (
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">+{r.matched_skills.length - 3}</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

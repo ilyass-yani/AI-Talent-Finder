@@ -265,3 +265,217 @@ INSERT INTO alembic_version (version_num) VALUES ('20260620_add_recruiter_id');
 - Code GitHub : commit effectué, push effectué.
 - HF Space : le dossier HF Space n'est pas disponible localement. Suivre `DEPLOY_STEPS.md` pour copier `backend/alembic/env.py` vers le clone HF Space et pusher.
 - Validation finale requise après déploiement HF (voir DEPLOY_STEPS.md étape 3).
+
+---
+
+## Batch fix/batch-2 du 2026-06-21 — fix/batch-2_bs
+
+### A1 — Fix CosineScorer import (CRITIQUE)
+
+**Diagnostic :**
+`backend/ai_module/matching/__init__.py` n'exportait pas `CosineScorer`.
+Les appels `from ai_module.matching import CosineScorer` dans `backend/app/api/matching.py`
+(lignes 642 et 682) levaient un `ImportError` au runtime.
+
+**Correctif :**
+Ajout de `from ai_module.matching.scorer import CosineScorer` et export dans `__all__`.
+
+**Fichiers :**
+- `backend/ai_module/matching/__init__.py`
+
+---
+
+### A2 — Fix DELETE et PUT candidats (recruiter_id)
+
+**Diagnostic :**
+Routes `DELETE /{candidate_id}` et `PUT /{candidate_id}` dans `candidates.py`
+vérifiaient uniquement `db_candidate.user_id == current_user.id`. Les candidats
+uploadés par un recruteur ont `user_id=NULL` et `recruiter_id=current_user.id`
+→ 404 systématique pour le recruteur propriétaire.
+
+**Correctif :**
+```python
+is_owner = (
+    (db_candidate.user_id is not None and db_candidate.user_id == current_user.id)
+    or (db_candidate.recruiter_id is not None and db_candidate.recruiter_id == current_user.id)
+)
+```
+
+**Fichiers :**
+- `backend/app/api/candidates.py` (PUT ~l.665, DELETE ~l.691)
+
+---
+
+### A3 — Bug NER "e" parasite (BOM UTF-8)
+
+**Diagnostic :**
+Les PDFs peuvent commencer par un BOM UTF-8 (`﻿`). Ce caractère se retrouve
+en premiere position du texte extrait, puis dans le premier mot du nom.
+Quand `str.capitalize()` est appelé, le BOM devient le premier caractere
+(il reste intact), et la vraie premiere lettre devient minuscule :
+`'﻿Jean'` → `capitalize()` → `'﻿jean'`.
+
+Affichage dans l'UI : la BOM est invisible, on voit "jean Dupont" (minuscule)
+ou parfois une lettre parasite selon le codec de la UI.
+
+**Correctif :**
+- Dans `cv_extractor.py::_normalize_text_for_extraction()` : strip BOM a la racine.
+- Dans `cv_extractor.py::_clean_name()` : strip BOM et chars zero-width
+  sur la valeur et sur chaque mot avant `capitalize()`.
+
+**Fichiers :**
+- `backend/app/services/cv_extractor.py`
+
+---
+
+### B1 — Classement de CVs (ranking top-N)
+
+**Backend :**
+Nouvel endpoint `GET /api/matching/{criteria_id}/rank-all` dans `matching.py`.
+Retourne tous les candidats du recruteur (union `recruiter_id OR user_id`)
+scores via `score_candidate_against_criteria`, tries par score decroissant.
+Chaque entree : `rank, candidate_id, full_name, email, score, coverage,
+matched_skills, missing_skills`.
+
+**Frontend :**
+- `frontend/src/services/matching.ts` : ajout `matchingApi.rankAll()` +
+  interface `RankAllResult`.
+- `frontend/src/app/matching/page.tsx` : nouveau panneau "Classement complet
+  de mes candidats" avec dropdown critere, bouton "Lancer le classement",
+  tableau tri par score (barre de progression + badge couleur).
+
+**Fichiers :**
+- `backend/app/api/matching.py`
+- `frontend/src/services/matching.ts`
+- `frontend/src/app/matching/page.tsx`
+
+---
+
+### C1 — Dashboard : retrait bloc "mode recherche"
+
+Bloc `SearchMode` et son panel de selection "Mode Recherche" supprimes du
+dashboard. La fonctionnalite est disponible sur `/matching` (Criteres & Matching).
+
+---
+
+### C2 — Dashboard : retrait bloc "generation de profil IA"
+
+Bloc `GenerateMode` et son panel "Mode Generation IA" supprimes du dashboard.
+La fonctionnalite `GenerateMode` pourrait etre deplacee dans une page dediee
+`/recruiter/ai-generate` si besoin (composant existant dans git sur cette branche).
+
+---
+
+### C3 — Dashboard : nouveaux widgets
+
+Remplacement par :
+- **Stats cliquables** : Candidats / Criteres / Shortlist (inchangees, deja presentes).
+- **Raccourcis rapides** : boutons "Uploader un CV", "Voir tous les candidats",
+  "Lancer un matching".
+- **Derniers candidats ajoutes** : liste des 5 derniers avec lien vers leur profil.
+- **Widget Shortlist** : compteur rapide + lien vers `/recruiter/shortlist`.
+
+**Fichiers :**
+- `frontend/src/app/recruiter/dashboard/page.tsx` (réécriture complete)
+
+---
+
+### D1 — Referentiel de competences multi-metier
+
+`TECH_SKILLS` dans `resume_ner_extractor.py` elargi avec 7 nouveaux domaines :
+**Sante**, **Commerce/Vente**, **Finance/Comptabilite**, **Marketing**,
+**BTP/Construction**, **Droit/Juridique**, **RH**.
+
+> Note : le champ `category` du modele `Skill` est alimente a la creation avec
+> la valeur `"tech"` (ligne `Skill(... category="tech")` dans `candidates.py`).
+> Les nouvelles competences sont detectees par le NER et enregistrees avec
+> `category="tech"` par defaut. Pour un categorisation fine (sante, commerce...),
+> il faudrait modifier l'enum `category` du schema DB et ajouter une migration —
+> hors perimetre de ce batch pour eviter les risques schema.
+
+**Fichiers :**
+- `backend/ai_module/nlp/resume_ner_extractor.py`
+
+---
+
+### E1 — Retrait FeedbackAI de la navigation
+
+Entree `/recruiter/feedback` retiree de `recruiterNav` dans `Layout.tsx`.
+La **page** `/recruiter/feedback` et ses routes backend ne sont PAS supprimees
+(accessibles directement par URL ou lien externe).
+
+**Impact :** les utilisateurs ne voient plus "Feedback IA" dans le menu lateral.
+S'ils ont besoin de cette fonctionnalite, ils peuvent y acceder via un lien direct
+ou depuis le dashboard.
+
+**Fichiers :**
+- `frontend/src/components/Layout.tsx`
+
+---
+
+### E2 — Connexion admin cachee
+
+Nouvelle page `frontend/src/app/admin-login/page.tsx` :
+- URL : `/admin-login` (non referencee dans la navigation)
+- Formulaire email + password → `POST /api/auth/login`
+- Si `role == "admin"` → redirection vers `/admin/dashboard`
+- Sinon → message "Acces refuse"
+- Style sombre Tailwind, coherent avec le reste de l'app
+
+**Comment tester :**
+1. Creer un compte admin (via `POST /api/admin/create-admin` ou directement en DB).
+2. Naviguer vers `http://localhost:3000/admin-login`.
+3. Saisir les credentials admin.
+4. La page redirige vers `/admin/dashboard`.
+5. Tester avec des credentials non-admin : message d'erreur affiché.
+
+**Fichiers :**
+- `frontend/src/app/admin-login/page.tsx` (nouveau)
+
+---
+
+### F1 — Nettoyage Railway (storageState.json)
+
+`frontend/e2e/storageState.json` : URL Railway remplacee par `http://localhost:3000`,
+tokens/cookies Railway vides.
+
+**Fichiers :**
+- `frontend/e2e/storageState.json`
+
+---
+
+### G1 — Audit routes candidats pour recruiter_id
+
+**Routes auditees :**
+- `backend/app/api/matching.py` : les routes existantes (`_score_all_candidates`,
+  `/results`) ne filtrent pas par user_id — elles scorent TOUS les candidats,
+  ce qui est correct pour le matching global. Le nouvel endpoint `rank-all` (B1)
+  filtre correctement avec `or_(recruiter_id, user_id)`.
+- `backend/app/api/favorites.py` : filtre sur `Favorite.recruiter_id` — correct,
+  pas de `Candidate.user_id` implique.
+- `backend/app/api/export.py` : retourne `db.query(Candidate).all()` — tous les
+  candidats. Pas de filtre par recruteur, comportement admin-level. OK pour l'export.
+- `backend/app/api/scoring.py` : pas de filtre `Candidate.user_id`.
+
+**Correctifs appliques :**
+- `backend/app/api/candidates.py` routes PUT et DELETE : passage a `is_owner`
+  (voir A2).
+- `backend/app/api/matching.py` endpoint `rank-all` : filtre `or_(recruiter_id, user_id)`.
+
+---
+
+### F2 — Fichiers .md proposes pour suppression
+
+**A SUPPRIMER (rapports temporaires / obsoletes) :**
+- `CHATBOT_INTEGRATION.md` — document technique ponctuel
+- `DEPLOY_STEPS.md` — etapes one-shot deja appliquees
+- `UPDATE_PIPELINE.md` — rapport de mise a jour pipeline, obsolete
+- `backend/FINETUNE_README.md` — guide finetune ponctuel
+- `chemise.md` — fichier personnel / brouillon
+
+**A CONSERVER :**
+- `README.md` — documentation principale du projet
+- `AMELIORATIONS.md` — ce fichier (historique des batchs)
+- `ADMIN_MODULE.md` — documentation du module admin (utile)
+- `PROJECT_BRIEF.md` — brief produit (reference)
+- `frontend/README.md` — documentation Next.js standard

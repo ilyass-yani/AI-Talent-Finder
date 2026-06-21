@@ -17,7 +17,7 @@ const recruiterNav = [
   { href: "/recruiter/shortlist", label: "Shortlist", icon: Heart },
   { href: "/skills", label: "Compétences", icon: Wrench },
   { href: "/recruiter/chatbot", label: "Chatbot IA", icon: MessageCircle },
-  { href: "/recruiter/feedback", label: "Feedback IA", icon: BarChart3 },
+  // FeedbackAI retiree de la navigation (E1) - page disponible sur /recruiter/feedback
   { href: "/recruiter/export", label: "Export", icon: FileDown },
 ];
 

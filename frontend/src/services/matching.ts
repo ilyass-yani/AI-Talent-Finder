@@ -125,4 +125,19 @@ export const matchingApi = {
       job_title: jobTitle,
       description: description,
     }),
+
+  // B1 - Rank all recruiter candidates against a criteria (on-the-fly scoring)
+  rankAll: (criteriaId: number) =>
+    apiClient.get<RankAllResult[]>(`/matching/${criteriaId}/rank-all`),
 };
+
+export interface RankAllResult {
+  rank: number;
+  candidate_id: number;
+  full_name: string;
+  email: string;
+  score: number;
+  coverage: number;
+  matched_skills: string[];
+  missing_skills: string[];
+}
