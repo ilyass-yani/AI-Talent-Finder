@@ -36,6 +36,8 @@ def _can_access_profile(profile: Candidate, requesting_user: User) -> bool:
     """
     if profile.user_id == requesting_user.id:
         return True
+    if profile.recruiter_id == requesting_user.id:
+        return True
     effective_role = profile.owner_role or "candidate"
     if (
         requesting_user.role == UserRole.recruiter
