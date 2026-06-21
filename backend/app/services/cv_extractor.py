@@ -602,6 +602,82 @@ class CVExtractionService:
         return name
 
 
+def _reflow_blocks_by_column(page_blocks: Any, page_width: float) -> tuple:
+    """Reorder PyMuPDF text blocks into logical reading order, column by column.
+
+    PyMuPDF's get_text("blocks") returns layout blocks, but sorting them by
+    (y, x) reads straight across a multi-column page, interleaving a left
+    sidebar (contact / languages / skills) with the main column. This detects a
+    vertical separator from the spatial distribution of the blocks and emits the
+    left column fully before the right column, restoring readable order.
+
+    The separator is found from the actual content span, not the page midpoint,
+    so a narrow sidebar (e.g. 35% of the width, on the left OR the right) is
+    handled. Single-column pages fall back to a plain top-to-bottom sort.
+
+    Returns:
+        (reflowed_text, is_two_column)
+    """
+    blocks = []
+    for b in (page_blocks or []):
+        if len(b) >= 5 and isinstance(b[4], str):
+            text = b[4].strip()
+            if text:
+                blocks.append((float(b[0]), float(b[1]), float(b[2]), float(b[3]), text))
+
+    def _emit(ordered_blocks: List) -> str:
+        return "\n".join(b[4] for b in ordered_blocks)
+
+    if not blocks:
+        return "", False
+
+    # Too few blocks to reason about columns reliably -> plain reading order.
+    if len(blocks) < 4:
+        return _emit(sorted(blocks, key=lambda b: (b[1], b[0]))), False
+
+    xs0 = min(b[0] for b in blocks)
+    xs1 = max(b[2] for b in blocks)
+    span = xs1 - xs0
+    if span <= 0:
+        if page_width and page_width > 0:
+            span = page_width
+            xs0 = 0.0
+        else:
+            return _emit(sorted(blocks, key=lambda b: (b[1], b[0]))), False
+
+    # A block "straddles" a candidate separator when it clearly crosses it
+    # (full-width headers do this); the margin ignores blocks that only graze it.
+    margin = span * 0.02
+    straddle_budget = max(1, int(len(blocks) * 0.08))
+
+    best = None  # (straddlers, balance, separator, left, right)
+    for i in range(15, 86):
+        sep = xs0 + span * (i / 100.0)
+        left, right = [], []
+        for b in blocks:
+            center = (b[0] + b[2]) / 2.0
+            (left if center < sep else right).append(b)
+        if len(left) < 2 or len(right) < 2:
+            continue
+        straddlers = sum(1 for b in blocks if b[0] < sep - margin and b[2] > sep + margin)
+        balance = abs(len(left) - len(right))
+        candidate = (straddlers, balance, sep, left, right)
+        if best is None or candidate[:2] < best[:2]:
+            best = candidate
+
+    if best is not None:
+        straddlers, _balance, _sep, left, right = best
+        minority = min(len(left), len(right))
+        # Genuine two-column layout: a near-clean vertical gutter (few straddlers)
+        # and a minority column substantial enough to not be a stray element.
+        if straddlers <= straddle_budget and minority >= max(2, int(len(blocks) * 0.15)):
+            left_sorted = sorted(left, key=lambda b: (b[1], b[0]))
+            right_sorted = sorted(right, key=lambda b: (b[1], b[0]))
+            return _emit(left_sorted) + "\n" + _emit(right_sorted), True
+
+    return _emit(sorted(blocks, key=lambda b: (b[1], b[0]))), False
+
+
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract text from PDF using multiple strategies and keep the best result."""
     # If caller passed a plain text file, just read and return it.
@@ -612,37 +688,44 @@ def extract_text_from_pdf(file_path: str) -> str:
     except Exception:
         pass
     candidates: List[str] = []
+    two_column_detected = False
 
     if FITZ_AVAILABLE:
         try:
             doc = fitz.open(file_path)
             text_parts_default = []
-            text_parts_block = []
+            reflow_parts = []
             for page in doc:
                 text_parts_default.append(page.get_text())
-                text_parts_block.append(page.get_text("blocks"))
+                reflowed, is_two_col = _reflow_blocks_by_column(
+                    page.get_text("blocks"), page.rect.width
+                )
+                if reflowed:
+                    reflow_parts.append(reflowed)
+                two_column_detected = two_column_detected or is_two_col
             doc.close()
 
-            # Default extraction.
-            candidates.append("\n".join(text_parts_default).strip())
+            default_text = "\n".join(text_parts_default).strip()
+            reflow_text = "\n".join(reflow_parts).strip()
 
-            # Block extraction often improves OCR-like and layout-heavy CVs.
-            block_lines = []
-            for page_blocks in text_parts_block:
-                if not isinstance(page_blocks, list):
-                    continue
-                sorted_blocks = sorted(page_blocks, key=lambda b: (b[1], b[0]))
-                for block in sorted_blocks:
-                    if len(block) >= 5 and isinstance(block[4], str):
-                        value = block[4].strip()
-                        if value:
-                            block_lines.append(value)
-            if block_lines:
-                candidates.append("\n".join(block_lines).strip())
+            if two_column_detected and reflow_text:
+                # On a multi-column layout the column-aware reflow is the only
+                # correct reading order: the default (y, x) extraction interleaves
+                # the sidebar with the main column. Use the reflow exclusively so
+                # nothing downstream can re-select the scrambled variant.
+                candidates.append(reflow_text)
+            else:
+                if default_text:
+                    candidates.append(default_text)
+                if reflow_text and reflow_text != default_text:
+                    candidates.append(reflow_text)
         except Exception as e:
             print(f"❌ PDF extraction failed: {e}")
 
-    if PDFPLUMBER_AVAILABLE:
+    # pdfplumber's default extraction also reads line-by-line across columns, so
+    # skip it when a multi-column layout was detected to avoid reintroducing the
+    # interleaved variant as a competing candidate.
+    if PDFPLUMBER_AVAILABLE and not two_column_detected:
         try:
             with pdfplumber.open(file_path) as pdf:
                 pages = [page.extract_text() or "" for page in pdf.pages]
@@ -662,12 +745,21 @@ def extract_text_from_pdf(file_path: str) -> str:
     # while keeping native extraction as a fallback for digitally born PDFs.
     ocr_mode = os.getenv("CV_OCR_MODE", "ocr_first").strip().lower()
     ocr_threshold = int(os.getenv("CV_OCR_TRIGGER_SCORE", "700"))
+
+    # Full-page OCR (Tesseract PSM 6) reads line-by-line straight across columns,
+    # so on a multi-column CV it glues the sidebar onto the main column (this is
+    # what produced names like "Espagnol Cd"). When the PDF has a strong native
+    # text layer — and especially when we already detected and reflowed columns —
+    # the column-aware native text is authoritative and OCR must not override it.
+    native_is_strong = best_score >= ocr_threshold
+    protect_native = two_column_detected or native_is_strong
+
     should_try_ocr = (
         ocr_mode in {"ocr_first", "aggressive", "ultra"}
         or (ocr_mode == "auto" and best_score < ocr_threshold)
     )
 
-    if should_try_ocr and FITZ_AVAILABLE and TESSERACT_AVAILABLE and PIL_AVAILABLE:
+    if should_try_ocr and not protect_native and FITZ_AVAILABLE and TESSERACT_AVAILABLE and PIL_AVAILABLE:
         ocr_text = _extract_text_from_pdf_ocr(file_path)
         if ocr_text:
             ocr_score = _score_extracted_text(ocr_text)
