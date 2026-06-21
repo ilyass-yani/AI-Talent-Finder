@@ -10,6 +10,10 @@ Also checks that the 1-column CV (Sophie BERNARD) does not regress.
 Finally, verifies that USE_GLINER=false falls back to the regex extractor
 without crashing.
 
+test_cleanup_logic() is a pure unit test for the GLiNER post-processing
+pipeline.  It uses synthetic (mock) entity output so it runs without the
+GLiNER package being installed.
+
 Run:
     cd backend
     python scripts/test_gliner_extraction.py
@@ -78,6 +82,117 @@ def _name_matches(extracted: str | None, first: str, last: str) -> bool:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+def test_cleanup_logic():
+    """Post-processing unit test: uses synthetic (mock) GLiNER output.
+
+    Does NOT require the GLiNER package to be installed -- it calls
+    _clean_entities() directly.  Validates:
+      - '##' BERT artifacts are removed
+      - fragments with < 3 alpha chars ('Li') and short non-acronyms ('Esp')
+        are removed
+      - school-like company spans (ESUP, Universite Sorbonne) are moved to
+        education, not kept in companies
+      - interests do not contain the candidate name or a section header
+    """
+    print("\n=== GLiNER cleanup unit test (no model needed) ===")
+
+    from ai_module.nlp.gliner_extractor import GLiNERExtractor
+
+    extractor = GLiNERExtractor()
+
+    # Simulate raw GLiNER output that mirrors the observed 2-column CV problem.
+    # ASCII apostrophes and no accented literals (to keep this file ASCII-safe).
+    mock_entities = [
+        # --- person name ---
+        {"label": "person name", "text": "Raphael MARTIN"},
+
+        # --- companies: 3 real + 4 pollutants ---
+        {"label": "company", "text": "DIOR"},
+        {"label": "company", "text": "ORANGE"},
+        {"label": "company", "text": "DANONE"},
+        {"label": "company", "text": "ESUP"},                 # school, not company
+        {"label": "company", "text": "Universite Sorbonne"},  # school, not company
+        {"label": "company", "text": "Esp"},                  # short non-acronym fragment
+        {"label": "company", "text": "Li"},                   # < 3 alpha chars
+        {
+            "label": "company",
+            "text": "##cence Pro Commerce et Distribution E",  # BERT ## artifact
+        },
+
+        # --- schools (GLiNER-labeled) ---
+        {"label": "school", "text": "Universite Sorbonne"},
+        {"label": "school", "text": "ESUP"},
+
+        # --- interests: 1 valid + 2 pollutants ---
+        {"label": "interest", "text": "Raphael MARTIN"},         # candidate name
+        {"label": "interest", "text": "INTITULE DU POSTE / STAGE"},  # form label with /
+        {"label": "interest", "text": "Voyage"},                 # valid interest
+    ]
+
+    result = extractor._clean_entities(mock_entities)
+    print(f"  full_name  : {result.get('full_name')!r}")
+    print(f"  companies  : {result.get('companies')}")
+    print(f"  education  : {result.get('education')}")
+    print(f"  job_titles : {result.get('job_titles')}")
+    print(f"  interests  : {result.get('interests')}")
+
+    companies = result.get("companies", [])
+    education = result.get("education", [])
+    interests = result.get("interests", [])
+    full_name = result.get("full_name")
+
+    # full_name must not regress
+    check(
+        _name_matches(full_name, "Raphael", "Martin"),
+        f"cleanup: full_name is Raphael MARTIN (got {full_name!r})",
+    )
+
+    # --- companies ---
+    for co in ("DIOR", "ORANGE", "DANONE"):
+        check(co in companies, f"cleanup: '{co}' kept in companies (got {companies})")
+
+    check(
+        "ESUP" not in companies,
+        f"cleanup: 'ESUP' NOT in companies (got {companies})",
+    )
+    check(
+        not any("Sorbonne" in c or "sorbonne" in c.lower() for c in companies),
+        f"cleanup: 'Universite Sorbonne' NOT in companies (got {companies})",
+    )
+    check(
+        not any(c.startswith("##") for c in companies),
+        f"cleanup: no '##' artifacts in companies (got {companies})",
+    )
+    check(
+        not any(c in ("Esp", "Li") for c in companies),
+        f"cleanup: short fragments not in companies (got {companies})",
+    )
+
+    # --- education ---
+    check(
+        any("Sorbonne" in e or "sorbonne" in e.lower() for e in education),
+        f"cleanup: 'Universite Sorbonne' in education (got {education})",
+    )
+    check(
+        any("ESUP" in e or "esup" in e.lower() for e in education),
+        f"cleanup: 'ESUP' in education (got {education})",
+    )
+
+    # --- interests ---
+    check(
+        "Voyage" in interests,
+        f"cleanup: valid interest 'Voyage' kept (got {interests})",
+    )
+    check(
+        not any((full_name or "").lower() == i.lower() for i in interests),
+        f"cleanup: candidate name NOT in interests (got {interests})",
+    )
+    check(
+        not any("INTITULE" in i.upper() or "/" in i for i in interests),
+        f"cleanup: form label NOT in interests (got {interests})",
+    )
+
 
 def test_gliner_unit():
     """Unit test: GLiNERExtractor on raw CV text (no PDF parsing)."""
@@ -227,6 +342,7 @@ if __name__ == "__main__":
         _mk.make_two_column_cv(TWO_COL)
         _mk.make_one_column_cv(ONE_COL)
 
+    test_cleanup_logic()
     test_gliner_unit()
     test_pipeline_two_column()
     test_pipeline_one_column()
