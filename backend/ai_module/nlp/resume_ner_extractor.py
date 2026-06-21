@@ -313,6 +313,12 @@ class ResumeNERExtractor:
             if any(char.isdigit() for char in line):
                 continue
 
+            # Skip lines whose content looks like a job title/role.
+            # "ingenieur" is a substring of "ingenieure" so this catches
+            # feminine / inflected forms without exhaustive enumeration.
+            if any(keyword in normalized for keyword in self.JOB_KEYWORDS):
+                continue
+
             words = [word for word in re.split(r'\s+', line) if word]
             # Require 2-4 words: real names have at least first + last name
             # (single-word aliases create too much noise from headers/bullets)
@@ -383,10 +389,15 @@ class ResumeNERExtractor:
         # Sort by score descending; on tie, prefer LONGER names (more complete)
         # Using -len so that longer strings sort first (ascending sort picks smallest first)
         candidates.sort(key=lambda item: (-item[0], -len(item[1])))
-        best_name = candidates[0][1]
+        best_score, best_name = candidates[0]
 
         # Always reject very short "names" regardless of email fallback
         if len(best_name) < 4:
+            return [email_fallback] if email_fallback else []
+
+        # Reject low-confidence candidates — they are likely noise (section headers
+        # or one-word fragments that slipped through) unless an email fallback exists.
+        if best_score < 3:
             return [email_fallback] if email_fallback else []
 
         return [best_name]

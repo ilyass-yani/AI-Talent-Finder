@@ -1,0 +1,242 @@
+"""Regression test for GLiNER-based CV extraction.
+
+Verifies that on the 2-column CV fixture (Raphael MARTIN):
+  - full_name is extracted correctly even when the name appears deep in the
+    reflowed text (the position-scoring weakness of the regex extractor).
+  - DIOR / ORANGE / DANONE are extracted as companies.
+
+Also checks that the 1-column CV (Sophie BERNARD) does not regress.
+
+Finally, verifies that USE_GLINER=false falls back to the regex extractor
+without crashing.
+
+Run:
+    cd backend
+    python scripts/test_gliner_extraction.py
+
+Exit code 0 = all checks passed, 1 = at least one failure.
+"""
+from __future__ import annotations
+
+import importlib.util
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BACKEND = os.path.abspath(os.path.join(HERE, ".."))
+if BACKEND not in sys.path:
+    sys.path.insert(0, BACKEND)
+
+# Regenerate fixtures on demand
+spec = importlib.util.spec_from_file_location(
+    "_make_test_cvs", os.path.join(HERE, "_make_test_cvs.py")
+)
+_mk = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(_mk)
+
+FIXTURES = os.path.join(BACKEND, "tests", "fixtures")
+TWO_COL = os.path.join(FIXTURES, "cv_two_column.pdf")
+ONE_COL = os.path.join(FIXTURES, "cv_one_column.pdf")
+
+_failures: list[str] = []
+
+
+def check(cond: bool, msg: str) -> None:
+    status = "PASS" if cond else "FAIL"
+    print(f"  [{status}] {msg}")
+    if not cond:
+        _failures.append(msg)
+
+
+# ---------------------------------------------------------------------------
+# Check GLiNER availability before running model-dependent tests
+# ---------------------------------------------------------------------------
+
+def _gliner_importable() -> bool:
+    try:
+        import gliner  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+GLINER_PRESENT = _gliner_importable()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _name_matches(extracted: str | None, first: str, last: str) -> bool:
+    """Case-insensitive check that both first and last name tokens appear."""
+    if not extracted:
+        return False
+    lower = extracted.lower()
+    return first.lower() in lower and last.lower() in lower
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+def test_gliner_unit():
+    """Unit test: GLiNERExtractor on raw CV text (no PDF parsing)."""
+    print("\n=== GLiNER unit test (raw text) ===")
+    if not GLINER_PRESENT:
+        print("  [SKIP] gliner package not installed -- skipping unit test")
+        return
+
+    from ai_module.nlp.gliner_extractor import GLiNERExtractor
+
+    extractor = GLiNERExtractor()
+    if not extractor._load_model():
+        print("  [SKIP] GLiNER model could not be loaded (network / RAM) -- skipping")
+        return
+
+    sample_text = """Raphael MARTIN
+Commercial Senior
+
+EXPERIENCES
+Responsable Commercial - DIOR (2020-2024)
+Charge d affaires - ORANGE (2016-2020)
+Commercial - DANONE (2014-2016)
+
+FORMATION
+Master Commerce - Universite Sorbonne (2014)
+Licence Gestion - ESUP (2012)
+"""
+    result = extractor.extract(sample_text)
+    print(f"  GLiNER raw output: {result}")
+
+    check(
+        _name_matches(result.get("full_name"), "Raphael", "MARTIN"),
+        f"GLiNER unit: full_name contains 'Raphael MARTIN' (got {result.get('full_name')!r})",
+    )
+    for co in ("DIOR", "ORANGE", "DANONE"):
+        companies_lower = [c.upper() for c in result.get("companies", [])]
+        check(
+            any(co in c for c in companies_lower),
+            f"GLiNER unit: company '{co}' extracted (companies={result.get('companies')})",
+        )
+
+
+def test_pipeline_two_column():
+    """Integration: full pipeline on cv_two_column.pdf."""
+    print("\n=== Pipeline integration — 2-column CV (Raphael MARTIN) ===")
+
+    # Force-enable GLiNER for this test (it may be disabled via env)
+    os.environ["USE_GLINER"] = "true"
+
+    # Re-import to pick up the env var (singleton may already be created,
+    # but _use_gliner is set per-instance so we create a fresh one)
+    from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf
+
+    # Check text extraction first (column reflow)
+    text = extract_text_from_pdf(TWO_COL)
+    check("Raphael MARTIN" in text, "text extraction: 'Raphael MARTIN' in reflowed text")
+
+    if not GLINER_PRESENT:
+        print("  [SKIP] gliner not installed -- pipeline GLiNER checks skipped")
+        print("  Running regex-only pipeline check ...")
+        svc = CVExtractionService()
+        result = svc.extract_from_text(text)
+        candidate = svc.to_candidate_dict(result)
+        name = candidate.get("full_name") or candidate.get("extracted_name")
+        print(f"  Regex-only full_name: {name!r}")
+        print(f"  Regex-only companies: {candidate.get('extracted_companies')!r}")
+        return
+
+    svc = CVExtractionService()
+    result = svc.extract_from_text(text)
+    candidate = svc.to_candidate_dict(result)
+
+    name = candidate.get("full_name") or candidate.get("extracted_name")
+    print(f"  Extracted full_name: {name!r}")
+    check(
+        _name_matches(name, "Raphael", "Martin"),
+        f"pipeline 2-col: full_name ~ 'Raphael MARTIN' (got {name!r})",
+    )
+
+    import json
+    companies_raw = candidate.get("extracted_companies") or "[]"
+    if isinstance(companies_raw, list):
+        companies = companies_raw
+    else:
+        try:
+            companies = json.loads(companies_raw)
+        except Exception:
+            companies = []
+    companies_str = " ".join(str(c).upper() for c in companies)
+    print(f"  Extracted companies: {companies}")
+    for co in ("DIOR", "ORANGE", "DANONE"):
+        check(co in companies_str, f"pipeline 2-col: company '{co}' in extracted_companies")
+
+
+def test_pipeline_one_column():
+    """Regression: 1-column CV must still work correctly."""
+    print("\n=== Pipeline integration — 1-column CV (Sophie BERNARD) — regression ===")
+
+    from app.services.cv_extractor import CVExtractionService, extract_text_from_pdf
+
+    text = extract_text_from_pdf(ONE_COL)
+    check("Sophie BERNARD" in text, "text extraction: 'Sophie BERNARD' in text")
+
+    svc = CVExtractionService()
+    result = svc.extract_from_text(text)
+    candidate = svc.to_candidate_dict(result)
+
+    name = candidate.get("full_name") or candidate.get("extracted_name")
+    print(f"  Extracted full_name: {name!r}")
+    check(
+        _name_matches(name, "Sophie", "Bernard"),
+        f"pipeline 1-col: full_name ~ 'Sophie BERNARD' (got {name!r})",
+    )
+
+
+def test_fallback_without_gliner():
+    """Verify USE_GLINER=false falls back to regex without crashing."""
+    print("\n=== Fallback: USE_GLINER=false ===")
+
+    os.environ["USE_GLINER"] = "false"
+
+    # Must import AFTER setting the env var so a fresh instance picks it up
+    from app.services.cv_extractor import CVExtractionService
+
+    svc = CVExtractionService()
+    check(not svc._use_gliner, "USE_GLINER=false: _use_gliner is False on service instance")
+
+    sample = "Jean DUPONT\nIngenieur Logiciel\njean.dupont@example.com"
+    try:
+        result = svc.extract_from_text(sample)
+        candidate = svc.to_candidate_dict(result)
+        check(True, "USE_GLINER=false: extract_from_text does not crash")
+    except Exception as exc:
+        check(False, f"USE_GLINER=false: extract_from_text crashed ({exc})")
+
+    # Restore
+    os.environ["USE_GLINER"] = "true"
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    if not os.path.exists(TWO_COL) or not os.path.exists(ONE_COL):
+        print("Generating test fixtures ...")
+        _mk.make_two_column_cv(TWO_COL)
+        _mk.make_one_column_cv(ONE_COL)
+
+    test_gliner_unit()
+    test_pipeline_two_column()
+    test_pipeline_one_column()
+    test_fallback_without_gliner()
+
+    print()
+    if _failures:
+        print(f"RESULT: {len(_failures)} check(s) FAILED")
+        for f in _failures:
+            print("  - " + f)
+        sys.exit(1)
+    print("RESULT: all checks passed")
+    sys.exit(0)

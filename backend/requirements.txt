@@ -36,3 +36,5 @@ beautifulsoup4>=4.12.0
 lxml>=4.9.0
 # FAISS for similarity search
 faiss-cpu>=1.7.4
+# GLiNER — zero-shot NER principal extractor for CV identity fields
+gliner>=0.2.0
