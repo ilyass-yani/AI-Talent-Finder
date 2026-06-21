@@ -354,20 +354,30 @@ class CVExtractionService:
 
         return cleaned
 
-    # BOM and zero-width chars built from integer codepoints — pure ASCII source,
-    # no risk of UTF-8 BOM corruption during file encoding round-trips.
-    _ZERO_WIDTH = "".join(chr(c) for c in (0xFEFF, 0xFFFE, 0x200B, 0x200C, 0x200D, 0x2060, 0x00AD))
+    # BOM and zero-width Unicode chars to strip from extracted text / names.
+    # Using explicit codepoints is more robust than embedding literal Unicode chars.
+    _ZERO_WIDTH_CHARS = (
+        "﻿"  # BOM / Zero-width no-break space
+        "￾"  # Reversed BOM
+        "​"  # Zero-width space
+        "‌"  # Zero-width non-joiner
+        "‍"  # Zero-width joiner
+        "⁠"  # Word joiner
+        "­"  # Soft hyphen
+    )
 
     def _clean_name(self, name: Any) -> Optional[str]:
         value = str(name or "").strip()
-        value = value.lstrip(self._ZERO_WIDTH).strip()
-        if not value:
+        # Strip BOM and zero-width chars — if not removed, capitalize() treats the
+        # invisible char as the first character and lowercases the real first letter.
+        value = value.strip(self._ZERO_WIDTH_CHARS).strip()
+        if not value or len(value) < 4:
             return None
         if "@" in value or "http" in value.lower():
             return None
         if any(ch.isdigit() for ch in value):
             return None
-        words = [w.lstrip(self._ZERO_WIDTH) for w in re.split(r"\s+", value) if w]
+        words = [w.strip(self._ZERO_WIDTH_CHARS) for w in re.split(r"\s+", value) if w]
         words = [w for w in words if w]
         if len(words) < 2 or len(words) > 4:
             return None
@@ -466,7 +476,9 @@ class CVExtractionService:
 
     def _normalize_text_for_extraction(self, text: str) -> str:
         """Normalize noisy PDF extraction output to improve entity detection."""
-        normalized = text.lstrip(self._ZERO_WIDTH)
+        # Strip BOM and zero-width chars from the start (and end) of the text.
+        # Using the same _ZERO_WIDTH_CHARS constant for consistency.
+        normalized = text.strip(self._ZERO_WIDTH_CHARS)
         normalized = normalized.replace("\r", "\n")
         normalized = re.sub(r"[ \t]+", " ", normalized)
         normalized = re.sub(r"\n{3,}", "\n\n", normalized)

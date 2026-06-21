@@ -79,11 +79,14 @@ class Candidate(Base):
 
     # Relationships
     user = relationship("User", back_populates="candidate", foreign_keys=[user_id])
-    candidate_skills = relationship("CandidateSkill", back_populates="candidate")
-    experiences = relationship("Experience", back_populates="candidate")
-    educations = relationship("Education", back_populates="candidate")
-    match_results = relationship("MatchResult", back_populates="candidate")
-    favorites = relationship("Favorite", back_populates="candidate")
+    # cascade="all, delete-orphan" ensures child rows are deleted (not nullified) when
+    # the candidate is deleted. Without this, SQLAlchemy tries SET candidate_id=NULL
+    # which violates the NOT NULL constraint on every child table.
+    candidate_skills = relationship("CandidateSkill", back_populates="candidate", cascade="all, delete-orphan")
+    experiences = relationship("Experience", back_populates="candidate", cascade="all, delete-orphan")
+    educations = relationship("Education", back_populates="candidate", cascade="all, delete-orphan")
+    match_results = relationship("MatchResult", back_populates="candidate", cascade="all, delete-orphan")
+    favorites = relationship("Favorite", back_populates="candidate", cascade="all, delete-orphan")
 
 
 class Skill(Base):

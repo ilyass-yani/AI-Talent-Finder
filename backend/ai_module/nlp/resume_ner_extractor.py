@@ -123,24 +123,12 @@ class ResumeNERExtractor:
     # Job title keywords
     JOB_KEYWORDS = {
         "senior", "lead", "principal", "architect", "manager", "director",
-        "directeur", "directrice", "head of", "vp", "chief", "officer",
-        "developer", "engineer", "programmer", "coder", "specialist",
-        "analyst", "consultant", "full stack", "fullstack", "frontend",
-        "backend", "mobile", "data scientist", "ml engineer", "devops",
-        # French roles
-        "commercial", "commerciale", "assistant", "assistante",
-        "responsable", "conseiller", "conseillere", "conseillere",
-        "charge", "chargee", "chargé", "chargée",
-        "ingenieur", "ingénieur", "developpeur", "développeur",
-        "vendeur", "vendeuse", "gestionnaire", "stagiaire",
-        "technicien", "technicienne", "coordinateur", "coordinatrice",
-        "comptable", "juriste", "formateur", "formatrice",
-        "superviseur", "chef", "agent", "operateur", "operatrice",
-        "conducteur", "conductrice", "controleur", "controleure",
-        "infirmier", "infirmiere", "medecin", "pharmacien", "pharmacienne",
-        "acheteur", "acheteuse", "logisticien", "logisticienne",
-        "animateur", "animatrice", "moniteur", "monitrice",
-        "chargee",
+        "head of", "vp", "chief", "officer", "developer", "engineer",
+        "programmer", "coder", "specialist", "analyst", "consultant",
+        "full stack", "fullstack", "frontend", "backend", "mobile",
+        "data scientist", "ml engineer", "devops", "commercial", "assistant",
+        "responsable", "conseiller", "charge", "chargé", "ingenieur", "ingénieur",
+        "developpeur", "développeur", "vendeur", "gestionnaire", "stagiaire",
     }
     
     # Company indicators
@@ -196,26 +184,6 @@ class ResumeNERExtractor:
 
     PROFILE_HEADERS = {
         "profil", "profile", "summary", "professional summary",
-    }
-
-    # Mapping from normalized (accent-stripped, lowercase) language name → display form
-    _LANGUAGE_DISPLAY = {
-        "francais": "Français",
-        "anglais": "Anglais",
-        "espagnol": "Espagnol",
-        "allemand": "Allemand",
-        "italien": "Italien",
-        "portugais": "Portugais",
-        "arabe": "Arabe",
-        "chinois": "Chinois",
-        "japonais": "Japonais",
-        "russe": "Russe",
-        "english": "English",
-        "french": "French",
-        "spanish": "Spanish",
-        "german": "German",
-        "italian": "Italian",
-        "portuguese": "Portuguese",
     }
 
     LANGUAGE_NAMES = {
@@ -333,26 +301,25 @@ class ResumeNERExtractor:
 
         for index, raw_line in enumerate(lines[:80]):
             line = raw_line.strip().strip('•*-').strip()
-            # Strip honorific prefixes (Dr., Mr., Mme., M., Prof.) before scoring
-            line = re.sub(r'^(?:Dr|Mr|Mrs|Ms|Pr|Prof|Mme|M|Mlle)\.?\s+', '', line, flags=re.IGNORECASE).strip()
             normalized = self._normalize_for_matching(line)
 
+            # Reject very short lines — single chars are OCR artifacts, not names
+            if len(line) < 3:
+                continue
             if not line or '@' in line or 'http' in normalized or self._is_section_header(normalized):
                 continue
             if any(token in normalized for token in ('linkedin', 'github', 'contact', 'profil', 'profile')):
                 continue
             if any(char.isdigit() for char in line):
                 continue
-            # A line that contains a job keyword is almost certainly a title, not a name
-            if any(keyword in normalized for keyword in self.JOB_KEYWORDS):
-                continue
 
             words = [word for word in re.split(r'\s+', line) if word]
-            # Require 2-4 words: single-word entries are too noisy (section headers, job titles)
+            # Require 2-4 words: real names have at least first + last name
+            # (single-word aliases create too much noise from headers/bullets)
             if not 2 <= len(words) <= 4:
                 continue
 
-            alpha_words = sum(1 for word in words if re.search(r'[A-Za-zÀ-ÿ]', word))
+            alpha_words = sum(1 for word in words if re.search(r'[A-Za-z\xc0-\xff]', word))
             if alpha_words != len(words):
                 continue
 
@@ -364,25 +331,29 @@ class ResumeNERExtractor:
                 score += 3
 
             # ALL_CAPS name (common in French CVs): highest match
-            if re.fullmatch(r"[A-ZÀ-Ÿ][A-ZÀ-Ÿ'\-]+(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ'\-]+){0,3}", line):
+            if re.fullmatch(r"[A-Z\xc0-\xde][A-Z\xc0-\xde'\-]+(?:\s+[A-Z\xc0-\xde][A-Z\xc0-\xde'\-]+){1,3}", line):
                 score += 5
             # Title-case properly capitalized name
-            elif re.fullmatch(r"[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'\-]+){0,3}", line):
+            elif re.fullmatch(r"[A-Z\xc0-\xde][A-Za-z\xc0-\xff'\-]+(?:\s+[A-Z\xc0-\xde][A-Za-z\xc0-\xff'\-]+){1,3}", line):
                 score += 4
-            # Mixed-case but all letters
-            elif all(re.search(r'[A-Za-zÀ-ÿ]', w) for w in words):
-                score += 2
+            # Mixed-case but all letters — lower confidence
+            elif all(re.search(r'[A-Za-z\xc0-\xff]', w) for w in words):
+                score += 1
 
             if any(keyword in normalized for keyword in ('experience', 'formation', 'education', 'profil', 'contact')):
                 score -= 4
 
+            # Only keep if score is positive after penalties
+            if score <= 0:
+                continue
+
             candidates.append((score, line.title()))
 
             # Also evaluate segmented fragments when a line contains separators like pipes or dashes.
-            for fragment in re.split(r"\s*[|/·•]\s*|\s+-\s+|\s+–\s+|\s+—\s+", line):
+            for fragment in re.split(r"\s*[|/\xb7•]\s*|\s+-\s+|\s+–\s+|\s+—\s+", line):
                 fragment = fragment.strip()
                 fragment_normalized = self._normalize_for_matching(fragment)
-                if not fragment or fragment == line:
+                if not fragment or fragment == line or len(fragment) < 3:
                     continue
                 if '@' in fragment or 'http' in fragment_normalized or self._is_section_header(fragment_normalized):
                     continue
@@ -393,14 +364,14 @@ class ResumeNERExtractor:
                 fragment_words = [word for word in re.split(r'\s+', fragment) if word]
                 if not 2 <= len(fragment_words) <= 4:
                     continue
-                if not all(re.search(r'[A-Za-zÀ-ÿ]', word) for word in fragment_words):
+                if not all(re.search(r'[A-Za-z\xc0-\xff]', word) for word in fragment_words):
                     continue
                 fragment_score = 2
                 if index < 10:
                     fragment_score += 2
-                if re.fullmatch(r"[A-ZÀ-Ÿ][A-ZÀ-Ÿ''\-]+(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ''\-]+){1,3}", fragment):
+                if re.fullmatch(r"[A-Z\xc0-\xde][A-Z\xc0-\xde'\-]+(?:\s+[A-Z\xc0-\xde][A-Z\xc0-\xde'\-]+){1,3}", fragment):
                     fragment_score += 4
-                elif re.fullmatch(r"[A-ZÀ-Ÿ][A-Za-zÀ-ÿ''\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ''\-]+){1,3}", fragment):
+                elif re.fullmatch(r"[A-Z\xc0-\xde][A-Za-z\xc0-\xff'\-]+(?:\s+[A-Z\xc0-\xde][A-Za-z\xc0-\xff'\-]+){1,3}", fragment):
                     fragment_score += 3
                 candidates.append((fragment_score, fragment.title()))
 
@@ -409,15 +380,13 @@ class ResumeNERExtractor:
                 return [email_fallback]
             return []
 
-        # Sort by score desc, then prefer longer names on tie (Jean Dupont > Jean)
+        # Sort by score descending; on tie, prefer LONGER names (more complete)
+        # Using -len so that longer strings sort first (ascending sort picks smallest first)
         candidates.sort(key=lambda item: (-item[0], -len(item[1])))
-        best_score, best_name = candidates[0]
+        best_name = candidates[0][1]
 
-        # Reject candidates with no meaningful signal (score < 3 means not in top 15
-        # lines and not all-caps or title-case, i.e. almost certainly not a name)
-        if best_score < 3:
-            return [email_fallback] if email_fallback else []
-        if len(best_name) < 3:
+        # Always reject very short "names" regardless of email fallback
+        if len(best_name) < 4:
             return [email_fallback] if email_fallback else []
 
         return [best_name]
@@ -462,28 +431,26 @@ class ResumeNERExtractor:
         return list(dict.fromkeys(cleaned))[:5]
 
     def _extract_locations(self, text: str) -> List[str]:
-        """Extract likely city/country mentions from contact block (first 20 lines only)."""
+        """Extract likely city/country mentions from contact block."""
         locations = []
-        # Cache normalized TECH_SKILLS single-word tokens for fast lookup
-        _tech_tokens = {self._normalize_for_matching(s) for s in self.TECH_SKILLS if ' ' not in s}
-        for line in text.split('\n')[:20]:
+        for line in text.split('\n')[:30]:
             cleaned = line.strip()
             if not cleaned:
                 continue
             if '@' in cleaned or 'linkedin.com' in cleaned.lower() or re.search(r'\d{2}\s?\d{2}', cleaned):
                 continue
-            for match in re.findall(r'\b([A-ZÀ-Ÿ][A-Za-zÀ-ÿ\-]{2,}\s*,\s*[A-ZÀ-Ÿ][A-Za-zÀ-ÿ\-]{2,})\b', cleaned):
-                match_normalized = self._normalize_for_matching(match)
-                # Reject if any part overlaps with known non-location keywords
-                if any(k in match_normalized for k in self.LANGUAGE_NAMES):
+            # Require both parts to be at least 3 chars and title-cased (e.g. "Paris, France")
+            # Avoids matching skill pairs like "Python, Django" or "Junior, CDI"
+            for match in re.findall(
+                r'\b([A-Z\xc0-\xde][A-Za-z\xc0-\xff\-]{2,}\s*,\s*[A-Z\xc0-\xde][A-Za-z\xc0-\xff\-]{2,})\b',
+                cleaned
+            ):
+                parts = [p.strip() for p in match.split(',')]
+                # Reject if any part is a known skill, job keyword or education keyword
+                normalized_parts = [self._normalize_for_matching(p) for p in parts]
+                if any(p in self.LANGUAGE_NAMES for p in normalized_parts):
                     continue
-                if any(k in match_normalized for k in self.EDUCATION_KEYWORDS):
-                    continue
-                if any(k in match_normalized for k in self.JOB_KEYWORDS):
-                    continue
-                # Reject pairs where either word is a tech skill (e.g. "React, TypeScript")
-                parts = [self._normalize_for_matching(p) for p in match.split(',')]
-                if any(p in _tech_tokens for p in parts):
+                if any(any(kw in p for kw in self.EDUCATION_KEYWORDS) for p in normalized_parts):
                     continue
                 locations.append(match.strip())
         return list(dict.fromkeys(locations))[:3]
@@ -523,7 +490,6 @@ class ResumeNERExtractor:
                         break
                     if self._looks_like_job_title(next_clean):
                         job_titles.add(next_clean)
-                        break  # Only the first title-looking line after the company is the role
                 continue
 
             if index + 1 < len(lines):
@@ -531,8 +497,8 @@ class ResumeNERExtractor:
                 if next_clean and self._looks_like_company_line(next_clean) and self._looks_like_job_title(line):
                     job_titles.add(line)
 
-        # Fallback: detect title/company pairs globally when OCR breaks section boundaries.
-        # Only run when section-based extraction found nothing to avoid adding noise.
+        # Fallback: detect title/company pairs globally only when section-based
+        # extraction found nothing (avoids noisy duplicates from global scan).
         if not job_titles:
             for index, raw_line in enumerate(lines):
                 line = raw_line.strip().strip('•*-').strip()
@@ -580,8 +546,8 @@ class ResumeNERExtractor:
                 if company:
                     companies.add(company)
 
-        # Fallback: extract company lines globally when section headers are merged.
-        # Only run when section-based extraction found nothing to avoid adding noise.
+        # Fallback: extract company lines globally only when section-based extraction
+        # found nothing (avoids noise from address lines, education dates, etc.).
         if not companies:
             for raw_line in text.split('\n'):
                 line = raw_line.strip()
@@ -641,15 +607,13 @@ class ResumeNERExtractor:
         """Extract technical skills"""
         skills = set()
 
-        # Normalize to strip accents so that "négociation" matches skill "negociation",
-        # "développeur" matches "developpeur", etc. Keep +, #, -, . for skills like c++.
-        text_norm = unicodedata.normalize("NFKD", text_lower)
-        text_norm = "".join(c for c in text_norm if not unicodedata.combining(c))
-        tokens = set(re.findall(r"[a-z0-9\+\#\-\.]+", text_norm))
+        # Include accented chars (xc0-xff) so French skills like "developpeur",
+        # "medecin", "comptabilite" are captured from token set matching.
+        tokens = set(re.findall(r"[a-z\xc0-\xff0-9\+\#\-\.]+", text_lower))
 
         for skill in self.TECH_SKILLS:
             if " " in skill:
-                if re.search(rf"\b{re.escape(skill)}\b", text_norm):
+                if re.search(rf"\b{re.escape(skill)}\b", text_lower):
                     skills.add(skill.title())
             else:
                 if skill in tokens:
@@ -729,11 +693,11 @@ class ResumeNERExtractor:
                 tokens = re.split(r'[,;\s]+', normalized)
                 for token in tokens:
                     if token in self.LANGUAGE_NAMES:
-                        languages.add(self._LANGUAGE_DISPLAY.get(token, token.capitalize()))
+                        languages.add(token.capitalize())
 
         for token in re.findall(r'\b[A-Za-zÀ-ÿ]+\b', self._normalize_for_matching(text)):
             if token in self.LANGUAGE_NAMES:
-                languages.add(self._LANGUAGE_DISPLAY.get(token, token.capitalize()))
+                languages.add(token.capitalize())
 
         return list(languages)[:8]
 
@@ -1124,22 +1088,16 @@ class ResumeNERExtractor:
     def _extract_company_from_line(self, line: str) -> str:
         candidate = line.split('|', 1)[0].strip()
         candidate = re.split(r"\s*\(\s*\d{4}.*$", candidate)[0].strip()
-        # Use \s+[-–]\s+ (spaces required) to avoid splitting hyphenated names
-        # like "Clinique Saint-Jean" (no spaces around the hyphen within the name)
-        candidate = re.split(r"\s+[-–]\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s&''.-]{1,40}$", candidate)[0].strip()
+        candidate = re.split(r"\s*[-–]\s*[A-ZÀ-Ÿ][A-Za-zÀ-ÿ\s&''.-]{1,40}$", candidate)[0].strip()
         candidate = candidate.split(',', 1)[0].strip()
         candidate = candidate.strip('•*-').strip()
 
         normalized = self._normalize_for_matching(candidate)
         if len(candidate) < 2 or 'linkedin' in normalized or 'github' in normalized:
             return ''
-        if any(keyword in normalized for keyword in ('contact', 'profil', 'profile', 'skills', 'competences', 'competences')):
+        if any(keyword in normalized for keyword in ('contact', 'profil', 'profile', 'skills', 'competences', 'compétences')):
             return ''
-        if any(keyword in normalized for keyword in ('universite', 'university', 'ecole', 'school', 'college', 'institute', 'esup')):
-            return ''
-        # Reject if the candidate reads as a job title (e.g. "Medecin urgentiste" from
-        # a line like "Medecin urgentiste - Chef de garde" that has a separating " - ")
-        if any(kw in normalized for kw in self.JOB_KEYWORDS):
+        if any(keyword in normalized for keyword in ('universite', 'université', 'university', 'ecole', 'école', 'school', 'college', 'institute', 'esup')):
             return ''
         return candidate
 
@@ -1157,22 +1115,23 @@ class ResumeNERExtractor:
             return False
         if line.endswith('.') or line.endswith(':'):
             return False
-        if any(token in normalized for token in ('bénévolat', 'randonnée', 'voyage', 'théâtre', 'concerts', 'loisirs', 'interets', 'intérêts')):
+        if any(token in normalized for token in ('benevolat', 'randonnee', 'voyage', 'theatre', 'concerts', 'loisirs', 'interets')):
             return False
 
         words = [word for word in re.split(r'\s+', line.strip()) if word]
         if not 1 <= len(words) <= 6:
             return False
 
+        # Must contain at least one known job keyword — the old catch-all
+        # `all words contain a letter` was far too permissive and produced
+        # massive noise (education lines, location lines, hobby lines, etc.)
         if any(keyword in normalized for keyword in self.JOB_KEYWORDS):
             return True
 
+        # Single long all-alpha word (e.g. "Informaticien", "Comptable")
         if len(words) == 1:
             return len(words[0]) >= 7 and words[0].isalpha()
 
-        # Do NOT add a catch-all here: any multi-word alphabetic line being
-        # classified as a job title generates massive noise (names, addresses,
-        # section headings, etc. all pass).
         return False
 
     def _looks_like_education_line(self, line: str) -> bool:
