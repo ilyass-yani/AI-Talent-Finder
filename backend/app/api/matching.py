@@ -1053,6 +1053,69 @@ async def generate_and_match(
     }
 
 
+class RankAllResult(BaseModel):
+    """Ranked candidate entry for rank-all endpoint."""
+    rank: int
+    candidate_id: int
+    full_name: str
+    email: str
+    score: float
+    coverage: float
+    matched_skills: List[str]
+    missing_skills: List[str]
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/{criteria_id}/rank-all", response_model=List[RankAllResult])
+def rank_all_candidates(
+    criteria_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return all recruiter candidates scored and ranked by match score (best first).
+
+    Only candidates belonging to the current recruiter (recruiter_id or user_id) are
+    included.  The score is computed on-the-fly using CosineScorer so that even
+    candidates without prior MatchResult records are ranked.
+    """
+    from sqlalchemy import or_ as sa_or
+    criteria = db.query(JobCriteria).filter(JobCriteria.id == criteria_id).first()
+    if not criteria:
+        raise HTTPException(status_code=404, detail="Criteria not found")
+
+    criteria_skills = _load_criteria_skills(criteria_id, db)
+    skill_universe = build_skill_universe(db)
+
+    candidates = (
+        db.query(Candidate)
+        .filter(
+            sa_or(
+                Candidate.recruiter_id == current_user.id,
+                Candidate.user_id == current_user.id,
+            )
+        )
+        .all()
+    )
+
+    ranked: List[Dict] = []
+    for cand in candidates:
+        score, details = score_candidate_against_criteria(cand, criteria_skills, skill_universe)
+        ranked.append({
+            "candidate_id": cast(int, cand.id),
+            "full_name": cast(str, cand.full_name or ""),
+            "email": cast(str, cand.email or ""),
+            "score": score,
+            "coverage": float(details.get("coverage", 0)),
+            "matched_skills": list(details.get("matched_skills", [])),
+            "missing_skills": list(details.get("missing_skills", [])),
+        })
+
+    ranked.sort(key=lambda item: item["score"], reverse=True)
+    return [RankAllResult(rank=idx + 1, **entry) for idx, entry in enumerate(ranked)]
+
+
 @router.post("/{criteria_id:int}/results", response_model=List[CriteriaMatchResultResponse])
 async def launch_matching_for_criteria(
     criteria_id: int,

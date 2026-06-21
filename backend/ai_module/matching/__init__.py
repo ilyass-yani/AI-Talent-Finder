@@ -9,11 +9,13 @@
 #   from ai_module.matching import BertClassifierAdapter
 from ai_module.matching.hybrid_matcher import HybridConfig, HybridMatcher
 from ai_module.matching.bert_classifier_adapter import BertClassifierAdapter, get_default_adapter
+from ai_module.matching.scorer import CosineScorer
 
 __all__ = [
     "HybridConfig",
     "HybridMatcher",
     "BertClassifierAdapter",
     "get_default_adapter",
+    "CosineScorer",
 ]
 

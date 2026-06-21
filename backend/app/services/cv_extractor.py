@@ -356,13 +356,17 @@ class CVExtractionService:
 
     def _clean_name(self, name: Any) -> Optional[str]:
         value = str(name or "").strip()
+        # Strip UTF-8 BOM and zero-width chars that cause capitalize() to lowercase
+        # the real first letter (BOM becomes the first char, everything else lowercased).
+        value = value.lstrip("﻿￾​‌‍⁠").strip()
         if not value:
             return None
         if "@" in value or "http" in value.lower():
             return None
         if any(ch.isdigit() for ch in value):
             return None
-        words = [w for w in re.split(r"\s+", value) if w]
+        words = [w.lstrip("﻿￾​‌‍⁠") for w in re.split(r"\s+", value) if w]
+        words = [w for w in words if w]
         if len(words) < 2 or len(words) > 4:
             return None
         return " ".join(word.capitalize() for word in words)
@@ -460,7 +464,10 @@ class CVExtractionService:
 
     def _normalize_text_for_extraction(self, text: str) -> str:
         """Normalize noisy PDF extraction output to improve entity detection."""
-        normalized = text.replace("\r", "\n")
+        # Remove UTF-8 BOM (﻿) and similar zero-width chars that corrupt the first
+        # word of extracted text and cause name capitalize() bugs.
+        normalized = text.lstrip("﻿￾​‌‍")
+        normalized = normalized.replace("\r", "\n")
         normalized = re.sub(r"[ \t]+", " ", normalized)
         normalized = re.sub(r"\n{3,}", "\n\n", normalized)
         return normalized.strip()
