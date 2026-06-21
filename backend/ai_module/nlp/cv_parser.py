@@ -25,23 +25,32 @@ class HFResumeNERParser:
     Recommended values:
     - dslim/bert-base-NER
     - Davlan/bert-base-multilingual-cased-ner-hrl
+
+    The underlying HF pipeline is cached at class level so that repeated
+    instantiation (e.g. once per upload request) does NOT reload weights
+    from disk each time.
     """
 
     EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
     PHONE_RE = re.compile(r"(?:\+?\d[\d\s().-]{7,}\d)")
 
+    # Class-level cache: keyed by model_name so that different model names
+    # can coexist without conflict.
+    _pipelines: Dict[str, object] = {}
+
     def __init__(self, model_name: str = "dslim/bert-base-NER") -> None:
         self.model_name = model_name
-        self.ner = None
-        if HF_NER_AVAILABLE:
+        # Return cached pipeline if already loaded for this model_name
+        if model_name not in HFResumeNERParser._pipelines and HF_NER_AVAILABLE:
             try:
-                self.ner = pipeline(
+                HFResumeNERParser._pipelines[model_name] = pipeline(
                     "ner",
-                    model=self.model_name,
+                    model=model_name,
                     aggregation_strategy="simple",
                 )
             except Exception:
-                self.ner = None
+                HFResumeNERParser._pipelines[model_name] = None
+        self.ner = HFResumeNERParser._pipelines.get(model_name)
 
     @property
     def available(self) -> bool:

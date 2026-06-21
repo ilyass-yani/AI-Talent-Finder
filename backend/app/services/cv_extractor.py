@@ -847,8 +847,23 @@ def save_text_as_txt(text: str, output_dir: str, base_name: str) -> str:
     return str(txt_path)
 
 
+# ---------------------------------------------------------------------------
+# Module-level singleton — BERT and embedding models are loaded once per
+# process. Calling CVExtractionService() on every request was reloading
+# 199 weight files each time (~3-5 s per upload).
+# ---------------------------------------------------------------------------
+_cv_extraction_service: Optional[CVExtractionService] = None
+
+
+def get_cv_extraction_service() -> CVExtractionService:
+    """Return the shared CVExtractionService instance, creating it if needed."""
+    global _cv_extraction_service
+    if _cv_extraction_service is None:
+        _cv_extraction_service = CVExtractionService()
+    return _cv_extraction_service
+
+
 # Convenience function for backward compatibility
 def extract_and_structure_cv(pdf_path: str) -> CVExtractionResult:
     """Extract CV and get complete structured data"""
-    service = CVExtractionService()
-    return service.extract_from_pdf(pdf_path)
+    return get_cv_extraction_service().extract_from_pdf(pdf_path)

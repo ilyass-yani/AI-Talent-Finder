@@ -185,9 +185,9 @@ def get_my_candidate_profile(
 
     if needs_refresh:
         try:
-            from app.services.cv_extractor import CVExtractionService
+            from app.services.cv_extractor import get_cv_extraction_service
 
-            extraction_service = CVExtractionService()
+            extraction_service = get_cv_extraction_service()
             refreshed = extraction_service.extract_from_text(candidate.raw_text)
             refreshed_candidate = extraction_service.to_candidate_dict(refreshed)
 
@@ -353,10 +353,10 @@ async def upload_candidate_cv(
         if not extracted_text or not extracted_text.strip():
             extracted_text = f"Uploaded CV file: {Path(file_name).name}"
 
-        # NER extraction pipeline
-        from app.services.cv_extractor import CVExtractionService
+        # NER extraction pipeline — use singleton to avoid reloading BERT on every upload
+        from app.services.cv_extractor import get_cv_extraction_service
 
-        extraction_service = CVExtractionService()
+        extraction_service = get_cv_extraction_service()
         extraction_result = extraction_service.extract_from_text(extracted_text)
         candidate_dict = extraction_service.to_candidate_dict(extraction_result)
 
