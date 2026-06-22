@@ -307,6 +307,11 @@ class CVExtractionService:
                 merged[key] = hf[key]
 
         # Merge list fields with de-duplication while preserving order.
+        # GLiNER-owned fields (companies, education, job_titles) are NOT merged
+        # with the BERT/legacy output when GLiNER already produced a result:
+        # BERT introduces wordpiece artifacts (##cence, ##P) and fragments
+        # (Esp, Li) that would pollute the clean GLiNER lists.
+        gliner_owned = ("companies", "education", "job_titles", "interests")
         list_keys = [
             "emails", "phones", "companies", "job_titles", "education", "skills",
             "languages", "soft_skills", "interests", "certifications", "projects",
@@ -315,6 +320,9 @@ class CVExtractionService:
         for key in list_keys:
             base_list = merged.get(key) if isinstance(merged.get(key), list) else []
             hf_list = hf.get(key) if isinstance(hf.get(key), list) else []
+            # Keep the clean GLiNER list untouched for its owned fields.
+            if key in gliner_owned and base_list:
+                continue
 
             combined = []
             seen = set()
@@ -343,6 +351,34 @@ class CVExtractionService:
     def _postprocess_structured(self, structured: Dict) -> Dict:
         """Normalize and validate extracted entities to improve precision."""
         cleaned = dict(structured or {})
+
+        # Clean interests (generic): drop form labels (/ or |), the candidate's
+        # own name (case-insensitive), and CV section headers that leaked in.
+        _name_norm = (cleaned.get("full_name") or cleaned.get("name") or "").strip().lower()
+        _section_words = {
+            "intitule du poste", "intitule du poste / stage", "intitule",
+            "profil", "profile", "contact", "langues", "languages",
+            "competences", "competence", "skills", "formation", "formations",
+            "experience", "experiences", "education", "centres d interet",
+            "objectif", "objectifs", "references", "projets", "certifications",
+        }
+        _src = cleaned.get("interests") if isinstance(cleaned.get("interests"), list) else []
+        _clean_int = []
+        _seen_int = set()
+        for _it in _src:
+            _v = str(_it or "").strip()
+            if not _v or "/" in _v or "|" in _v:
+                continue
+            _low = _v.lower()
+            if _name_norm and _low == _name_norm:
+                continue
+            if _low in _section_words:
+                continue
+            if _low in _seen_int:
+                continue
+            _seen_int.add(_low)
+            _clean_int.append(_v)
+        cleaned["interests"] = _clean_int
 
         cleaned["emails"] = self._clean_emails(cleaned.get("emails"), cleaned.get("email"))
         cleaned["email"] = cleaned["emails"][0] if cleaned["emails"] else None
