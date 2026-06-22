@@ -179,6 +179,7 @@ export default function CandidateDetail() {
 
   const languages = toStringArray(nerData.languages);
   const softSkills = toStringArray(nerData.soft_skills);
+  const techSkills = toStringArray(nerData.skills);
   const interests = toStringArray(nerData.interests);
   const locations = toStringArray(nerData.locations);
   const linkedins = toStringArray(nerData.linkedin_urls);
@@ -384,6 +385,24 @@ export default function CandidateDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Tech Skills */}
+            {techSkills.length > 0 && (
+              <div className="mb-8 bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="tech-skills-heading">
+                <h3 className="text-lg font-bold text-gray-900 mb-3" id="tech-skills-heading">⚙️ Compétences Techniques</h3>
+                <div className="flex flex-wrap gap-2" role="list">
+                  {techSkills.map((skill: string, idx: number) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
+                      role="listitem"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Languages, Skills, Interests */}
             <div className="grid md:grid-cols-3 gap-6 mb-8">

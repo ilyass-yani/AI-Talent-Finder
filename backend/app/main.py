@@ -77,7 +77,15 @@ def include_optional_router(module_path: str, attr_name: str = "router"):
 
 @app.on_event("startup")
 def on_startup():
-    # Ensure database tables exist (best-effort)
+    # Alias HF_TOKEN_CHATBOT → HF_TOKEN so GLiNER/HF downloads are authenticated.
+    # The Space secret is named HF_TOKEN_CHATBOT; the HF Hub SDK reads HF_TOKEN.
+    if not os.getenv("HF_TOKEN") and os.getenv("HF_TOKEN_CHATBOT"):
+        os.environ["HF_TOKEN"] = os.environ["HF_TOKEN_CHATBOT"]
+        logging.info("HF_TOKEN aliased from HF_TOKEN_CHATBOT")
+
+    # Ensure database tables exist (best-effort).
+    # WARNING: create_all() creates missing tables but does NOT add new columns to
+    # existing tables. Run `alembic upgrade head` to apply schema migrations properly.
     try:
         Base.metadata.create_all(bind=engine)
     except Exception as e:

@@ -1,1 +1,17 @@
+# Normalize line endings to LF on commit (prevents CRLF noise in diffs)
+* text=auto eol=lf
+
+# Binary files — never touch line endings
 *.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pkl binary
+*.joblib binary
+*.db binary
