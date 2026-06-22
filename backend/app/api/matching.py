@@ -1206,6 +1206,47 @@ async def get_criteria(
     )
 
 
+def _predict_fallback(criteria_id: int, top_k: int, db: Session) -> dict:
+    """Return predict-shaped results using CosineScorer when no ML model file is available.
+
+    Returning 404 when the .joblib file is absent misleads clients into thinking
+    the route does not exist.  This fallback keeps the endpoint alive with the
+    same response schema, using the same rule-based scorer as /rank-all.
+    """
+    criteria = db.query(JobCriteria).filter(JobCriteria.id == criteria_id).first()
+    if not criteria:
+        raise HTTPException(status_code=404, detail="Criteria not found")
+    results = _score_all_candidates(criteria, db)[:top_k]
+    return {
+        "criteria_id": criteria_id,
+        "model": "cosine_fallback",
+        "top_k": top_k,
+        "results": [
+            {
+                "candidate_id": r.candidate_id,
+                "full_name": r.candidate_name,
+                "email": r.candidate_email,
+                "predicted_score": r.score,
+                "decision": _decision_from_score(r.score),
+                "coverage": r.coverage,
+                "matched_skills": r.matched_skills,
+                "missing_skills": r.missing_skills,
+                "skill_breakdown": [
+                    {
+                        "skill": item.skill,
+                        "present": item.present,
+                        "weight": item.weight,
+                        "matched": item.present,
+                    }
+                    for item in r.skill_breakdown
+                ],
+                "summary": r.summary,
+            }
+            for r in results
+        ],
+    }
+
+
 @router.post("/{criteria_id:int}/predict", response_model=PredictCriteriaResponse)
 async def predict_for_criteria(
     criteria_id: int,
@@ -1217,6 +1258,7 @@ async def predict_for_criteria(
     Predict match probabilities for all candidates for a given criteria.
     model_type can be 'baseline' or 'siamese'.
     Returns top_k candidates with predicted score (0-100).
+    Falls back to CosineScorer when no ML model file is available.
     """
     selected_model_type = model_type.strip().lower()
     if selected_model_type not in {"baseline", "siamese"}:
@@ -1228,13 +1270,13 @@ async def predict_for_criteria(
     if selected_model_type == "baseline":
         model_bundle = _load_baseline_model()
         if not model_bundle:
-            raise HTTPException(status_code=404, detail="Baseline model not available")
+            return _predict_fallback(criteria_id, top_k, db)
         model = model_bundle.get('model')
         meta = model_bundle.get('meta') or {}
     else:
         model, model_path = _load_siamese_model()
         if model is None:
-            raise HTTPException(status_code=404, detail="Siamese model not available")
+            return _predict_fallback(criteria_id, top_k, db)
 
     criteria = db.query(JobCriteria).filter(JobCriteria.id == criteria_id).first()
     if not criteria:
