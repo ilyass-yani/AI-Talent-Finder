@@ -41,24 +41,21 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
-    // Ensure URL paths end with a slash to match backend routing.
-    // This handles both: /api/path and /api/path?query=value.
-    // Auth routes are excluded because the backend defines them without a trailing slash.
+    // Insert a slash before query strings so list endpoints reach their canonical
+    // "/?skip=…" form without a 307 redirect.  Do NOT add a trailing slash to
+    // paths without a query string: individual-resource routes (/candidates/23,
+    // /criteria/2, …) are defined without one on the backend, so adding it here
+    // causes a 307 redirect on every single call.
     if (config.url && typeof config.url === 'string') {
       const u = config.url;
       if (!u.startsWith('http')) {
         const authRoutes = ['/auth/login', '/auth/register', '/auth/me', '/auth/logout'];
         const isAuthRoute = authRoutes.some((route) => u.startsWith(route));
 
-        if (!isAuthRoute) {
-          const hasQuery = u.includes('?');
-          if (hasQuery) {
-            const [path, query] = u.split('?');
-            if (!path.endsWith('/')) {
-              config.url = `${path}/?${query}`;
-            }
-          } else if (!u.endsWith('/')) {
-            config.url = `${u}/`;
+        if (!isAuthRoute && u.includes('?')) {
+          const [path, query] = u.split('?');
+          if (!path.endsWith('/')) {
+            config.url = `${path}/?${query}`;
           }
         }
       }

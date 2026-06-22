@@ -182,7 +182,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-gray-900">AI Talent Finder</span>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        {/* scrollbar-gutter:stable reserves the scrollbar lane even when
+            no scrollbar is visible — this prevents the page content from
+            shifting ~15px left when matching results load and the scrollbar
+            suddenly appears (reported: "bouge vers la gauche"). */}
+        <main className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
