@@ -10,6 +10,13 @@ Key design decisions
 * Lazy loading: the model is NOT imported at module level.  It is loaded on
   the first call to GLiNERExtractor.extract() so the FastAPI startup is not
   slowed down and a missing / OOM situation does not crash the server.
+* Chunked inference: GLiNER truncates any input exceeding 384 tokens, causing
+  silent data loss on anything but very short CVs.  To fix this, the text is
+  split into overlapping token-sized chunks (_CHUNK_TOKENS tokens each,
+  _CHUNK_OVERLAP_TOKENS overlap).  Each chunk is passed to predict_entities()
+  independently and the raw entity lists are concatenated before
+  cleaning/deduplication, so the full CV is analysed.  Processing is capped
+  at _MAX_CHUNKS to bound runtime on very long or corrupted CVs.
 * Graceful fallback: every failure path returns an empty dict so the caller
   (cv_extractor.py) can fall through to the regex extractor.
 * ASCII apostrophes only -- never use curly/smart quotes in this file.
@@ -58,14 +65,14 @@ _COMPANY_SUFFIX_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Detects a capitalized word (4+ chars) immediately followed — with NO space —
+# Detects a capitalized word (4+ chars) immediately followed -- with NO space --
 # by a common French preposition or article.
 # Used to fix PDF text-extraction artifacts such as "Voyageen sac a dos"
 # (should be "Voyage en sac a dos") where adjacent text blocks were merged
 # without a space separator.
 # The char ranges:
-#   [A-Z\xc0-\xde]     uppercase basic + accented (A-Z, A-grave … Thorn)
-#   [a-z\xdf-\xff]     lowercase basic + accented (a-z, sharp-s … y-diaeresis)
+#   [A-Z\xc0-\xde]     uppercase basic + accented (A-Z, A-grave ... Thorn)
+#   [a-z\xdf-\xff]     lowercase basic + accented (a-z, sharp-s ... y-diaeresis)
 _FUSED_WORD_RE = re.compile(
     r"([A-Z\xc0-\xde][a-z\xdf-\xff]{3,})"
     r"(en|de|du|des|le|la|les|et|ou|au|aux|par|sur|sous|dans|avec|pour|un|une|y|si)"
@@ -114,6 +121,28 @@ _SCHOOL_KEYWORDS: frozenset = frozenset({
     "academy", "academie",
     "insa", "supinfo", "epitech",
 })
+
+# ---------------------------------------------------------------------------
+# Chunking parameters
+# ---------------------------------------------------------------------------
+
+# Safe token budget per chunk -- comfortably below GLiNER's internal 384-token
+# limit.  Special tokens ([CLS], [SEP]) and longer sub-word splits consume a
+# few extra slots, so we leave a margin of ~44 tokens.
+_CHUNK_TOKENS: int = 340
+
+# Overlap between consecutive chunks (in tokens).  An entity (person name,
+# company) that falls across a chunk boundary will appear in at least one
+# chunk intact.
+_CHUNK_OVERLAP_TOKENS: int = 40
+
+# Hard cap on the number of chunks to avoid runaway on very long or corrupted
+# CVs (observed: up to 90 000 chars of extracted text on some uploads).
+_MAX_CHUNKS: int = 12
+
+# Rough character-to-token ratio used as a fallback when the model tokenizer
+# is unavailable.  French/English mixed text averages ~4 chars/token.
+_CHARS_PER_TOKEN: int = 4
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +215,15 @@ class GLiNERExtractor:
     # ------------------------------------------------------------------
 
     def extract(self, text: str) -> Dict:
-        """Extract CV entities from *text* using GLiNER.
+        """Extract CV entities from *text* using GLiNER with chunked inference.
+
+        The text is split into token-bounded overlapping chunks so that no
+        single chunk exceeds GLiNER's internal 384-token limit.  Each chunk is
+        inferred independently; the raw entity lists are concatenated and then
+        cleaned once, so the complete CV is analysed regardless of length.
+
+        Chunk-0 entities are processed first, which ensures that first-chunk
+        person-name candidates win ties in _best_person_name (stable sort).
 
         Returns a dict with keys:
             full_name  : str | None
@@ -204,15 +241,46 @@ class GLiNERExtractor:
             return {}
 
         try:
-            # Truncate to ~6 000 chars (identity info is in the first half of
-            # the CV; processing the full text risks OOM on long documents).
-            truncated = text[:6000]
-            raw_entities = self.__class__._model.predict_entities(
-                truncated,
-                _LABELS,
-                threshold=0.45,
+            chunks = self._build_chunks(text)
+            logger.debug(
+                "GLiNER: %d chunk(s) for %d chars of CV text",
+                len(chunks),
+                len(text),
             )
-            return self._clean_entities(raw_entities)
+
+            all_raw: List[Dict] = []
+            for idx, chunk in enumerate(chunks):
+                try:
+                    raw = self.__class__._model.predict_entities(
+                        chunk,
+                        _LABELS,
+                        threshold=0.45,
+                    )
+                    all_raw.extend(raw)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "GLiNER chunk %d/%d failed: %s: %s",
+                        idx + 1,
+                        len(chunks),
+                        type(exc).__name__,
+                        exc,
+                    )
+
+            if not all_raw:
+                # All chunks failed; fall back to legacy single-pass on a
+                # truncated copy so we always return something useful.
+                logger.warning(
+                    "All GLiNER chunks failed -- retrying legacy single-pass"
+                )
+                raw = self.__class__._model.predict_entities(
+                    text[:6000],
+                    _LABELS,
+                    threshold=0.45,
+                )
+                return self._clean_entities(raw)
+
+            return self._clean_entities(all_raw)
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "GLiNER extraction error: %s: %s", type(exc).__name__, exc
@@ -220,7 +288,89 @@ class GLiNERExtractor:
             return {}
 
     # ------------------------------------------------------------------
-    # Post-processing / cleaning  (the only section touched by this fix)
+    # Chunking
+    # ------------------------------------------------------------------
+
+    def _build_chunks(self, text: str) -> List[str]:
+        """Split *text* into token-bounded overlapping chunks.
+
+        Algorithm
+        ---------
+        1. Split on line boundaries (splitlines keepends=True) to preserve
+           natural reading units and avoid cutting a span mid-word.
+        2. Accumulate lines until adding the next line would exceed
+           _CHUNK_TOKENS.  At that point flush the current accumulation as
+           a chunk.
+        3. Before starting the next chunk, walk backward through the flushed
+           lines and collect up to _CHUNK_OVERLAP_TOKENS worth of content to
+           prepend as overlap.  This ensures entities near chunk boundaries
+           appear fully in at least one chunk.
+        4. Stop after _MAX_CHUNKS regardless of remaining text.
+
+        Token counting uses the GLiNER model's own tokenizer when available;
+        falls back to len(text) // _CHARS_PER_TOKEN otherwise (the model
+        attribute is None when called from unit tests that skip model loading).
+        """
+        tokenizer = getattr(self.__class__._model, "tokenizer", None)
+
+        def _count_tokens(s: str) -> int:
+            if tokenizer is not None:
+                try:
+                    return len(tokenizer.encode(s, add_special_tokens=False))
+                except Exception:
+                    pass
+            return max(1, len(s) // _CHARS_PER_TOKEN)
+
+        lines = text.splitlines(keepends=True)
+        if not lines:
+            return [text] if text else []
+
+        chunks: List[str] = []
+        current: List[str] = []
+        current_tokens: int = 0
+
+        for line in lines:
+            if len(chunks) >= _MAX_CHUNKS:
+                break
+
+            line_tokens = _count_tokens(line)
+
+            # A single line that already overflows the budget cannot be split
+            # further without breaking word integrity; emit it as its own chunk.
+            if not current and line_tokens >= _CHUNK_TOKENS:
+                chunks.append(line)
+                continue
+
+            if current_tokens + line_tokens > _CHUNK_TOKENS and current:
+                # Flush the accumulated lines as a complete chunk.
+                chunks.append("".join(current))
+                if len(chunks) >= _MAX_CHUNKS:
+                    break
+
+                # Build overlap from the tail of the just-flushed chunk.
+                overlap: List[str] = []
+                overlap_tokens: int = 0
+                for prev in reversed(current):
+                    pt = _count_tokens(prev)
+                    if overlap_tokens + pt > _CHUNK_OVERLAP_TOKENS:
+                        break
+                    overlap.insert(0, prev)
+                    overlap_tokens += pt
+
+                current = overlap + [line]
+                current_tokens = sum(_count_tokens(ln) for ln in current)
+            else:
+                current.append(line)
+                current_tokens += line_tokens
+
+        # Flush any remaining lines as the final chunk.
+        if current and len(chunks) < _MAX_CHUNKS:
+            chunks.append("".join(current))
+
+        return chunks if chunks else [text]
+
+    # ------------------------------------------------------------------
+    # Post-processing / cleaning
     # ------------------------------------------------------------------
 
     def _clean_entities(self, entities: List[Dict]) -> Dict:
@@ -232,6 +382,11 @@ class GLiNERExtractor:
            education pool.
         3. Deduplicate and cap each list.
         4. Filter interests: remove the candidate name and CV section headers.
+
+        When called after chunked inference, *entities* is the concatenation
+        of all chunks' raw outputs in chunk order (chunk 0 first).  Python's
+        stable sort in _best_person_name ensures that, for equal word-count
+        person-name candidates, the chunk-0 candidate wins the tie.
         """
         grouped: Dict[str, List[str]] = {
             "person name": [],
@@ -305,6 +460,8 @@ class GLiNERExtractor:
         if not valid:
             return None
         # Prefer multi-word names (more complete) over single tokens.
+        # Python sort is stable: equal-length candidates preserve insertion
+        # order, so chunk-0 names win ties over later-chunk names.
         valid.sort(key=lambda n: -len(n.split()))
         return valid[0]
 
