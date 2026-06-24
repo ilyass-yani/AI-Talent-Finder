@@ -68,11 +68,16 @@ export default function AdminDashboard() {
     <Layout>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <ShieldAlert className="h-7 w-7 text-red-600" />
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tableau de bord Admin</h1>
-            <p className="text-sm text-gray-500">Vue globale de la plateforme</p>
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-7 text-white shadow-xl">
+          <div className="absolute -right-6 -top-8 h-36 w-36 rounded-full bg-indigo-500/30 blur-2xl" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/20 text-red-300 ring-1 ring-red-400/30">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Tableau de bord Admin</h1>
+              <p className="text-sm text-slate-300">Vue globale de la plateforme</p>
+            </div>
           </div>
         </div>
 
@@ -111,14 +116,12 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
             {cards.map(({ label, value, icon: Icon, color, border, href }) => {
               const card = (
-                <div
-                  className={`rounded-xl bg-white p-6 shadow-sm ${border} ${href ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
-                >
-                  <div className={`inline-flex rounded-lg p-2 ${color} mb-3`}>
+                <div className={`card-premium ${href ? 'card-glow cursor-pointer' : ''} p-6 ${border}`}>
+                  <div className={`mb-3 inline-flex rounded-xl p-2.5 ${color}`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <p className="text-3xl font-bold text-gray-900">{value.toLocaleString()}</p>
-                  <p className="text-sm text-gray-500 mt-1">{label}</p>
+                  <p className="font-display text-3xl font-extrabold text-gray-900">{value.toLocaleString()}</p>
+                  <p className="mt-1 text-sm text-gray-500">{label}</p>
                 </div>
               );
               return href ? (

@@ -100,11 +100,11 @@ export default function ExportPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Download className="w-8 h-8 text-indigo-600" />
+          <h1 className="font-display flex items-center gap-3 text-3xl font-extrabold text-gray-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-200/50"><Download className="h-5 w-5" /></span>
             Exporter les Résultats
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="mt-2 text-gray-600">
             Téléchargez les candidats et les résultats de matching dans le format de votre choix
           </p>
         </div>
@@ -129,10 +129,10 @@ export default function ExportPage() {
             <button
               key={option.id}
               onClick={() => setSelectedFormat(option.id)}
-              className={`p-6 rounded-lg border-2 transition-all ${
+              className={`rounded-2xl border-2 p-6 text-left transition-all ${
                 selectedFormat === option.id
-                  ? "border-indigo-600 bg-indigo-50 shadow-lg"
-                  : "border-gray-200 bg-white hover:border-gray-300"
+                  ? "border-indigo-600 bg-indigo-50 shadow-lg shadow-indigo-100"
+                  : "border-gray-200 bg-white hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md"
               }`}
             >
               <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${option.color} text-white flex items-center justify-center mb-4`}>
@@ -150,8 +150,8 @@ export default function ExportPage() {
         </div>
 
         {/* Settings */}
-        <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Options d'export</h2>
+        <div className="card-premium p-6 mb-6">
+          <h2 className="font-display text-lg font-bold text-gray-900 mb-4">Options d&apos;export</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Include Options */}
@@ -230,7 +230,7 @@ export default function ExportPage() {
           <button
             onClick={handleExport}
             disabled={loading || !selectedFormat}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
+            className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -244,10 +244,7 @@ export default function ExportPage() {
               </>
             )}
           </button>
-          <button
-            onClick={() => window.history.back()}
-            className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
-          >
+          <button onClick={() => window.history.back()} className="btn-ghost">
             Retour
           </button>
         </div>

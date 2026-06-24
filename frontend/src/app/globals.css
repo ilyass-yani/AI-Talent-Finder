@@ -1,10 +1,12 @@
 @import "tailwindcss";
 
 /* ── LIGHT MODE TOKENS ───────────────────────────────────────── */
+/* Softer, less glaring light theme: muted cool-gray page background so
+   white cards gain depth and the UI is easier on the eyes than pure white. */
 :root {
-  --bg:#f9fafb; --bg-card:#fff; --bg-hover:#f3f4f6; --border:#e5e7eb;
+  --bg:#e7ebf1; --bg-card:#fff; --bg-hover:#dfe4ec; --border:#d5dbe6;
   --text-primary:#111827; --text-secondary:#374151; --text-muted:#9ca3af;
-  --input-bg:#fff; --input-border:#d1d5db; --input-text:#111827;
+  --input-bg:#fff; --input-border:#cbd2de; --input-text:#111827;
   --sidebar-bg:#fff; --sidebar-border:#e5e7eb;
   --sidebar-active-bg:#eef2ff; --sidebar-active-text:#4338ca;
   --sidebar-text:#4b5563; --sidebar-hover:#f3f4f6;
@@ -21,9 +23,151 @@ html.dark {
 }
 
 /* ── BASE ────────────────────────────────────────────────────── */
-body { background:var(--bg); color:var(--text-primary); font-family:Arial,Helvetica,sans-serif; }
+body {
+  background:var(--bg); color:var(--text-primary);
+  font-family:var(--font-sans),system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
 input,textarea,select { color:var(--input-text); background-color:var(--input-bg); border-color:var(--input-border); }
 input::placeholder,textarea::placeholder { color:var(--text-muted); }
+
+/* Display font for headings / hero typography */
+.font-display { font-family:var(--font-display),var(--font-sans),system-ui,sans-serif; letter-spacing:-0.02em; }
+
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM DESIGN SYSTEM
+   Brand tokens + reusable component classes + animations.
+   Used across landing / auth (and rolled into the app).
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  --brand:#6366f1;            /* indigo-500 */
+  --brand-strong:#4f46e5;     /* indigo-600 */
+  --brand-2:#8b5cf6;          /* violet-500 */
+  --brand-3:#06b6d4;          /* cyan-500   */
+  --ring:rgba(99,102,241,0.35);
+  --elev-1:0 1px 2px -1px rgba(31,41,86,0.18), 0 1px 3px rgba(31,41,86,0.10);
+  --elev-2:0 4px 12px -2px rgba(31,41,86,0.16), 0 2px 6px -2px rgba(31,41,86,0.10);
+  --elev-3:0 18px 40px -12px rgba(31,41,86,0.30), 0 8px 16px -8px rgba(31,41,86,0.16);
+  --grad-brand:linear-gradient(120deg,#6366f1 0%,#7c3aed 45%,#06b6d4 100%);
+}
+html.dark {
+  --ring:rgba(129,140,248,0.45);
+  --elev-1:0 1px 2px -1px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
+  --elev-2:0 4px 12px -2px rgba(0,0,0,0.55), 0 2px 6px -2px rgba(0,0,0,0.4);
+  --elev-3:0 18px 40px -12px rgba(0,0,0,0.65), 0 8px 16px -8px rgba(0,0,0,0.5);
+}
+
+/* ── GRADIENT TEXT ───────────────────────────────────────────── */
+.gradient-text {
+  background:var(--grad-brand);
+  -webkit-background-clip:text; background-clip:text;
+  -webkit-text-fill-color:transparent; color:transparent;
+  background-size:200% 200%; animation:grad-pan 8s ease infinite;
+}
+
+/* ── BUTTONS ─────────────────────────────────────────────────── */
+.btn-primary {
+  position:relative; display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
+  border-radius:0.75rem; padding:0.7rem 1.4rem; font-weight:700; font-size:0.95rem;
+  color:#fff; background:var(--grad-brand); background-size:160% 160%;
+  box-shadow:0 8px 22px -8px rgba(99,102,241,0.65); border:1px solid rgba(255,255,255,0.12);
+  transition:transform .2s ease, box-shadow .25s ease, background-position .5s ease;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 14px 32px -8px rgba(99,102,241,0.75); background-position:100% 50%; }
+.btn-primary:active { transform:translateY(0); }
+
+.btn-ghost {
+  display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
+  border-radius:0.75rem; padding:0.7rem 1.3rem; font-weight:600; font-size:0.95rem;
+  color:var(--text-secondary); background:var(--bg-card);
+  border:1px solid var(--border); box-shadow:var(--elev-1);
+  transition:transform .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.btn-ghost:hover { transform:translateY(-2px); border-color:var(--brand); }
+
+/* ── CARDS / SURFACES ────────────────────────────────────────── */
+.card-premium {
+  position:relative; border-radius:1.25rem; background:var(--bg-card);
+  border:1px solid var(--border); box-shadow:var(--elev-2);
+  transition:transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s ease, border-color .3s ease;
+}
+.card-premium:hover { transform:translateY(-4px); box-shadow:var(--elev-3); border-color:var(--brand); }
+
+/* Gradient hairline border on hover (premium accent) */
+.card-glow { position:relative; }
+.card-glow::before {
+  content:""; position:absolute; inset:0; border-radius:inherit; padding:1px;
+  background:var(--grad-brand);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  opacity:0; transition:opacity .3s ease; pointer-events:none;
+}
+.card-glow:hover::before { opacity:1; }
+
+/* Glass panel */
+.glass-panel {
+  background:rgba(255,255,255,0.7); backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid rgba(255,255,255,0.5); box-shadow:var(--elev-2);
+}
+html.dark .glass-panel { background:rgba(26,29,46,0.6); border-color:rgba(255,255,255,0.08); }
+
+/* ── BADGES / PILLS ──────────────────────────────────────────── */
+.pill {
+  display:inline-flex; align-items:center; gap:0.4rem;
+  border-radius:9999px; padding:0.35rem 0.85rem; font-size:0.8rem; font-weight:600;
+  background:rgba(99,102,241,0.1); color:var(--brand-strong); border:1px solid rgba(99,102,241,0.22);
+}
+html.dark .pill { color:#c7d2fe; background:rgba(99,102,241,0.16); border-color:rgba(99,102,241,0.3); }
+
+/* ── AURORA BACKGROUND (animated blurred orbs) ──────────────── */
+.aurora { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:-10; }
+.aurora-orb { position:absolute; border-radius:9999px; filter:blur(80px); opacity:0.5; animation:float-orb 14s ease-in-out infinite; }
+html.dark .aurora-orb { opacity:0.32; }
+
+/* ── DIVIDER GRID ────────────────────────────────────────────── */
+.grid-overlay {
+  background-image:linear-gradient(to right, rgba(99,116,139,0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99,116,139,0.10) 1px, transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse at center, black 30%, transparent 78%);
+}
+html.dark .grid-overlay { background-image:linear-gradient(to right, rgba(148,163,184,0.07) 1px, transparent 1px),linear-gradient(to bottom, rgba(148,163,184,0.07) 1px, transparent 1px); }
+
+/* ── ANIMATIONS ──────────────────────────────────────────────── */
+@keyframes grad-pan { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+@keyframes float-orb { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(30px,-24px) scale(1.08);} 66%{transform:translate(-22px,18px) scale(0.95);} }
+@keyframes fade-up { from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:translateY(0);} }
+@keyframes fade-in { from{opacity:0;} to{opacity:1;} }
+@keyframes pop-in { from{opacity:0; transform:translateY(14px) scale(.97);} to{opacity:1; transform:translateY(0) scale(1);} }
+@keyframes shimmer { 0%{background-position:-200% 0;} 100%{background-position:200% 0;} }
+
+.anim-fade-up { opacity:0; animation:fade-up .7s cubic-bezier(.2,.7,.3,1) forwards; }
+.anim-pop { opacity:0; animation:pop-in .8s cubic-bezier(.2,.7,.3,1) forwards; }
+.anim-fade-in { opacity:0; animation:fade-in .9s ease forwards; }
+.delay-1{animation-delay:.08s;} .delay-2{animation-delay:.16s;} .delay-3{animation-delay:.24s;}
+.delay-4{animation-delay:.32s;} .delay-5{animation-delay:.4s;} .delay-6{animation-delay:.48s;}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text,.aurora-orb,.anim-fade-up,.anim-pop,.anim-fade-in,.btn-primary { animation:none!important; }
+  .anim-fade-up,.anim-pop,.anim-fade-in { opacity:1; }
+}
+
+/* ── GLASS NAV (public pages: landing / login / register) ────── */
+/* Own class so the translucent navbar themes reliably in both modes,
+   instead of depending on overrides of Tailwind's bg-white/xx opacity
+   utilities (which don't match cleanly). */
+.glass-nav { background-color:rgba(255,255,255,0.85); }
+html.dark .glass-nav { background-color:rgba(20,23,37,0.88); }
+
+/* ── LIGHT MODE SURFACE TONING ───────────────────────────────── */
+/* Page-level backgrounds (gray-50/slate-50) get the muted page tone so the
+   app no longer reads as a glaring white sheet. White cards stay white and
+   pop with depth. Dark-mode rules below (html.dark) override these. */
+html:not(.dark) .bg-gray-50,
+html:not(.dark) .bg-slate-50  { background-color:var(--bg); }
+html:not(.dark) .bg-gray-100,
+html:not(.dark) .bg-slate-100 { background-color:var(--bg-hover); }
 
 /* ── DARK MODE OVERRIDES ─────────────────────────────────────── */
 
@@ -31,6 +175,7 @@ input::placeholder,textarea::placeholder { color:var(--text-muted); }
 html.dark .bg-white            { background-color:var(--bg-card)!important; }
 html.dark .bg-gray-50          { background-color:var(--bg)!important; }
 html.dark .bg-gray-100         { background-color:var(--bg-hover)!important; }
+html.dark .bg-gray-200         { background-color:#2d3348!important; }
 html.dark .border-gray-200,
 html.dark .border-gray-300     { border-color:var(--border)!important; }
 html.dark .text-gray-900,
@@ -116,6 +261,21 @@ html.dark .text-purple-600     { color:#c084fc!important; }
 html.dark .border-purple-200   { border-color:rgba(168,85,247,0.3)!important; }
 html.dark .from-purple-50      { --tw-gradient-from:rgba(168,85,247,0.1)!important; }
 html.dark .to-pink-50          { --tw-gradient-to:rgba(236,72,153,0.1)!important; }
+
+/* --- VIOLET --------------------------------------------------- */
+html.dark .bg-violet-50         { background-color:rgba(139,92,246,0.1)!important; }
+html.dark .bg-violet-100        { background-color:rgba(139,92,246,0.16)!important; }
+html.dark .text-violet-600,
+html.dark .text-violet-700      { color:#c4b5fd!important; }
+html.dark .text-violet-900      { color:#ddd6fe!important; }
+html.dark .border-violet-200    { border-color:rgba(139,92,246,0.3)!important; }
+html.dark .border-violet-600    { border-color:rgba(139,92,246,0.6)!important; }
+html.dark .hover\:border-violet-300:hover { border-color:rgba(139,92,246,0.45)!important; }
+
+/* --- CYAN extras --------------------------------------------- */
+html.dark .text-cyan-600        { color:#67e8f9!important; }
+html.dark .text-cyan-900        { color:#a5f3fc!important; }
+html.dark .border-cyan-500      { border-color:rgba(6,182,212,0.6)!important; }
 
 /* --- RED ----------------------------------------------------- */
 html.dark .bg-red-50           { background-color:rgba(239,68,68,0.08)!important; }

@@ -105,8 +105,8 @@ export default function CandidateProfileEdit() {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Éditer Mon Profil</h1>
-          <div className="bg-white rounded-lg shadow-md p-8">
+          <h1 className="font-display text-2xl font-bold text-gray-900 mb-6">Éditer Mon Profil</h1>
+          <div className="card-premium p-8">
             <SkeletonProfile />
           </div>
         </div>
@@ -118,7 +118,8 @@ export default function CandidateProfileEdit() {
     <Layout>
 {/* Main Content */}
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <h1 className="font-display text-2xl font-extrabold text-gray-900 mb-6">Éditer Mon Profil</h1>
+        <div className="card-premium p-8">
           {role === 'candidate' && !candidate && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
               <p className="font-semibold">Profil à créer manuellement</p>
@@ -163,7 +164,7 @@ export default function CandidateProfileEdit() {
                 onChange={(e) => setFullName(e.target.value)}
                 required
                 aria-required="true"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Ex: Jean Dupont"
               />
             </div>
@@ -180,7 +181,7 @@ export default function CandidateProfileEdit() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 aria-required="true"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Ex: jean@example.com"
               />
             </div>
@@ -195,7 +196,7 @@ export default function CandidateProfileEdit() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Ex: +33 6 12 34 56 78"
               />
             </div>
@@ -210,7 +211,7 @@ export default function CandidateProfileEdit() {
                 type="url"
                 value={linkedinUrl}
                 onChange={(e) => setLinkedinUrl(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Ex: https://linkedin.com/in/jean-dupont"
               />
               <p className="text-xs text-gray-500 mt-1">Optionnel - Votre profil LinkedIn complet</p>
@@ -226,7 +227,7 @@ export default function CandidateProfileEdit() {
                 type="url"
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 placeholder="Ex: https://github.com/jean-dupont"
               />
               <p className="text-xs text-gray-500 mt-1">Optionnel - Votre profil GitHub</p>
@@ -245,14 +246,14 @@ export default function CandidateProfileEdit() {
                 type="submit"
                 disabled={saving}
                 aria-label={candidate ? 'Enregistrer les modifications du profil' : 'Créer mon profil'}
-                className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? '💾 Enregistrement...' : candidate ? '💾 Enregistrer' : '💾 Créer mon profil'}
               </button>
               <Link
                 href="/candidate/profile"
                 aria-label="Annuler et retourner au profil"
-                className="flex-1 px-6 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium text-center focus:outline-none focus:ring-2 focus:ring-gray-400 inline-flex items-center justify-center"
+                className="btn-ghost flex-1"
               >
                 Annuler
               </Link>

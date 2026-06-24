@@ -76,7 +76,7 @@ export default function CandidateProfile() {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold text-blue-600 mb-6">🧑 Mon Profil</h1>
+          <h1 className="font-display text-2xl font-bold text-indigo-600 mb-6">🧑 Mon Profil</h1>
           <SkeletonProfile />
         </div>
       </Layout>
@@ -106,15 +106,15 @@ export default function CandidateProfile() {
       <Layout>
         <div className="flex items-center justify-center py-20">
           <div className="max-w-lg text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Aucun profil trouvé</h2>
+            <h2 className="font-display text-2xl font-bold text-gray-900 mb-3">Aucun profil trouvé</h2>
             <p className="text-gray-600 mb-6">
               Tu peux créer ton profil manuellement ou uploader un CV pour lancer l’extraction automatique.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/candidate/profile/edit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+              <Link href="/candidate/profile/edit" className="btn-primary">
                 Créer mon profil
               </Link>
-              <Link href="/candidate/upload" className="bg-gray-200 text-gray-900 px-4 py-2 rounded hover:bg-gray-300">
+              <Link href="/candidate/upload" className="btn-ghost">
                 Uploader un CV
               </Link>
             </div>
@@ -217,17 +217,24 @@ export default function CandidateProfile() {
 {/* Content */}
       <div className="max-w-4xl mx-auto">
         {/* Profile Header Card */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                {candidate.extracted_name || candidate.full_name}
-              </h2>
-              <p className="text-gray-600">
-                {candidate.is_fully_extracted ? '✅ Profil extrait du CV' : '⚠️ Données partielles'}
-              </p>
+        <div className="card-premium overflow-hidden p-0 mb-8">
+          <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-8 text-white">
+            <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative flex items-center gap-5">
+              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl font-extrabold backdrop-blur">
+                {((candidate.extracted_name || candidate.full_name) || 'C')[0].toUpperCase()}
+              </div>
+              <div>
+                <h2 className="font-display text-3xl font-extrabold">
+                  {candidate.extracted_name || candidate.full_name}
+                </h2>
+                <p className="mt-0.5 text-indigo-100">
+                  {candidate.is_fully_extracted ? '✅ Profil extrait du CV' : '⚠️ Données partielles'}
+                </p>
+              </div>
             </div>
           </div>
+          <div className="p-8">
 
           {/* Quality Score */}
           {candidate.extraction_quality_score && (
@@ -550,6 +557,7 @@ export default function CandidateProfile() {
                 </p>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

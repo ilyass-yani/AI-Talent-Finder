@@ -49,12 +49,15 @@ export default function AdminMonitoringPage() {
   return (
     <AdminGuard>
       <Layout>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Logs & performances</h1>
-            <p className="text-gray-600">Supervision du système et journal d&apos;activité</p>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-lg"><Database className="h-5 w-5" /></span>
+            <div>
+              <h1 className="font-display text-2xl font-extrabold text-gray-900 sm:text-3xl">Logs &amp; performances</h1>
+              <p className="text-sm text-gray-500">Supervision du système et journal d&apos;activité</p>
+            </div>
           </div>
-          <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <button onClick={load} className="btn-ghost !py-2 text-sm">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Actualiser
           </button>
         </div>
@@ -66,8 +69,8 @@ export default function AdminMonitoringPage() {
         {/* Santé système */}
         {health && (
           <div className="mb-8 grid gap-6 lg:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">État du système</h2>
+            <div className="card-premium p-6">
+              <h2 className="font-display mb-4 text-lg font-bold text-gray-900">État du système</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Statut global</span>
@@ -86,8 +89,8 @@ export default function AdminMonitoringPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Capacités IA</h2>
+            <div className="card-premium p-6">
+              <h2 className="font-display mb-4 text-lg font-bold text-gray-900">Capacités IA</h2>
               <div className="space-y-2 text-sm">
                 {Object.entries(health.capabilities).length === 0 && (
                   <p className="text-gray-400">Aucune information</p>
@@ -108,8 +111,8 @@ export default function AdminMonitoringPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Volumétrie</h2>
+            <div className="card-premium p-6">
+              <h2 className="font-display mb-4 text-lg font-bold text-gray-900">Volumétrie</h2>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {Object.entries(health.counts).map(([k, v]) => (
                   <div key={k} className="rounded-lg bg-gray-50 px-3 py-2">
@@ -123,9 +126,9 @@ export default function AdminMonitoringPage() {
         )}
 
         {/* Journal d'activité */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="card-premium overflow-hidden p-0">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">Journal d&apos;activité</h2>
+            <h2 className="font-display text-lg font-bold text-gray-900">Journal d&apos;activité</h2>
             <select
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}

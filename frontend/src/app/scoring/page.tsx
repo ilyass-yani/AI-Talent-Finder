@@ -79,17 +79,17 @@ export default function ScoringPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">Advanced Scoring Demo</h1>
+        <h1 className="font-display text-4xl font-extrabold text-gray-900 mb-2">Advanced Scoring Demo</h1>
         <p className="text-gray-600 mb-8">
           Test the intelligent CV-Job matching system with calibrated business rules
         </p>
 
         {/* Load Test Dataset Button */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="card-premium p-6 mb-8">
           <button
             onClick={loadTestDataset}
             disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading && testDataset === null ? "Loading..." : "Load Test Dataset"}
           </button>
@@ -104,7 +104,7 @@ export default function ScoringPage() {
         {testDataset && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             {/* Candidates Column */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="card-premium p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-800">Candidates</h2>
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {testDataset.candidates.map((cand, idx) => (
@@ -128,7 +128,7 @@ export default function ScoringPage() {
             </div>
 
             {/* Jobs Column */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="card-premium p-6">
               <h2 className="text-2xl font-bold mb-4 text-gray-800">Jobs</h2>
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {testDataset.jobs.map((job, idx) => (
@@ -155,7 +155,7 @@ export default function ScoringPage() {
 
         {/* Match Result */}
         {selectedCandidate && selectedJob && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="card-premium p-6 mb-8">
             <div className="mb-4 flex justify-between items-center">
               <h3 className="text-xl font-bold text-gray-800">
                 {selectedCandidate.full_name} ↔ {selectedJob.title}
@@ -163,7 +163,7 @@ export default function ScoringPage() {
               <button
                 onClick={computeScore}
                 disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+                className="btn-primary !py-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Computing..." : "Compute Score"}
               </button>

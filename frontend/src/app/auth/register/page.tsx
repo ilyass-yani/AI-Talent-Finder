@@ -3,15 +3,10 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
-import { Manrope } from 'next/font/google';
+import { ArrowRight, Briefcase, Rocket, Sparkles, UserRound, Zap } from 'lucide-react';
 import { authApi } from '@/services/auth';
 import { getErrorMessage } from '@/utils/errorHandler';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-});
+import ThemeToggle from '@/components/ThemeToggle';
 
 function RegisterForm() {
   const router = useRouter();
@@ -58,56 +53,65 @@ function RegisterForm() {
   };
 
   return (
-    <div className={`${manrope.className} relative min-h-screen overflow-hidden bg-slate-50 text-slate-900`}>
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-300/30 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
+      {/* Aurora background */}
+      <div className="aurora">
+        <div className="aurora-orb left-[-8%] top-[-6%] h-80 w-80 bg-blue-400" />
+        <div className="aurora-orb right-[-6%] bottom-[2%] h-96 w-96 bg-violet-400" style={{ animationDelay: '-5s' }} />
+        <div className="grid-overlay absolute inset-0 opacity-50" />
       </div>
 
-      <nav className="border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <nav className="glass-nav border-b border-slate-200 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-300/50">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">AI Recruiting</p>
-              <p className="text-lg font-bold">AI Talent Finder</p>
+              <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-indigo-600">AI Recruiting</p>
+              <p className="font-display text-lg font-bold leading-none text-slate-900">AI Talent Finder</p>
             </div>
           </Link>
-          <Link href="/" className="text-sm font-semibold text-slate-600 transition hover:text-slate-900">
-            Retour a l'accueil
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link href="/" className="text-sm font-semibold text-slate-700 transition hover:text-indigo-600">
+              Retour à l&apos;accueil
+            </Link>
+          </div>
         </div>
       </nav>
 
-      <div className="mx-auto grid min-h-[calc(100vh-72px)] w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
-        <aside className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-100">
-          <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            <CheckCircle2 className="h-4 w-4" />
-            Onboarding rapide
-          </span>
-          <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-900">
-            Cree ton compte
-            <span className="block bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              et active ton espace
-            </span>
+      <div className="mx-auto grid min-h-[calc(100vh-69px)] w-full max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+        {/* Left brand panel */}
+        <aside className="hidden lg:block anim-fade-up">
+          <span className="pill mb-5"><Rocket className="h-3.5 w-3.5" /> Onboarding rapide</span>
+          <h1 className="font-display text-5xl font-extrabold leading-[1.05] text-slate-900">
+            Crée ton compte
+            <span className="block gradient-text">et active ton espace</span>
           </h1>
-          <p className="mt-4 text-slate-600">
-            Choisis ton parcours candidat ou recruteur et commence a exploiter le matching IA en quelques minutes.
+          <p className="mt-5 max-w-md text-lg text-slate-600">
+            Choisis ton parcours candidat ou recruteur et commence à exploiter le matching IA en quelques minutes.
           </p>
 
-          <div className="mt-8 space-y-3 text-sm text-slate-600">
-            <p className="rounded-lg border-l-4 border-blue-500 bg-blue-50 px-4 py-3">Inscription en moins de 60 secondes.</p>
-            <p className="rounded-lg border-l-4 border-purple-500 bg-purple-50 px-4 py-3">Experience adaptee a votre role.</p>
-            <p className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-4 py-3">Acces instantane au dashboard.</p>
+          <div className="mt-9 space-y-3">
+            {[
+              { icon: <Zap className="h-4 w-4" />, c: 'from-blue-500 to-indigo-500', t: 'Inscription en moins de 60 secondes.' },
+              { icon: <Sparkles className="h-4 w-4" />, c: 'from-violet-500 to-fuchsia-500', t: 'Expérience adaptée à votre rôle.' },
+              { icon: <Rocket className="h-4 w-4" />, c: 'from-emerald-500 to-teal-500', t: 'Accès instantané au dashboard.' },
+            ].map((x) => (
+              <div key={x.t} className="glass-panel flex items-center gap-3 rounded-xl px-4 py-3">
+                <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white ${x.c}`}>{x.icon}</span>
+                <span className="text-sm font-medium text-slate-700">{x.t}</span>
+              </div>
+            ))}
           </div>
         </aside>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-100">
+        {/* Register card */}
+        <div className="card-premium anim-pop p-8 sm:p-9">
           <div className="mb-6">
-            <h2 className="text-3xl font-extrabold text-slate-900">Creer un compte</h2>
-            <p className="mt-1 text-slate-600">Choisissez votre parcours</p>
+            <h2 className="font-display text-3xl font-extrabold text-slate-900">Créer un compte</h2>
+            <p className="mt-1.5 text-slate-600">Choisissez votre parcours</p>
           </div>
 
           <div className="mb-6 grid gap-3 md:grid-cols-2" role="group" aria-label="Sélectionnez votre rôle">
@@ -116,13 +120,15 @@ function RegisterForm() {
               role="radio"
               aria-checked={role === 'candidate'}
               aria-label="Candidat: Mettez votre CV en avant"
-              className={`rounded-xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 ${
+              className={`group rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 ${
                 role === 'candidate'
-                  ? 'border-blue-600 bg-blue-50 focus:ring-blue-300'
+                  ? 'border-blue-600 bg-blue-50 shadow-md shadow-blue-100 focus:ring-blue-300'
                   : 'border-slate-200 bg-white hover:border-blue-300 focus:ring-blue-200'
               }`}
             >
-              <div className="text-2xl" aria-hidden="true">👤</div>
+              <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition ${role === 'candidate' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                <UserRound className="h-5 w-5" />
+              </div>
               <h3 className="mt-2 font-bold text-slate-900">Candidat</h3>
               <p className="text-sm text-slate-600">Mettez vos talents en avant</p>
             </button>
@@ -132,13 +138,15 @@ function RegisterForm() {
               role="radio"
               aria-checked={role === 'recruiter'}
               aria-label="Recruteur: Trouvez les meilleurs talents"
-              className={`rounded-xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 ${
+              className={`group rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 ${
                 role === 'recruiter'
-                  ? 'border-purple-600 bg-purple-50 focus:ring-purple-300'
-                  : 'border-slate-200 bg-white hover:border-purple-300 focus:ring-purple-200'
+                  ? 'border-violet-600 bg-violet-50 shadow-md shadow-violet-100 focus:ring-violet-300'
+                  : 'border-slate-200 bg-white hover:border-violet-300 focus:ring-violet-200'
               }`}
             >
-              <div className="text-2xl" aria-hidden="true">🧑‍💼</div>
+              <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition ${role === 'recruiter' ? 'bg-violet-600 text-white' : 'bg-violet-100 text-violet-600'}`}>
+                <Briefcase className="h-5 w-5" />
+              </div>
               <h3 className="mt-2 font-bold text-slate-900">Recruteur</h3>
               <p className="text-sm text-slate-600">Trouvez les meilleurs talents</p>
             </button>
@@ -155,7 +163,7 @@ function RegisterForm() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Jean Dupont"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 required
                 aria-required="true"
               />
@@ -171,7 +179,7 @@ function RegisterForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="votre@email.com"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 required
                 aria-required="true"
               />
@@ -187,7 +195,7 @@ function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 required
                 minLength={6}
                 aria-required="true"
@@ -213,11 +221,7 @@ function RegisterForm() {
               type="submit"
               disabled={isLoading}
               aria-label={`Créer mon compte en tant que ${role === 'candidate' ? 'candidat' : 'recruteur'}`}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70 ${
-                role === 'candidate'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
-              }`}
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isLoading ? 'Inscription...' : 'Créer mon compte'}
               {!isLoading && <ArrowRight className="h-4 w-4" />}
@@ -229,7 +233,7 @@ function RegisterForm() {
             <Link
               href="/auth/login"
               aria-label="Aller à la page de connexion"
-              className="font-semibold text-blue-700 transition hover:text-blue-800"
+              className="font-semibold text-indigo-600 transition hover:text-indigo-700"
             >
               Se connecter
             </Link>

@@ -196,7 +196,7 @@ export default function CandidateDetail() {
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center">
         <Link href="/candidates" className="text-sm text-gray-500 hover:text-indigo-600">← Retour aux candidats</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Profil Candidat</h1>
+        <h1 className="font-display text-2xl font-bold text-gray-900">Profil Candidat</h1>
         <button
           onClick={toggleFavorite}
           disabled={addingFavorite}
@@ -216,15 +216,25 @@ export default function CandidateDetail() {
           {/* Main Info */}
           <div className="md:col-span-2 space-y-6">
             {/* Header */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-3xl font-bold text-gray-900" id="candidate-header">
-                {candidate.full_name}
-              </h2>
-              <p className="text-gray-600 mt-1">{candidate.email}</p>
-              {candidate.phone && <p className="text-gray-600">{candidate.phone}</p>}
-
+            <div className="card-premium overflow-hidden p-0">
+              <div className="relative bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-700 p-6 text-white">
+                <div className="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+                <div className="relative flex items-center gap-4">
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl font-extrabold backdrop-blur">
+                    {(candidate.full_name || 'C')[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="font-display text-2xl font-extrabold sm:text-3xl" id="candidate-header">
+                      {candidate.full_name}
+                    </h2>
+                    <p className="mt-0.5 truncate text-indigo-100">{candidate.email}</p>
+                    {candidate.phone && <p className="text-sm text-indigo-200">{candidate.phone}</p>}
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 pt-4">
               {/* Links */}
-              <div className="flex gap-4 mt-4">
+              <div className="flex gap-4">
                 {candidate.linkedin_url && (
                   <a
                     href={candidate.linkedin_url}
@@ -264,11 +274,12 @@ export default function CandidateDetail() {
                   </p>
                 </div>
               )}
+              </div>
             </div>
 
             {/* Job Titles */}
             {extractedJobTitles.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="job-titles-heading">
+              <div className="card-premium p-6" role="region" aria-labelledby="job-titles-heading">
                 <h3 className="text-xl font-bold text-gray-900 mb-3" id="job-titles-heading">
                   💼 Titres de Poste
                 </h3>
@@ -288,7 +299,7 @@ export default function CandidateDetail() {
 
             {/* Companies */}
             {extractedCompanies.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="companies-heading">
+              <div className="card-premium p-6" role="region" aria-labelledby="companies-heading">
                 <h3 className="text-xl font-bold text-gray-900 mb-3" id="companies-heading">
                   🏢 Compagnies
                 </h3>
@@ -308,7 +319,7 @@ export default function CandidateDetail() {
 
             {/* Education */}
             {extractedEducation.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="education-heading">
+              <div className="card-premium p-6" role="region" aria-labelledby="education-heading">
                 <h3 className="text-xl font-bold text-gray-900 mb-3" id="education-heading">
                   🎓 Éducation
                 </h3>
@@ -328,7 +339,7 @@ export default function CandidateDetail() {
 
             {/* Profile Summary */}
             {profileSummary && (
-              <div className="mb-8 bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="summary-heading">
+              <div className="mb-8 card-premium p-6" role="region" aria-labelledby="summary-heading">
                 <h3 className="text-xl font-bold text-gray-900 mb-3" id="summary-heading">📝 Profil</h3>
                 <p className="text-gray-700 p-4 bg-indigo-50 rounded leading-relaxed">{profileSummary}</p>
               </div>
@@ -366,7 +377,7 @@ export default function CandidateDetail() {
 
             {/* Certifications & Projects */}
             <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div role="region" aria-labelledby="certifications-heading" className="bg-white rounded-lg shadow-md p-6">
+              <div role="region" aria-labelledby="certifications-heading" className="card-premium p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="certifications-heading">📜 Certifications</h3>
                 <div className="space-y-2" role="list">
                   {certifications.map((certification: string, idx: number) => (
@@ -375,7 +386,7 @@ export default function CandidateDetail() {
                   {certifications.length === 0 && <p className="text-gray-400">Aucune certification trouvée</p>}
                 </div>
               </div>
-              <div role="region" aria-labelledby="projects-heading" className="bg-white rounded-lg shadow-md p-6">
+              <div role="region" aria-labelledby="projects-heading" className="card-premium p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="projects-heading">🚀 Projets</h3>
                 <div className="space-y-2" role="list">
                   {projects.map((project: string, idx: number) => (
@@ -388,7 +399,7 @@ export default function CandidateDetail() {
 
             {/* Tech Skills */}
             {techSkills.length > 0 && (
-              <div className="mb-8 bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="tech-skills-heading">
+              <div className="mb-8 card-premium p-6" role="region" aria-labelledby="tech-skills-heading">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="tech-skills-heading">⚙️ Compétences Techniques</h3>
                 <div className="flex flex-wrap gap-2" role="list">
                   {techSkills.map((skill: string, idx: number) => (
@@ -406,7 +417,7 @@ export default function CandidateDetail() {
 
             {/* Languages, Skills, Interests */}
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div role="region" aria-labelledby="languages-heading" className="bg-white rounded-lg shadow-md p-6">
+              <div role="region" aria-labelledby="languages-heading" className="card-premium p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="languages-heading">🌍 Langues</h3>
                 <div className="space-y-2" role="list">
                   {languages.map((language: string, idx: number) => (
@@ -415,7 +426,7 @@ export default function CandidateDetail() {
                   {languages.length === 0 && <p className="text-gray-400">Aucune langue trouvée</p>}
                 </div>
               </div>
-              <div role="region" aria-labelledby="soft-skills-heading" className="bg-white rounded-lg shadow-md p-6">
+              <div role="region" aria-labelledby="soft-skills-heading" className="card-premium p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="soft-skills-heading">🤝 Compétences</h3>
                 <div className="space-y-2" role="list">
                   {softSkills.map((skill: string, idx: number) => (
@@ -424,7 +435,7 @@ export default function CandidateDetail() {
                   {softSkills.length === 0 && <p className="text-gray-400">Aucune compétence trouvée</p>}
                 </div>
               </div>
-              <div role="region" aria-labelledby="interests-heading" className="bg-white rounded-lg shadow-md p-6">
+              <div role="region" aria-labelledby="interests-heading" className="card-premium p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3" id="interests-heading">🎯 Centres d’intérêt</h3>
                 <div className="space-y-2" role="list">
                   {interests.map((interest: string, idx: number) => (
@@ -454,7 +465,7 @@ export default function CandidateDetail() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Contact Info */}
-            <div className="bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="contact-heading">
+            <div className="card-premium p-6" role="region" aria-labelledby="contact-heading">
               <h3 className="text-lg font-bold text-gray-900 mb-4" id="contact-heading">
                 📋 Contact
               </h3>
@@ -499,7 +510,7 @@ export default function CandidateDetail() {
             </div>
 
             {/* Actions */}
-            <div className="bg-white rounded-lg shadow-md p-6" role="region" aria-labelledby="actions-heading">
+            <div className="card-premium p-6" role="region" aria-labelledby="actions-heading">
               <h3 className="text-lg font-bold text-gray-900 mb-4" id="actions-heading">
                 ⚡ Actions
               </h3>

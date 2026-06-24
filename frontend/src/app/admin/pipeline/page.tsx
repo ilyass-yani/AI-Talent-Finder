@@ -120,12 +120,12 @@ export default function AdminPipelinePage() {
     <AdminGuard>
       <Layout>
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-200/50">
             <SlidersVertical className="h-6 w-6" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Paramètres du pipeline IA</h1>
-            <p className="text-gray-600">Poids du scoring et seuils de décision du matching</p>
+            <h1 className="font-display text-2xl font-extrabold text-gray-900 sm:text-3xl">Paramètres du pipeline IA</h1>
+            <p className="text-sm text-gray-500">Poids du scoring et seuils de décision du matching</p>
           </div>
         </div>
 
@@ -136,9 +136,9 @@ export default function AdminPipelinePage() {
           <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
         ) : (
           <div className="space-y-6">
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="card-premium p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Poids du scoring</h2>
+                <h2 className="font-display text-lg font-bold text-gray-900">Poids du scoring</h2>
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${Math.abs(weightSum - 1) < 0.001 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                   Somme des poids : {weightSum.toFixed(2)}
                 </span>
@@ -154,8 +154,8 @@ export default function AdminPipelinePage() {
               </div>
             </section>
 
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Seuils de décision</h2>
+            <section className="card-premium p-6">
+              <h2 className="font-display mb-4 text-lg font-bold text-gray-900">Seuils de décision</h2>
               {thresholdInvalid && (
                 <p className="mb-4 flex items-center gap-2 text-xs text-red-600">
                   <AlertTriangle className="h-4 w-4" />
@@ -168,18 +168,10 @@ export default function AdminPipelinePage() {
             </section>
 
             <div className="flex justify-end gap-3">
-              <button
-                onClick={reset}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
+              <button onClick={reset} disabled={saving} className="btn-ghost !py-2 text-sm disabled:opacity-60">
                 <RotateCcw className="h-4 w-4" /> Réinitialiser
               </button>
-              <button
-                onClick={save}
-                disabled={saving || thresholdInvalid}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
-              >
+              <button onClick={save} disabled={saving || thresholdInvalid} className="btn-primary !py-2 text-sm disabled:opacity-60">
                 <Save className="h-4 w-4" /> {saving ? "Enregistrement…" : "Enregistrer"}
               </button>
             </div>

@@ -85,19 +85,19 @@ export default function JobsPage() {
       <div>
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des critères</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="font-display text-3xl font-extrabold text-gray-900">Gestion des critères</h1>
+            <p className="mt-2 text-gray-600">
               Créez, éditez et consultez vos critères de matching pour les candidats.
             </p>
           </div>
-          <Link href="/matching" className="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+          <Link href="/matching" className="btn-primary !px-5 !py-3">
             Aller au matching
           </Link>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Créer un nouveau critère</h2>
+          <section className="card-premium p-6">
+            <h2 className="font-display text-xl font-bold text-gray-900 mb-4">Créer un nouveau critère</h2>
 
             <div className="space-y-4">
               <div>
@@ -186,16 +186,16 @@ export default function JobsPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-white hover:bg-indigo-700 disabled:opacity-60"
+                className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? 'Création en cours...' : 'Créer le critère'}
               </button>
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <section className="card-premium p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Liste des critères</h2>
+              <h2 className="font-display text-xl font-bold text-gray-900">Liste des critères</h2>
               <span className="text-sm text-gray-500">{criteriaList?.length ?? 0} critères</span>
             </div>
 
