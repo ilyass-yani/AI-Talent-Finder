@@ -22,7 +22,6 @@ from app.schemas.user import (
     ForgotPasswordRequest, ResetPasswordRequest, MessageResponse,
 )
 from app.models.models import User, UserRole as DBUserRole
-from app.services.email import send_password_reset_email
 
 PASSWORD_RESET_TOKEN_EXPIRE_HOURS = 2
 
@@ -149,6 +148,7 @@ async def forgot_password(
     Request a password reset link.
     Always returns the same message to avoid email enumeration.
     """
+    from app.services.email_service import send_password_reset_email  # lazy import
     user = db.query(User).filter(User.email == request.email).first()
     if user:
         token = secrets.token_urlsafe(32)
