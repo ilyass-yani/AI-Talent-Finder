@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu, X, LogOut, LayoutDashboard, Users, Upload, SlidersHorizontal,
   GitCompareArrows, MessageCircle, Heart, FileDown, BrainCircuit, BarChart3,
   UserCircle, Wrench, ChevronLeft, Moon, Sun, ShieldAlert, Briefcase,
+  Mail, CalendarDays, ChevronUp,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -33,11 +34,22 @@ const adminNav = [
   { href: "/admin/jobs", label: "Offres", icon: Briefcase },
 ];
 
+interface StoredUser {
+  id: number;
+  email: string;
+  full_name: string;
+  role: string;
+  created_at: string;
+}
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [user, setUser] = useState<StoredUser | null>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -45,11 +57,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setRole(localStorage.getItem("user_role"));
     setUserName(localStorage.getItem("user_name") || "");
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) setUser(JSON.parse(raw));
+    } catch {}
   }, []);
 
-  // Close mobile sidebar on navigation
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    if (profileOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileOpen]);
+
+  // Close mobile sidebar and profile popover on navigation
   useEffect(() => {
     setMobileOpen(false);
+    setProfileOpen(false);
   }, [pathname]);
 
   const handleLogout = () => {
@@ -122,14 +149,93 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <div className="border-t border-gray-200 p-3 space-y-1 flex-shrink-0">
-        {(sidebarOpen || mobile) && userName && (
-          <div className="flex items-center gap-2 px-3 py-2 truncate">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
-              {userName.charAt(0).toUpperCase()}
-            </span>
-            <span className="truncate text-sm font-semibold text-indigo-600">{userName}</span>
+        {/* Profile button + popover */}
+        {userName && (
+          <div ref={profileRef} className="relative">
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              title={!sidebarOpen && !mobile ? userName : undefined}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-indigo-50 transition-colors group"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-bold text-white shadow-sm">
+                {userName.charAt(0).toUpperCase()}
+              </span>
+              {(sidebarOpen || mobile) && (
+                <>
+                  <span className="flex-1 truncate text-sm font-semibold text-indigo-600 text-left">{userName}</span>
+                  <ChevronUp className={`h-4 w-4 text-indigo-400 transition-transform ${profileOpen ? "" : "rotate-180"}`} />
+                </>
+              )}
+            </button>
+
+            {/* Profile popover */}
+            {profileOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/80 overflow-hidden z-50">
+                {/* Header */}
+                <div className="bg-gradient-to-br from-indigo-500 to-violet-500 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-bold text-white backdrop-blur-sm">
+                      {userName.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">{userName}</p>
+                      <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        isAdmin ? "bg-red-400/30 text-red-100" : isCandidate ? "bg-emerald-400/30 text-emerald-100" : "bg-indigo-300/30 text-indigo-100"
+                      }`}>
+                        {isAdmin ? "Administrateur" : isCandidate ? "Candidat" : "Recruteur"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info rows */}
+                <div className="px-4 py-3 space-y-2.5">
+                  {user?.email && (
+                    <div className="flex items-center gap-2.5 text-sm text-gray-600">
+                      <Mail className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{user.email}</span>
+                    </div>
+                  )}
+                  {user?.created_at && (
+                    <div className="flex items-center gap-2.5 text-sm text-gray-600">
+                      <CalendarDays className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                      <span>
+                        Membre depuis{" "}
+                        {new Date(user.created_at).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="border-t border-gray-100 px-3 py-2 space-y-0.5">
+                  {isCandidate && (
+                    <Link
+                      href="/candidate/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                    >
+                      <UserCircle className="h-4 w-4 text-gray-400" />
+                      Voir mon profil
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => { setProfileOpen(false); handleLogout(); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4 text-gray-400" />
+                    Déconnexion
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
         <button
           onClick={toggleTheme}
           title={theme === "dark" ? "Mode clair" : "Mode sombre"}
