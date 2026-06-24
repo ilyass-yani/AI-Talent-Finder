@@ -201,6 +201,17 @@ export default function CandidateProfile() {
 
   const languages = toStringArray(nerData.languages);
   const softSkills = toStringArray(nerData.soft_skills);
+
+  const rawTechSkills: unknown[] = Array.isArray(nerData.skills) ? nerData.skills : [];
+  const techSkillNames = rawTechSkills.map((s) => {
+    if (typeof s === 'string') return s.trim();
+    if (s && typeof s === 'object' && 'name' in (s as Record<string, unknown>)) {
+      return String((s as Record<string, unknown>).name).trim();
+    }
+    return '';
+  }).filter(Boolean);
+
+  const allSkills = Array.from(new Set([...techSkillNames, ...softSkills]));
   const interests = toStringArray(nerData.interests);
   const locations = toStringArray(nerData.locations);
   const linkedins = toStringArray(nerData.linkedin_urls);
@@ -516,17 +527,17 @@ export default function CandidateProfile() {
                 {languages.length === 0 && <p className="text-gray-400">Aucune langue trouvée</p>}
               </div>
             </div>
-            <div role="region" aria-labelledby="soft-skills-heading">
-              <h3 className="text-lg font-bold text-gray-900 mb-3" id="soft-skills-heading">
+            <div role="region" aria-labelledby="skills-heading">
+              <h3 className="text-lg font-bold text-gray-900 mb-3" id="skills-heading">
                 🤝 Compétences
               </h3>
               <div className="space-y-2" role="list">
-                {softSkills.map((skill: string, idx: number) => (
+                {allSkills.map((skill: string, idx: number) => (
                   <p key={idx} className="text-gray-600 p-2 bg-emerald-50 rounded" role="listitem">
                     {skill}
                   </p>
                 ))}
-                {softSkills.length === 0 && <p className="text-gray-400">Aucune compétence trouvée</p>}
+                {allSkills.length === 0 && <p className="text-gray-400">Aucune compétence trouvée</p>}
               </div>
             </div>
             <div role="region" aria-labelledby="interests-heading">
