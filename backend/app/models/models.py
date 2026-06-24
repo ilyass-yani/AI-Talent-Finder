@@ -40,6 +40,8 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.recruiter, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    reset_password_token = Column(String, nullable=True, index=True)
+    reset_password_token_expires = Column(DateTime, nullable=True)
 
     # Relationships
     job_criteria = relationship("JobCriteria", back_populates="recruiter")
