@@ -93,8 +93,8 @@ export default function DemoPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            🎯 AI Talent Finder — Phase 2 Demo
+          <h1 className="font-display text-4xl font-extrabold text-white mb-2 sm:text-5xl">
+            🎯 AI Talent Finder — <span className="gradient-text">Phase 2 Demo</span>
           </h1>
           <p className="text-gray-300 text-lg">
             Intelligent CV-Job Matching with LLM Explicability
@@ -159,7 +159,7 @@ export default function DemoPage() {
           <button
             onClick={handleGenerateExplanation}
             disabled={loading}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? '⏳ Generating Explanation...' : '📊 Get Match Explanation'}
           </button>
@@ -167,7 +167,7 @@ export default function DemoPage() {
           <button
             onClick={handleGenerateShortlistSummary}
             disabled={loading}
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? '⏳ Generating Summary...' : '📈 Get Shortlist Summary'}
           </button>

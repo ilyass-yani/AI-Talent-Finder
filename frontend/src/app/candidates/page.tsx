@@ -77,30 +77,30 @@ export default function CandidatesListPage() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Candidats</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="font-display flex items-center gap-2.5 text-3xl font-extrabold text-gray-900">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg shadow-indigo-200/50"><Users className="h-5 w-5" /></span>
+              Candidats
+            </h1>
+            <p className="mt-1.5 text-sm text-gray-500">
               {filtered.length} candidat{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Link
-            href="/candidate/upload"
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-          >
+          <Link href="/candidate/upload" className="btn-primary !px-4 !py-2.5 text-sm">
             <Upload className="h-4 w-4" /> Uploader un CV
           </Link>
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
           <Search className="h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Rechercher par nom, email ou poste..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 text-sm outline-none bg-transparent"
+            className="flex-1 bg-transparent text-sm outline-none"
           />
           {search && (
             <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600">
@@ -132,21 +132,25 @@ export default function CandidatesListPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {filtered.map((c) => (
               <div
                 key={c.id}
-                className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                className="card-premium card-glow group p-5"
               >
                 <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-base font-bold text-white">
+                      {(c.full_name || 'C')[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
                     <Link
                       href={`/candidates/${c.id}`}
-                      className="text-base font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
+                      className="text-base font-bold text-gray-900 transition-colors hover:text-indigo-600"
                     >
                       {c.full_name}
                     </Link>
-                    <div className="flex flex-wrap items-center gap-3 mt-1.5 text-sm text-gray-500">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm text-gray-500">
                       {c.email && (
                         <span className="flex items-center gap-1">
                           <Mail className="h-3.5 w-3.5" />{c.email}
@@ -163,15 +167,16 @@ export default function CandidatesListPage() {
                         </a>
                       )}
                     </div>
-                    {c.phone && <p className="text-xs text-gray-400 mt-1">{c.phone}</p>}
+                    {c.phone && <p className="mt-1 text-xs text-gray-400">{c.phone}</p>}
                     {c.is_fully_extracted && (
-                      <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                        Profil extrait
+                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Profil extrait
                       </span>
                     )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                  <div className="ml-4 flex flex-shrink-0 items-center gap-2">
                     <button
                       onClick={() => toggleFavorite(c.id)}
                       className="p-1.5 rounded-full hover:bg-red-50 transition-colors"

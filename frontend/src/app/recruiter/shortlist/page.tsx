@@ -143,16 +143,19 @@ export default function RecruiterShortlist() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border-l-4 border-purple-500">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Tes Candidats en Shortlist 📋</h2>
-          <p className="text-gray-600 text-lg">
-            {loading
-              ? '⏳ Chargement...'
-              : showingFallbackCandidates
-                ? `Aucun favori trouvé. Affichage de ${shortlist.length} candidats disponibles.`
-                : `Total: ${shortlist.length} candidats sélectionnés`}
-          </p>
+      <div className="max-w-6xl mx-auto">
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 text-white shadow-xl shadow-indigo-300/30">
+          <div className="absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative">
+            <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Tes Candidats en Shortlist 📋</h2>
+            <p className="mt-1.5 text-indigo-100">
+              {loading
+                ? '⏳ Chargement...'
+                : showingFallbackCandidates
+                  ? `Aucun favori trouvé. Affichage de ${shortlist.length} candidats disponibles.`
+                  : `Total: ${shortlist.length} candidats sélectionnés`}
+            </p>
+          </div>
           {/* Dev-only debug: show raw /api/candidates response to help troubleshooting */}
           {process.env.NODE_ENV !== 'production' && (
             <div className="mt-4 p-3 border rounded bg-gray-50">
@@ -191,12 +194,12 @@ export default function RecruiterShortlist() {
         )}
 
         {loading ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+          <div className="card-premium p-12 text-center">
             <div className="text-5xl mb-4 animate-bounce">⏳</div>
             <p className="text-gray-600 text-lg font-medium">Chargement de vos favoris...</p>
           </div>
         ) : shortlist.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+          <div className="card-premium p-12 text-center">
             <div className="text-6xl mb-4">📭</div>
             <p className="text-gray-600 text-lg font-medium">Aucun candidat en shortlist</p>
             <p className="text-gray-500 mt-2 mb-6">
@@ -206,10 +209,7 @@ export default function RecruiterShortlist() {
               </Link>{' '}
               pour ajouter des candidats
             </p>
-            <Link
-              href="/recruiter/dashboard"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all font-semibold"
-            >
+            <Link href="/recruiter/dashboard" className="btn-primary inline-flex">
               Aller au Dashboard
             </Link>
           </div>
@@ -219,7 +219,7 @@ export default function RecruiterShortlist() {
               {shortlist.map((item, idx) => (
                 <div
                   key={item.favorite_id}
-                  className="p-6 border border-gray-200 rounded-xl hover:shadow-lg hover:border-purple-300 transition-all duration-300 bg-white"
+                  className="card-premium card-glow p-6"
                   role="listitem"
                   aria-label={`${item.candidate.full_name}, ${item.candidate.email}, score: ${formatPercent(item.candidate.extraction_quality_score)}%`}
                   style={{ animationDelay: `${idx * 50}ms` }}
@@ -272,7 +272,7 @@ export default function RecruiterShortlist() {
             </div>
 
             {shortlist.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500">
+              <div className="card-premium p-6 border-t-4 border-green-500">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-gray-900 text-lg">Exporter les candidats</h3>

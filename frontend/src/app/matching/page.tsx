@@ -204,7 +204,7 @@ export default function MatchingPage() {
                 Matching personnalisable
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
+                <h1 className="font-display text-3xl font-extrabold tracking-tight md:text-5xl">
                   Construisez vos critères, puis lancez le classement instantané.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm text-slate-200 md:text-base">
@@ -235,7 +235,7 @@ export default function MatchingPage() {
           <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Matrice de critères</h2>
+                <h2 className="font-display text-xl font-bold text-slate-900">Matrice de critères</h2>
                 <p className="text-sm text-slate-500">Compétences et poids du recruteur.</p>
               </div>
               <div className="flex items-center gap-2">
@@ -361,7 +361,7 @@ export default function MatchingPage() {
                     type="button"
                     onClick={() => launchRankAll()}
                     disabled={rankAllLoading || !selectedCriteriaId}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="btn-primary !rounded-2xl disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Play className="h-4 w-4" />
                     {rankAllLoading ? "Classement en cours..." : "Lancer le classement"}
@@ -375,7 +375,7 @@ export default function MatchingPage() {
           <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Répartition des poids</h2>
+                <h2 className="font-display text-xl font-bold text-slate-900">Répartition des poids</h2>
                 <p className="text-sm text-slate-500">Distribution en temps réel.</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
@@ -490,7 +490,7 @@ export default function MatchingPage() {
         <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Classement de mes candidats</h2>
+              <h2 className="font-display text-xl font-bold text-slate-900">Classement de mes candidats</h2>
               <p className="text-sm text-slate-500">
                 Tous vos candidats classés du meilleur score au plus faible, basé sur les compétences
                 extraites de leur CV.

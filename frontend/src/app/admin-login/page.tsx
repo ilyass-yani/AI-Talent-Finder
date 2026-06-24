@@ -43,15 +43,23 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950 px-4">
+      {/* Glow background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-rose-600/15 blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="text-4xl mb-3">🔐</div>
-          <h1 className="text-2xl font-bold text-white">Espace Administrateur</h1>
-          <p className="text-gray-400 text-sm mt-1">Connexion reservee aux admins</p>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-900/50">
+            <span className="text-2xl">🔐</span>
+          </div>
+          <h1 className="font-display text-2xl font-extrabold text-white">Espace Administrateur</h1>
+          <p className="mt-1 text-sm text-slate-400">Connexion réservée aux admins</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-8 space-y-5 shadow-2xl border border-gray-800">
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
           <div>
             <label htmlFor="admin-email" className="block text-sm font-medium text-gray-300 mb-1">
               Email
@@ -93,7 +101,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-colors"
+            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>

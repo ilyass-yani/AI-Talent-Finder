@@ -181,11 +181,16 @@ export default function ChatbotPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <MessageCircle className="w-6 h-6 text-indigo-600" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-300/40">
+            <MessageCircle className="h-5 w-5" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Assistant Recruteur IA</h1>
+            <h1 className="font-display text-2xl font-extrabold text-gray-900">Assistant Recruteur IA</h1>
             <p className="text-sm text-gray-600">Posez vos questions sur les candidats et les matchings</p>
           </div>
+          <span className="ml-auto hidden items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> En ligne
+          </span>
         </div>
       </div>
 
@@ -213,15 +218,15 @@ export default function ChatbotPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Posez une question sur les candidats..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition"
+            className="btn-primary !rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Send className="w-4 h-4" />
+            <Send className="h-4 w-4" />
             Envoyer
           </button>
         </form>

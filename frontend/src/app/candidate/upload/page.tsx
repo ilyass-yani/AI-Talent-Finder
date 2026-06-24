@@ -86,26 +86,29 @@ export default function UploadCV() {
   return (
     <Layout>
 {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border-l-4 border-blue-500">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Télécharge ton CV 📥</h2>
-          <p className="text-gray-600 text-lg">
-            Notre IA analysera ton CV et extraira automatiquement tes compétences, expériences et formations
-          </p>
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-8 text-white shadow-xl shadow-indigo-300/30">
+          <div className="absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative">
+            <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Télécharge ton CV 📥</h2>
+            <p className="mt-1.5 max-w-2xl text-indigo-100">
+              Notre IA analysera ton CV et extraira automatiquement tes compétences, expériences et formations
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-8">
+        <div className="card-premium p-8">
           {/* Upload Area */}
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300 ${
+            className={`rounded-2xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-300 ${
               dragActive
-                ? 'border-blue-500 bg-blue-50 scale-105'
-                : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                ? 'border-indigo-500 bg-indigo-50 scale-[1.02]'
+                : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/50'
             }`}
             role="region"
             aria-label="Zone de dépôt de fichier"
@@ -124,10 +127,7 @@ export default function UploadCV() {
               id="file-input"
               aria-label="Sélectionner un fichier PDF"
             />
-            <label
-              htmlFor="file-input"
-              className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 cursor-pointer font-semibold transition-all transform hover:scale-105 active:scale-95"
-            >
+            <label htmlFor="file-input" className="btn-primary inline-flex cursor-pointer">
               Parcourir les fichiers
             </label>
           </div>
@@ -186,11 +186,7 @@ export default function UploadCV() {
             <button
               onClick={handleUpload}
               disabled={!file || loading}
-              className={`px-8 py-3 rounded-lg font-semibold text-white transition-all transform disabled:opacity-50 disabled:cursor-not-allowed ${
-                loading
-                  ? 'bg-blue-500'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 active:scale-95'
-              }`}
+              className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               type="button"
               aria-label={loading ? 'Upload en cours' : 'Télécharger le CV'}
             >

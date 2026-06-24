@@ -3,15 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
-import { Manrope } from 'next/font/google';
+import { ArrowRight, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { authApi } from '@/services/auth';
 import { getErrorMessage } from '@/utils/errorHandler';
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-});
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,56 +44,65 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={`${manrope.className} relative min-h-screen overflow-hidden bg-slate-50 text-slate-900`}>
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-300/30 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
+      {/* Aurora background */}
+      <div className="aurora">
+        <div className="aurora-orb left-[-8%] top-[-6%] h-80 w-80 bg-blue-400" />
+        <div className="aurora-orb right-[-6%] bottom-[2%] h-96 w-96 bg-violet-400" style={{ animationDelay: '-5s' }} />
+        <div className="grid-overlay absolute inset-0 opacity-50" />
       </div>
 
-      <nav className="border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <nav className="glass-nav border-b border-slate-200 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-300/50">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">AI Recruiting</p>
-              <p className="text-lg font-bold">AI Talent Finder</p>
+              <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-indigo-600">AI Recruiting</p>
+              <p className="font-display text-lg font-bold leading-none text-slate-900">AI Talent Finder</p>
             </div>
           </Link>
-          <Link href="/" className="text-sm font-semibold text-slate-600 transition hover:text-slate-900">
-            Retour a l'accueil
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link href="/" className="text-sm font-semibold text-slate-700 transition hover:text-indigo-600">
+              Retour à l&apos;accueil
+            </Link>
+          </div>
         </div>
       </nav>
 
-      <div className="mx-auto grid min-h-[calc(100vh-72px)] w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
-        <aside className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-100">
-          <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            <CheckCircle2 className="h-4 w-4" />
-            Espace securise
-          </span>
-          <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-900">
-            Connecte-toi a
-            <span className="block bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              ton espace intelligent
-            </span>
+      <div className="mx-auto grid min-h-[calc(100vh-69px)] w-full max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+        {/* Left brand panel */}
+        <aside className="hidden lg:block anim-fade-up">
+          <span className="pill mb-5"><ShieldCheck className="h-3.5 w-3.5" /> Espace sécurisé</span>
+          <h1 className="font-display text-5xl font-extrabold leading-[1.05] text-slate-900">
+            Connecte-toi à
+            <span className="block gradient-text">ton espace intelligent</span>
           </h1>
-          <p className="mt-4 text-slate-600">
-            Accede a ton dashboard recruteur ou candidat, avec suivi de matching et actions prioritaires.
+          <p className="mt-5 max-w-md text-lg text-slate-600">
+            Accède à ton dashboard recruteur ou candidat, avec suivi de matching et actions prioritaires.
           </p>
 
-          <div className="mt-8 space-y-3 text-sm text-slate-600">
-            <p className="rounded-lg border-l-4 border-blue-500 bg-blue-50 px-4 py-3">Recommandations en temps reel.</p>
-            <p className="rounded-lg border-l-4 border-indigo-500 bg-indigo-50 px-4 py-3">Parcours candidat et recruteur unifie.</p>
-            <p className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-4 py-3">Authentification JWT et acces controle.</p>
+          <div className="mt-9 space-y-3">
+            {[
+              { icon: <Zap className="h-4 w-4" />, c: 'from-blue-500 to-indigo-500', t: 'Recommandations en temps réel.' },
+              { icon: <Sparkles className="h-4 w-4" />, c: 'from-violet-500 to-fuchsia-500', t: 'Parcours candidat et recruteur unifié.' },
+              { icon: <ShieldCheck className="h-4 w-4" />, c: 'from-emerald-500 to-teal-500', t: 'Authentification JWT et accès contrôlé.' },
+            ].map((x) => (
+              <div key={x.t} className="glass-panel flex items-center gap-3 rounded-xl px-4 py-3">
+                <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-white ${x.c}`}>{x.icon}</span>
+                <span className="text-sm font-medium text-slate-700">{x.t}</span>
+              </div>
+            ))}
           </div>
         </aside>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-100">
-          <div className="mb-6">
-            <h2 className="text-3xl font-extrabold text-slate-900">Se connecter</h2>
-            <p className="mt-1 text-slate-600">Accedez a votre compte</p>
+        {/* Login card */}
+        <div className="card-premium anim-pop p-8 sm:p-9">
+          <div className="mb-7">
+            <h2 className="font-display text-3xl font-extrabold text-slate-900">Se connecter</h2>
+            <p className="mt-1.5 text-slate-600">Accédez à votre compte</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -112,7 +116,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="votre@email.com"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 required
                 aria-required="true"
               />
@@ -128,7 +132,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 required
                 minLength={6}
                 aria-required="true"
@@ -150,31 +154,26 @@ export default function LoginPage() {
               type="submit"
               disabled={isLoading}
               aria-label="Se connecter à ton compte"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 font-semibold text-white transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isLoading ? 'Connexion...' : 'Se connecter'}
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
 
+          <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" /> ou <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
           <div className="mt-6 text-center text-sm text-slate-600">
             Pas encore de compte ?{' '}
             <Link
               href="/auth/register"
               aria-label="Aller à la page de création de compte"
-              className="font-semibold text-blue-700 transition hover:text-blue-800"
+              className="font-semibold text-indigo-600 transition hover:text-indigo-700"
             >
               Créer un compte
             </Link>
-          </div>
-
-          <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900">
-            <p className="mb-2 font-semibold">Comptes de test :</p>
-            <ul className="space-y-1">
-              <li><strong>Candidat:</strong> alice@test.com / password123</li>
-              <li><strong>Recruteur:</strong> bob@test.com / password123</li>
-              <li><strong>Admin:</strong> admin@test.com / password123</li>
-            </ul>
           </div>
         </div>
       </div>

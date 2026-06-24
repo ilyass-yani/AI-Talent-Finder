@@ -68,10 +68,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {/* Header */}
-      <div className="h-16 flex items-center gap-2 px-4 border-b border-gray-200 flex-shrink-0">
-        <BrainCircuit className="h-7 w-7 text-indigo-600 flex-shrink-0" />
+      <div className="h-16 flex items-center gap-2.5 px-4 border-b border-gray-200 flex-shrink-0">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-300/40">
+          <BrainCircuit className="h-5 w-5" />
+        </div>
         {(sidebarOpen || mobile) && (
-          <span className="text-lg font-bold text-gray-900 truncate">AI Talent Finder</span>
+          <span className="font-display text-lg font-bold text-gray-900 truncate">AI Talent Finder</span>
         )}
         {mobile && (
           <button onClick={() => setMobileOpen(false)} className="ml-auto p-1 text-gray-400 hover:text-gray-600">
@@ -105,13 +107,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               key={href}
               href={href}
               title={!sidebarOpen && !mobile ? label : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 active
-                  ? "bg-indigo-50 text-indigo-700"
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-300/40"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
-              <Icon className="h-5 w-5 flex-shrink-0" />
+              <Icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${active ? "" : "text-gray-400 group-hover:text-indigo-600"}`} />
               {(sidebarOpen || mobile) && <span className="truncate">{label}</span>}
             </Link>
           );
@@ -121,8 +123,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <div className="border-t border-gray-200 p-3 space-y-1 flex-shrink-0">
         {(sidebarOpen || mobile) && userName && (
-          <div className="px-3 py-2 text-xs text-gray-500 truncate">
-            <span className="font-medium text-gray-700">{userName}</span>
+          <div className="flex items-center gap-2 px-3 py-2 truncate">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+              {userName.charAt(0).toUpperCase()}
+            </span>
+            <span className="truncate text-sm font-semibold text-indigo-600">{userName}</span>
           </div>
         )}
         <button
@@ -178,8 +183,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <button onClick={() => setMobileOpen(true)} className="p-1.5 text-gray-600 hover:text-gray-900">
             <Menu className="h-5 w-5" />
           </button>
-          <BrainCircuit className="h-5 w-5 text-indigo-600" />
-          <span className="font-bold text-gray-900">AI Talent Finder</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
+            <BrainCircuit className="h-4 w-4" />
+          </div>
+          <span className="font-display font-bold text-gray-900">AI Talent Finder</span>
         </header>
 
         {/* scrollbar-gutter:stable reserves the scrollbar lane even when

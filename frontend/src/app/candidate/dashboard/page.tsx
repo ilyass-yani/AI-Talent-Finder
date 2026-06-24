@@ -83,22 +83,23 @@ export default function CandidateDashboard() {
 {/* Main Content */}
       <div className="max-w-6xl mx-auto">
         {/* Welcome Card */}
-        <div className="bg-white rounded-xl shadow-md p-8 mb-8 border-l-4 border-blue-500">
-          <div className="flex items-start justify-between">
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-8 text-white shadow-xl shadow-indigo-300/30">
+          <div className="absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              <h2 className="font-display text-3xl font-extrabold sm:text-4xl">
                 Bienvenue, {user?.full_name}! 👋
               </h2>
-              <p className="text-gray-600 text-lg">
+              <p className="mt-1.5 max-w-xl text-indigo-100">
                 Mets en avant ton profil et tes compétences pour attirer les meilleurs recruteurs
               </p>
             </div>
             {candidate && candidate.extraction_quality_score && (
-              <div className="text-right">
-                <div className="text-3xl font-bold text-green-600">
+              <div className="flex-shrink-0 rounded-2xl bg-white/15 px-5 py-3 text-center backdrop-blur">
+                <div className="font-display text-3xl font-extrabold">
                   {formatPercent(candidate.extraction_quality_score)}%
                 </div>
-                <div className="text-sm text-gray-600">Profil complet</div>
+                <div className="text-xs text-indigo-100">Profil complet</div>
               </div>
             )}
           </div>
@@ -106,11 +107,11 @@ export default function CandidateDashboard() {
 
         {/* Quick Actions - Onboarding Steps */}
         <div className="mb-12">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Étapes de configuration</h3>
+          <h3 className="font-display text-2xl font-bold text-gray-900 mb-6">Étapes de configuration</h3>
           <div className="grid md:grid-cols-3 gap-6">
             {/* Step 1: Upload CV */}
             <Link href="/candidate/upload">
-              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
+              <div className="card-premium card-glow group h-full cursor-pointer p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="text-4xl group-hover:scale-110 transition-transform">📄</div>
                   <div className={`text-sm font-semibold px-3 py-1 rounded-full ${
@@ -131,7 +132,7 @@ export default function CandidateDashboard() {
 
             {/* Step 2: View Profile */}
             <Link href="/candidate/profile">
-              <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
+              <div className="card-premium card-glow group h-full cursor-pointer p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="text-4xl group-hover:scale-110 transition-transform">🧑</div>
                   <div className={`text-sm font-semibold px-3 py-1 rounded-full ${
@@ -183,9 +184,9 @@ export default function CandidateDashboard() {
 
         {/* Profile Stats */}
         <div className="mb-12">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Ton Profil</h3>
+          <h3 className="font-display text-2xl font-bold text-gray-900 mb-6">Ton Profil</h3>
           <div className="grid md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
+            <div className="card-premium p-6 border-l-4 border-blue-500">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold text-blue-600">
@@ -202,7 +203,7 @@ export default function CandidateDashboard() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+            <div className="card-premium p-6 border-l-4 border-green-500">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold text-green-600">
@@ -225,7 +226,7 @@ export default function CandidateDashboard() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 hover:shadow-lg transition-shadow">
+            <div className="card-premium p-6 border-l-4 border-purple-500">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold text-purple-600">
@@ -240,7 +241,7 @@ export default function CandidateDashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500 hover:shadow-lg transition-shadow">
+            <div className="card-premium p-6 border-l-4 border-orange-500">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold text-orange-600">0</div>

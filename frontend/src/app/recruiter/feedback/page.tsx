@@ -223,7 +223,7 @@ export default function RecruiterFeedbackPage() {
                 <Sparkles className="h-4 w-4" />
                 Phase 3 - Feedback Loop
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
+              <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
                 Boucle de feedback, recommandations et conformité
               </h1>
               <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">
@@ -292,11 +292,7 @@ export default function RecruiterFeedbackPage() {
               </div>
 
               <div className="md:col-span-2 flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={working}
-                  className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
+                <button type="submit" disabled={working} className="btn-primary disabled:cursor-not-allowed disabled:opacity-60">
                   {working ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Enregistrer le feedback
                 </button>
@@ -305,7 +301,7 @@ export default function RecruiterFeedbackPage() {
                   onClick={() => {
                     void loadOverview();
                   }}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="btn-ghost"
                 >
                   Rafraîchir les stats
                 </button>
