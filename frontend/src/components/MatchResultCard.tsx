@@ -84,7 +84,7 @@ export default function MatchResultCard({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-slate-200 overflow-hidden">
+    <div className="card-premium overflow-hidden p-0">
       {/* Compact Header - Always Visible */}
       <div 
         className="p-6 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -98,7 +98,7 @@ export default function MatchResultCard({
                 {result.candidate_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-lg text-slate-900 truncate">{result.candidate_name}</h3>
+                <h3 className="font-display font-bold text-lg text-slate-900 truncate">{result.candidate_name}</h3>
                 <p className="text-sm text-slate-600 truncate">{result.candidate_email}</p>
               </div>
             </div>
@@ -148,10 +148,7 @@ export default function MatchResultCard({
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <button
-                onClick={() => onExplainClick?.(result)}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              >
+              <button onClick={() => onExplainClick?.(result)} className="btn-primary flex-1">
                 <Sparkles size={18} />
                 Explain This Score
               </button>
