@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = 'add_password_reset'
-down_revision: Union[str, None] = 'add_ner_extraction'
+down_revision: Union[str, None] = '20260620_add_recruiter_id'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
