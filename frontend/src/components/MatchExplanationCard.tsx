@@ -47,7 +47,7 @@ export const MatchExplanationCard: React.FC<MatchExplanationCardProps> = ({
       {/* Header with Score */}
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">
+          <h3 className="font-display text-lg font-bold text-gray-900">
             Match Explanation
           </h3>
           <p className="text-gray-600 text-sm mt-1">

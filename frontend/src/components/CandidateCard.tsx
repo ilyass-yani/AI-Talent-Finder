@@ -26,14 +26,19 @@ export default function CandidateCard({
   linkedinUrl,
 }: CandidateCardProps) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-lg transition-shadow">
+    <div className="card-premium card-glow p-5">
       {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <Link href={`/candidates/${id}`} className="text-lg font-semibold text-gray-900 hover:text-indigo-600">
-            {fullName}
-          </Link>
-          <p className="text-sm text-gray-500">{email}</p>
+      <div className="flex justify-between items-start mb-3 gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-base font-bold text-white">
+            {(fullName || 'C')[0].toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <Link href={`/candidates/${id}`} className="font-display text-lg font-bold text-gray-900 hover:text-indigo-600">
+              {fullName}
+            </Link>
+            <p className="text-sm text-gray-500 truncate">{email}</p>
+          </div>
         </div>
         {score !== undefined && <ScoreGauge score={score} />}
       </div>
@@ -72,13 +77,10 @@ export default function CandidateCard({
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Link
-          href={`/candidates/${id}`}
-          className="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 transition-colors text-center"
-        >
+        <Link href={`/candidates/${id}`} className="btn-primary flex-1 !py-2 text-sm">
           Voir Détails
         </Link>
-        <button className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors">
+        <button className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-400 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-500">
           ★
         </button>
       </div>

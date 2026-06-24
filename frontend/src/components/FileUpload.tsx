@@ -56,16 +56,18 @@ export default function FileUpload({ onFileUpload, maxSize = 10 }: FileUploadPro
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-        isDragging ? "border-indigo-500 bg-indigo-50" : "border-gray-300 hover:border-gray-400"
+      className={`rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
+        isDragging ? "border-indigo-500 bg-indigo-50 scale-[1.01]" : "border-gray-300 hover:border-indigo-400 hover:bg-indigo-50/40"
       }`}
     >
-      <Upload className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">Déposez votre CV ici</h3>
+      <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-200/50">
+        <Upload className="h-7 w-7" />
+      </div>
+      <h3 className="font-display text-lg font-bold text-gray-900 mb-1">Déposez votre CV ici</h3>
       <p className="text-sm text-gray-500 mb-4">ou</p>
       <label className="cursor-pointer">
         <input type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
-        <span className="inline-block px-4 py-2 bg-indigo-600 text-white font-medium rounded hover:bg-indigo-700">
+        <span className="btn-primary inline-flex">
           Parcourir
         </span>
       </label>

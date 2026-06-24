@@ -26,7 +26,7 @@ export default function SkillsBreakdown({
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200">
       {/* Header with Coverage */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-slate-900">Skills Analysis</h3>
+        <h3 className="font-display text-xl font-bold text-slate-900">Skills Analysis</h3>
         <div className="text-right">
           <div className="text-3xl font-bold text-blue-600">{coverage.toFixed(0)}%</div>
           <div className="text-xs text-slate-600">Coverage</div>
