@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import { useApi } from "@/hooks/useApi";
 import { criteriaApi, type Criteria, type CriteriaSkillInput } from "@/services/criteria";
@@ -18,7 +18,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { Cell, Legend, Pie, PieChart, Tooltip } from "recharts";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 const palette = [
   "#2563eb", "#0f766e", "#f59e0b", "#7c3aed",
@@ -44,26 +44,6 @@ export default function MatchingPage() {
   const [rankAllLoading, setRankAllLoading] = useState(false);
   const [rankAllResults, setRankAllResults] = useState<RankAllResult[]>([]);
   const [error, setError] = useState("");
-  const [isChartMounted, setIsChartMounted] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const [chartSize, setChartSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    setIsChartMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!chartRef.current) return;
-    const node = chartRef.current;
-    const updateSize = () => {
-      const rect = node.getBoundingClientRect();
-      setChartSize({ width: Math.floor(rect.width), height: Math.floor(rect.height) });
-    };
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!selectedCriteriaId || !criteriaList?.length) return;
@@ -388,13 +368,10 @@ export default function MatchingPage() {
               </div>
             </div>
 
-            <div ref={chartRef} className="h-80 min-w-0 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-              {isChartMounted && pieData.length > 0 && chartSize.width > 0 && chartSize.height > 0 ? (
-                <div className="flex h-full items-center justify-center">
-                  <PieChart
-                    width={Math.max(280, chartSize.width - 32)}
-                    height={Math.max(240, chartSize.height - 24)}
-                  >
+            <div className="h-80 min-w-0 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              {pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
                     <Pie
                       data={pieData}
                       dataKey="value"
@@ -410,7 +387,7 @@ export default function MatchingPage() {
                     <Tooltip />
                     <Legend />
                   </PieChart>
-                </div>
+                </ResponsiveContainer>
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-slate-500">
                   Ajoutez des compétences pour voir la distribution.
