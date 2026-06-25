@@ -106,6 +106,42 @@ def on_startup():
     except Exception as e:
         logging.warning("Could not preload pipeline config: %s", e)
 
+    # Seed the admin account from environment variables.
+    # If ADMIN_EMAIL and ADMIN_PASSWORD are set and no account with that email
+    # exists yet, create it automatically with the admin role.
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+    admin_name = os.getenv("ADMIN_FULL_NAME", "Admin").strip()
+    if admin_email and admin_password:
+        try:
+            from app.core.database import SessionLocal
+            from app.core.security import get_password_hash
+            from app.models.models import User as UserModel, UserRole as DBUserRole
+            _db = SessionLocal()
+            try:
+                existing = _db.query(UserModel).filter(UserModel.email == admin_email).first()
+                if existing:
+                    if existing.role != DBUserRole.admin:
+                        existing.role = DBUserRole.admin
+                        _db.commit()
+                        logging.info("Admin role enforced for: %s", admin_email)
+                else:
+                    admin_user = UserModel(
+                        email=admin_email,
+                        hashed_password=get_password_hash(admin_password),
+                        full_name=admin_name,
+                        role=DBUserRole.admin,
+                    )
+                    _db.add(admin_user)
+                    _db.commit()
+                    logging.info("Admin account created: %s", admin_email)
+            finally:
+                _db.close()
+        except Exception as e:
+            logging.warning("Could not seed admin account: %s", e)
+    else:
+        logging.warning("ADMIN_EMAIL or ADMIN_PASSWORD not set — no admin account seeded.")
+
     # Conditionally include API routers. If a router import fails (e.g. heavy
     # ML dependencies missing), the app still starts and exposes /health.
     include_optional_router("app.api.auth")

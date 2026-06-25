@@ -59,7 +59,7 @@ async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> To
             email=user_create.email,
             hashed_password=hashed_password,
             full_name=user_create.full_name,
-            role=DBUserRole(user_create.role.value),
+            role=DBUserRole(user_create.role.value),  # recruiter or candidate only
         )
         db.add(db_user)
         db.commit()
