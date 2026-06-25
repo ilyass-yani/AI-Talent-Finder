@@ -310,40 +310,45 @@ export default function MatchingPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
                   {selectedSkills.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
                       Commencez par ajouter des compétences depuis le dictionnaire.
                     </div>
                   ) : (
-                    selectedSkills.map(skill => (
-                      <div key={skill.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-semibold text-slate-900">{skill.name}</div>
-                            <div className="text-xs text-slate-500">Poids : {skill.weight}%</div>
+                    selectedSkills.map(skill => {
+                      const contribution = totalWeight > 0 ? Math.round((skill.weight / totalWeight) * 100) : 0;
+                      return (
+                        <div key={skill.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900">{skill.name}</div>
+                              <div className="text-xs text-slate-500">
+                                Importance : {skill.weight} · <span className="font-medium text-sky-600">{contribution}% du total</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill.key)}
+                              className="rounded-xl p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeSkill(skill.key)}
-                            className="rounded-xl p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="mt-3 flex items-center gap-3">
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={skill.weight}
+                              onChange={e => updateSkillWeight(skill.key, Number(e.target.value))}
+                              className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-sky-600"
+                            />
+                            <div className="w-12 text-right text-sm font-semibold text-slate-700">{skill.weight}</div>
+                          </div>
                         </div>
-                        <div className="mt-3 flex items-center gap-3">
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={skill.weight}
-                            onChange={e => updateSkillWeight(skill.key, Number(e.target.value))}
-                            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-sky-600"
-                          />
-                          <div className="w-12 text-right text-sm font-semibold text-slate-700">{skill.weight}%</div>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
