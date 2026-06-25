@@ -3,7 +3,8 @@ Authentication API endpoints - ÉTAPE 3 COMPLÈTE
 This module handles user registration, login, and token generation.
 """
 
-from fastapi import APIRouter, Depends, status, HTTPException, Header, BackgroundTasks
+import os
+from fastapi import APIRouter, Depends, status, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timedelta
@@ -20,10 +21,11 @@ from app.core.dependencies import get_db, get_current_user, log_activity
 from app.schemas.user import (
     UserCreate, UserLogin, UserResponse, Token, TokenData,
     ForgotPasswordRequest, ResetPasswordRequest, MessageResponse,
+    ForgotPasswordResponse,
 )
 from app.models.models import User, UserRole as DBUserRole
-from app.services.email import send_password_reset_email
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 PASSWORD_RESET_TOKEN_EXPIRE_HOURS = 2
 
 
@@ -34,12 +36,12 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> Token:
     """
     Register a new user (ÉTAPE 3)
-    
+
     - **email**: User email address (must be unique)
     - **password**: User password (min 6 characters)
     - **full_name**: User full name
     - **role**: User role (admin, recruiter, candidate) - defaults to recruiter
-    
+
     Returns: Token with access_token, token_type, and user info
     """
     try:
@@ -50,10 +52,10 @@ async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> To
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email already registered"
             )
-        
+
         # 2. Hash password
         hashed_password = get_password_hash(user_create.password)
-        
+
         # 3. Create user in database
         db_user = User(
             email=user_create.email,
@@ -73,12 +75,12 @@ async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> To
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
         )
-    
+
     # 4. Generate access token
     access_token = create_access_token(
         data={"sub": db_user.email, "user_id": db_user.id}
     )
-    
+
     # 5. Return token + user
     return Token(
         access_token=access_token,
@@ -97,10 +99,10 @@ async def register(user_create: UserCreate, db: Session = Depends(get_db)) -> To
 async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
     """
     User login endpoint (ÉTAPE 3)
-    
+
     - **email**: User email address
     - **password**: User password
-    
+
     Returns: Token with access_token, token_type, and user info
     """
     # 1. Find user by email
@@ -110,14 +112,14 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     # 2. Verify password
     if not verify_password(user_login.password, db_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     # 3. Generate access token
     access_token = create_access_token(
         data={"sub": db_user.email, "user_id": db_user.id}
@@ -139,26 +141,28 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
     )
 
 
-@router.post("/forgot-password", response_model=MessageResponse)
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
 async def forgot_password(
     request: ForgotPasswordRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-) -> MessageResponse:
+) -> ForgotPasswordResponse:
     """
     Request a password reset link.
-    Always returns the same message to avoid email enumeration.
+    Returns reset_link only when the account exists; always returns the same
+    message to avoid email enumeration.
     """
+    message = "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."
     user = db.query(User).filter(User.email == request.email).first()
-    if user:
-        token = secrets.token_urlsafe(32)
-        user.reset_password_token = token
-        user.reset_password_token_expires = datetime.utcnow() + timedelta(hours=PASSWORD_RESET_TOKEN_EXPIRE_HOURS)
-        db.commit()
-        background_tasks.add_task(send_password_reset_email, user.email, token)
-    return MessageResponse(
-        message="Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."
-    )
+    if not user:
+        return ForgotPasswordResponse(message=message)
+
+    token = secrets.token_urlsafe(32)
+    user.reset_password_token = token
+    user.reset_password_token_expires = datetime.utcnow() + timedelta(hours=PASSWORD_RESET_TOKEN_EXPIRE_HOURS)
+    db.commit()
+
+    reset_link = f"{FRONTEND_URL}/auth/reset-password?token={token}"
+    return ForgotPasswordResponse(message=message, reset_link=reset_link)
 
 
 @router.post("/reset-password", response_model=MessageResponse)
@@ -194,7 +198,7 @@ async def get_me(
 ) -> UserResponse:
     """
     Get current authenticated user information (ÉTAPE 3)
-    
+
     Requires: Valid JWT token in Authorization header
     """
     return UserResponse(

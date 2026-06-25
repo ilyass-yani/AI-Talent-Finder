@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles, ShieldCheck } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 import { authApi } from '@/services/auth';
 import { getErrorMessage } from '@/utils/errorHandler';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -18,7 +19,17 @@ export default function ForgotPasswordPage() {
     setError('');
     setIsLoading(true);
     try {
-      await authApi.forgotPassword(email);
+      const data = await authApi.forgotPassword(email);
+
+      if (data.reset_link) {
+        await emailjs.send(
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+          { to_email: email, reset_link: data.reset_link },
+          process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
+        );
+      }
+
       setSuccess(true);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
