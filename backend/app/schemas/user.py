@@ -9,12 +9,18 @@ class UserRole(str, Enum):
     candidate = "candidate"
 
 
+class UserRolePublic(str, Enum):
+    """Roles available for public self-registration — admin is excluded."""
+    recruiter = "recruiter"
+    candidate = "candidate"
+
+
 class UserCreate(BaseModel):
-    """Schema for user registration"""
+    """Schema for user registration — admin role is not allowed."""
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: str = Field(..., min_length=2)
-    role: UserRole = UserRole.recruiter
+    role: UserRolePublic = UserRolePublic.recruiter
 
 
 class UserLogin(BaseModel):
