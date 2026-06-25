@@ -21,6 +21,7 @@ export interface Candidate {
   extraction_quality_score?: number;
   ner_extraction_data?: string | null;
   is_fully_extracted?: boolean;
+  is_visible?: boolean;
 }
 
 export interface CandidateVisibilityLike {
@@ -101,4 +102,8 @@ export const candidatesApi = {
   // DELETE /api/candidates/:id — Supprimer un candidat
   deleteCandidate: (id: number) =>
     apiClient.delete(`/candidates/${id}`),
+
+  // PATCH /api/candidates/me/visibility — Basculer la visibilité du profil
+  setVisibility: (visible: boolean) =>
+    apiClient.patch<Candidate>('/candidates/me/visibility', null, { params: { is_visible: visible } }),
 };

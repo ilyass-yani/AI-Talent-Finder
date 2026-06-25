@@ -14,6 +14,8 @@ export default function CandidateProfile() {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [visibilityLoading, setVisibilityLoading] = useState(false);
   const formatPercent = (value?: number | null) => {
     const numericValue = Number(value ?? 0);
     return numericValue <= 1 ? Math.round(numericValue * 100) : Math.round(numericValue);
@@ -24,6 +26,7 @@ export default function CandidateProfile() {
       setLoading(true);
       const response = await candidatesApi.getMyProfile();
       setCandidate(response.data);
+      setIsVisible(response.data.is_visible ?? false);
       setError(null);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
@@ -190,6 +193,19 @@ export default function CandidateProfile() {
       results.push({ title, company, period, responsibilities });
     }
     return results;
+  };
+
+  const handleToggleVisibility = async () => {
+    setVisibilityLoading(true);
+    try {
+      const newValue = !isVisible;
+      await candidatesApi.setVisibility(newValue);
+      setIsVisible(newValue);
+    } catch {
+      setError("Impossible de modifier la visibilité.");
+    } finally {
+      setVisibilityLoading(false);
+    }
   };
 
   const jobTitles = safeJsonParse(candidate.extracted_job_titles, []);
@@ -555,18 +571,36 @@ export default function CandidateProfile() {
             </div>
           </div>
 
-          {/* Visibility Badge */}
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center">
-              <span className="text-3xl mr-3">✓</span>
-              <div>
-                <p className="font-bold text-green-700">Ton profil est visible!</p>
-                <p className="text-sm text-green-600">
-                  {candidate.is_fully_extracted
-                    ? 'Les recruteurs peuvent te découvrir avec toutes tes données'
-                    : 'Complète ton profil pour être plus visible'}
-                </p>
+          {/* Visibility Toggle */}
+          <div className={`p-4 rounded-lg border ${isVisible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{isVisible ? '👁️' : '🙈'}</span>
+                <div>
+                  <p className={`font-bold ${isVisible ? 'text-green-700' : 'text-gray-600'}`}>
+                    {isVisible ? 'Profil visible aux recruteurs' : 'Profil masqué aux recruteurs'}
+                  </p>
+                  <p className={`text-sm ${isVisible ? 'text-green-600' : 'text-gray-500'}`}>
+                    {isVisible
+                      ? 'Les recruteurs peuvent te découvrir et te contacter'
+                      : 'Ton profil est privé, active la visibilité pour être trouvé'}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={handleToggleVisibility}
+                disabled={visibilityLoading}
+                aria-label={isVisible ? 'Masquer mon profil' : 'Rendre mon profil visible'}
+                className={`relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  isVisible ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                    isVisible ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </div>
           </div>
