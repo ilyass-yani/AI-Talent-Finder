@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles, KeyRound, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowLeft, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/services/auth';
 import { getErrorMessage } from '@/utils/errorHandler';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -151,14 +152,8 @@ export default function ResetPasswordPage() {
 
       <nav className="glass-nav border-b border-slate-200 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-300/50">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-indigo-600">AI Recruiting</p>
-              <p className="font-display text-lg font-bold leading-none text-slate-900">AI Talent Finder</p>
-            </div>
+          <Link href="/">
+            <Image src="/logo.png" alt="AI Talent Finder" width={160} height={54} className="h-10 w-auto object-contain" priority />
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />

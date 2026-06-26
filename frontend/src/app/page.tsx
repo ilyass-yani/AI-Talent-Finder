@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
@@ -138,14 +139,8 @@ export default function Home() {
       {/* NAV */}
       <nav className="glass-nav sticky top-0 z-50 border-b border-slate-200 shadow-sm shadow-slate-200/50 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-300/50">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-indigo-600">AI Recruiting Platform</p>
-              <p className="font-display text-lg font-bold leading-none text-slate-900">AI Talent Finder</p>
-            </div>
+          <div className="flex items-center">
+            <Image src="/logo.png" alt="AI Talent Finder" width={160} height={54} className="h-10 w-auto object-contain" priority />
           </div>
 
           <div className="hidden items-center gap-7 md:flex">
@@ -488,11 +483,8 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="border-t border-slate-200 bg-white py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <p className="font-display font-bold text-slate-900">AI Talent Finder</p>
+          <div className="flex items-center">
+            <Image src="/logo.png" alt="AI Talent Finder" width={140} height={46} className="h-9 w-auto object-contain" />
           </div>
           <p className="text-sm text-slate-500">&copy; 2026 AI Talent Finder. Tous droits réservés.</p>
           <p className="text-sm font-semibold text-slate-700">Recruiting Intelligence Platform</p>

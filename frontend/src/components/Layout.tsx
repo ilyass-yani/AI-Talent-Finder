@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from 'next/image';
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -96,11 +97,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <>
       {/* Header */}
       <div className="h-16 flex items-center gap-2.5 px-4 border-b border-gray-200 flex-shrink-0">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-300/40">
-          <BrainCircuit className="h-5 w-5" />
-        </div>
-        {(sidebarOpen || mobile) && (
-          <span className="font-display text-lg font-bold text-gray-900 truncate">AI Talent Finder</span>
+        {sidebarOpen || mobile ? (
+          <Image src="/logo.png" alt="AI Talent Finder" width={150} height={50} className="h-9 w-auto object-contain" />
+        ) : (
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-300/40">
+            <BrainCircuit className="h-5 w-5" />
+          </div>
         )}
         {mobile && (
           <button onClick={() => setMobileOpen(false)} className="ml-auto p-1 text-gray-400 hover:text-gray-600">
@@ -289,10 +291,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <button onClick={() => setMobileOpen(true)} className="p-1.5 text-gray-600 hover:text-gray-900">
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
-            <BrainCircuit className="h-4 w-4" />
-          </div>
-          <span className="font-display font-bold text-gray-900">AI Talent Finder</span>
+          <Image src="/logo.png" alt="AI Talent Finder" width={130} height={44} className="h-8 w-auto object-contain" />
         </header>
 
         {/* scrollbar-gutter:stable reserves the scrollbar lane even when
