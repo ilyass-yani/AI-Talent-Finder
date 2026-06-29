@@ -219,12 +219,6 @@ def score_candidate_against_criteria(
         for item in normalized_criteria
     }
 
-    candidate_vector = [1.0 if skill_name in candidate_skills else 0.0 for skill_name in universe]
-    criteria_vector = [float(criteria_lookup.get(skill_name, 0.0)) / 100.0 for skill_name in universe]
-
-    similarity = _cosine_similarity(candidate_vector, criteria_vector)
-    score = round(max(0.0, min(100.0, similarity * 100.0)), 2)
-
     matched_skills: List[str] = []
     missing_skills: List[str] = []
     skill_breakdown: List[Dict[str, object]] = []
@@ -251,7 +245,13 @@ def score_candidate_against_criteria(
             "contribution": float(weight if present else 0),
         })
 
-    coverage = round((matched_weight / total_weight * 100.0) if total_weight else 0.0, 2)
+    score = round((matched_weight / total_weight * 100.0) if total_weight else 0.0, 2)
+    coverage = score
+
+    candidate_vector = [1.0 if skill_name in candidate_skills else 0.0 for skill_name in universe]
+    criteria_vector = [float(criteria_lookup.get(skill_name, 0.0)) / 100.0 for skill_name in universe]
+    similarity = _cosine_similarity(candidate_vector, criteria_vector)
+
     summary = f"{len(matched_skills)}/{len(normalized_criteria)} compétences couvertes"
 
     return score, {
